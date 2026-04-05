@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Zetaris Prospector</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.x/dist/chart.umd.min.js"></script>
+  <style>
+    [x-cloak] { display: none !important; }
+    .tier-hot { background: #fef2f2; color: #dc2626; border: 1px solid #fecaca; }
+    .tier-warm { background: #fffbeb; color: #d97706; border: 1px solid #fde68a; }
+    .tier-cold { background: #eff6ff; color: #2563eb; border: 1px solid #bfdbfe; }
+    .tier-disqualified { background: #f9fafb; color: #6b7280; border: 1px solid #e5e7eb; }
+    .tier-unscored { background: #f5f3ff; color: #7c3aed; border: 1px solid #ddd6fe; }
+  </style>
+</head>
+<body class="bg-gray-50 min-h-screen" x-data="prospectorApp()" x-init="init()">
+
+  <!-- Header -->
+  <header class="bg-white border-b border-gray-200 sticky top-0 z-10">
+    <div class="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between">
+      <div class="flex items-center gap-3">
+        <div class="w-8 h-8 bg-indigo-600 rounded-lg flex items-center justify-center">
+          <span class="text-white font-bold text-sm">Z</span>
+        </div>
+        <div>
+          <h1 class="font-bold text-gray-900 leading-none">Zetaris Prospector</h1>
+          <p class="text-xs text-gray-500">AI-Powered Sales Intelligence</p>
+        </div>
+      </div>
+      <div class="flex items-center gap-3">
+        <span class="text-sm text-gray-500" x-text="stats ? `${stats.total_prospects} prospects` : ''"></span>
+        <a href="/add" class="bg-indigo-600 text-white text-sm px-4 py-2 rounded-lg hover:bg-indigo-700 transition">
+          + Add Prospect
+        </a>
+      </div>
+    </div>
+  </header>
+
+  <div class="max-w-7xl mx-auto px-4 py-6">
+
+    <!-- Stats Bar -->
+    <div x-show="stats" x-cloak class="grid grid-cols-2 md:grid-cols-5 gap-4 mb-6">
+      <template x-for="[tier, label, cls] in [['Hot','Hot','tier-hot'],['Warm','Warm','tier-warm'],['Cold','Cold','tier-cold'],['Disqualified','DQ','tier-disqualified'],['Unscored','Unscored','tier-unscored']]">
+        <div :class="cls" class="rounded-lg px-3 py-2 text-center cursor-pointer hover:opacity-80 transition"
+          @click="filterTier = filterTier === tier ? '' : tier; loadProspects()">
+          <div class="font-bold text-lg" x-text="stats?.tier_counts?.[tier] ?? 0"></div>
+          <div class="text-xs font-medium" x-text="label"></div>
+        </div>
+      </template>
+    </div>
+
+    <!-- Filters Row -->
+    <div class="bg-white rounded-xl border border-gray-200 p-4 mb-4 flex flex-wrap gap-3 items-center">
+      <input
+        type="search"
+        placeholder="Search company or domain..."
+        class="flex-1 min-w-48 border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400"
+        x-model="searchQuery"
+        @input.debounce.400ms="loadProspects()"
+      />
+      <select class="border border-gray-300 rounded-lg px-3 py-2 text-sm" x-model="filterTier" @change="loadProspects()">
+        <option value="">All Tiers</option>
+        <option>Hot</option>
+        <option>Warm</option>
+        <option>Cold</option>
+        <option>Disqualified</option>
+        <option>Unscored</option>
+      </select>
+      <select class="border border-gray-300 rounded-lg px-3 py-2 text-sm" x-model="sortBy" @change="loadProspects()">
+        <option value="icp_score">Sort: Score</option>
+        <option value="company_name">Sort: Name</option>
+        <option value="created_at">Sort: Created</option>
+        <option value="last_enriched_at">Sort: Enriched</option>
+      </select>
+      <a href="/api/export/csv" class="text-sm text-gray-600 hover:text-indigo-600 border border-gray-300 px-3 py-2 rounded-lg">
+        Export CSV
+      </a>
+    </div>
+
+    <!-- Loading State -->
+    <div x-show="loading" class="text-center py-16 text-gray-400">
+      <div class="inline-block w-8 h-8 border-4 border-indigo-200 border-t-indigo-600 rounded-full animate-spin mb-2"></div>
+      <p class="text-sm">Loading prospects...</p>
+    </div>
+
+    <!-- Empty State -->
+    <div x-show="!loading && prospects.length === 0" class="text-center py-16">
+      <div class="text-5xl mb-4">🎯</div>
+      <h3 class="text-lg font-semibold text-gray-700 mb-2">No prospects yet</h3>
+      <p class="text-gray-500 text-sm mb-4">Add your first prospect or import a CSV to get started.</p>
+      <a href="/add" class="bg-indigo-600 text-white px-6 py-2 rounded-lg hover:bg-indigo-700 transition text-sm">Add First Prospect</a>
+    </div>
+
+    <!-- Prospects Table -->
+    <div x-show="!loading && prospects.length > 0" x-cloak class="bg-white rounded-xl border border-gray-200 overflow-hidden">
+      <table class="w-full text-sm">
+        <thead class="bg-gray-50 border-b border-gray-200">
+          <tr>
+            <th class="text-left px-4 py-3 text-gray-600 font-medium">Company</th>
+            <th class="text-left px-4 py-3 text-gray-600 font-medium">Industry</th>
+            <th class="text-left px-4 py-3 text-gray-600 font-medium">Score</th>
+            <th class="text-left px-4 py-3 text-gray-600 font-medium">Tier</th>
+            <th class="text-left px-4 py-3 text-gray-600 font-medium">Status</th>
+            <th class="text-left px-4 py-3 text-gray-600 font-medium">Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          <template x-for="p in prospects" :key="p.id">
+            <tr class="border-b border-gray-100 hover:bg-gray-50 transition">
+              <td class="px-4 py-3">
+                <a :href="`/prospect/${p.id}`" class="font-medium text-gray-900 hover:text-indigo-600" x-text="p.company_name"></a>
+                <div class="text-xs text-gray-400" x-text="p.domain"></div>
+              </td>
+              <td class="px-4 py-3 text-gray-600" x-text="p.industry || '—'"></td>
+              <td class="px-4 py-3">
+                <div class="flex items-center gap-2">
+                  <div class="w-20 bg-gray-200 rounded-full h-1.5">
+                    <div class="h-1.5 rounded-full transition-all"
+                      :class="p.icp_score >= 70 ? 'bg-red-500' : p.icp_score >= 40 ? 'bg-amber-500' : p.icp_score >= 15 ? 'bg-blue-500' : 'bg-gray-400'"
+                      :style="`width:${Math.min(p.icp_score,100)}%`"></div>
+                  </div>
+                  <span class="font-mono font-bold text-gray-800" x-text="p.icp_score.toFixed(0)"></span>
+                </div>
+              </td>
+              <td class="px-4 py-3">
+                <span class="text-xs font-semibold px-2 py-1 rounded-full"
+                  :class="`tier-${(p.icp_tier||'unscored').toLowerCase()}`"
+                  x-text="p.icp_tier || 'Unscored'"></span>
+              </td>
+              <td class="px-4 py-3">
+                <span class="text-xs" :class="{
+                  'text-green-600': p.enrichment_status === 'complete',
+                  'text-amber-600': p.enrichment_status === 'in_progress',
+                  'text-gray-400': p.enrichment_status === 'pending',
+                  'text-red-500': p.enrichment_status === 'failed',
+                }" x-text="p.enrichment_status"></span>
+              </td>
+              <td class="px-4 py-3">
+                <div class="flex gap-2">
+                  <a :href="`/prospect/${p.id}`" class="text-indigo-600 hover:underline text-xs">View</a>
+                  <button @click="enrich(p.id)" class="text-gray-500 hover:text-indigo-600 text-xs">Re-enrich</button>
+                  <button @click="synthesize(p.id)" class="text-gray-500 hover:text-green-600 text-xs">Synthesize</button>
+                </div>
+              </td>
+            </tr>
+          </template>
+        </tbody>
+      </table>
+
+      <!-- Pagination -->
+      <div class="px-4 py-3 flex items-center justify-between border-t border-gray-100 text-sm text-gray-600">
+        <span x-text="`${total} total prospects`"></span>
+        <div class="flex gap-2">
+          <button :disabled="page === 0" @click="page--; loadProspects()"
+            class="px-3 py-1 rounded border disabled:opacity-40 hover:bg-gray-100">Prev</button>
+          <span x-text="`Page ${page + 1} of ${Math.max(1, Math.ceil(total / pageSize))}`"></span>
+          <button :disabled="(page + 1) * pageSize >= total" @click="page++; loadProspects()"
+            class="px-3 py-1 rounded border disabled:opacity-40 hover:bg-gray-100">Next</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Toast notification -->
+    <div x-show="toast" x-cloak x-transition
+      class="fixed bottom-6 right-6 bg-gray-900 text-white text-sm px-4 py-2 rounded-lg shadow-lg"
+      x-text="toast"></div>
+  </div>
+
+  <script>
+    function prospectorApp() {
+      return {
+        prospects: [],
+        stats: null,
+        loading: true,
+        total: 0,
+        page: 0,
+        pageSize: 50,
+        searchQuery: '',
+        filterTier: '',
+        sortBy: 'icp_score',
+        toast: '',
+
+        async init() {
+          await Promise.all([this.loadProspects(), this.loadStats()]);
+          // Poll for in-progress enrichments every 5s
+          setInterval(() => {
+            const hasInProgress = this.prospects.some(p => p.enrichment_status === 'in_progress');
+            if (hasInProgress) this.loadProspects();
+          }, 5000);
+        },
+
+        async loadProspects() {
+          this.loading = true;
+          const params = new URLSearchParams({
+            skip: this.page * this.pageSize,
+            limit: this.pageSize,
+            sort_by: this.sortBy,
+            sort_dir: 'desc',
+          });
+          if (this.filterTier) params.set('tier', this.filterTier);
+          if (this.searchQuery) params.set('search', this.searchQuery);
+          const r = await fetch(`/api/prospects?${params}`);
+          const data = await r.json();
+          this.prospects = data.items;
+          this.total = data.total;
+          this.loading = false;
+        },
+
+        async loadStats() {
+          const r = await fetch('/api/dashboard/stats');
+          this.stats = await r.json();
+        },
+
+        async enrich(id) {
+          await fetch(`/api/prospects/${id}/enrich`, { method: 'POST', headers: {'Content-Type':'application/json'}, body: '{}' });
+          this.showToast('Enrichment started...');
+          setTimeout(() => this.loadProspects(), 2000);
+        },
+
+        async synthesize(id) {
+          await fetch(`/api/prospects/${id}/synthesize`, { method: 'POST', headers: {'Content-Type':'application/json'}, body: '{}' });
+          this.showToast('AI synthesis started...');
+        },
+
+        showToast(msg) {
+          this.toast = msg;
+          setTimeout(() => this.toast = '', 3000);
+        },
+      };
+    }
+  </script>
+</body>
+</html>

@@ -1,0 +1,30 @@
+/* Zetaris Prospector — custom styles (Tailwind handles most styling via CDN) */
+
+/* Score bar animation */
+.score-bar {
+  transition: width 0.6s ease-in-out;
+}
+
+/* Signal card hover */
+.signal-card:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+}
+
+/* Pulse animation for in-progress enrichment */
+@keyframes pulse-border {
+  0%, 100% { border-color: #c7d2fe; }
+  50% { border-color: #6366f1; }
+}
+.enriching {
+  animation: pulse-border 2s ease-in-out infinite;
+}
+
+/* Markdown prose rendering */
+.prose h2 { font-size: 1.05rem; font-weight: 700; margin: 1.2rem 0 0.4rem; color: #1e293b; }
+.prose h3 { font-size: 0.95rem; font-weight: 600; margin: 0.9rem 0 0.3rem; color: #334155; }
+.prose ul { list-style: disc; padding-left: 1.2rem; margin-bottom: 0.6rem; }
+.prose li { font-size: 0.875rem; color: #475569; margin-bottom: 0.2rem; line-height: 1.55; }
+.prose p { font-size: 0.875rem; color: #475569; margin-bottom: 0.5rem; line-height: 1.6; }
+.prose strong { font-weight: 600; color: #1e293b; }
+.prose code { background: #f1f5f9; padding: 0.1em 0.3em; border-radius: 3px; font-size: 0.82em; }

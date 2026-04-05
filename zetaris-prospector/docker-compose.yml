@@ -1,0 +1,11 @@
+services:
+  prospector:
+    build: .
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./data:/data
+      - ./.env:/app/.env:ro
+    environment:
+      - DATABASE_URL=sqlite+aiosqlite:////data/zetaris_prospects.db
+    restart: unless-stopped
