@@ -106,12 +106,16 @@ static const u8 font6x8[][8] = {
 void txt_draw_char(int x, int y, char c, u16 fg, u16 bg) {
     if (c < 32 || c > 126) c = ' ';
     const u8* bmap = font6x8[c - 32];
+    /* Resolve palette indices once per character, not once per pixel */
+    u8 fg_idx = gfx_color_idx(fg);
+    u8 bg_idx = (bg != 0xFFFF) ? gfx_color_idx(bg) : 0xFF;
     for (int row = 0; row < CHAR_H; row++) {
         u8 bits = bmap[row];
         for (int col = 0; col < CHAR_W; col++) {
-            u16 pix = (bits & (0x20 >> col)) ? fg : bg;
-            if (pix != 0xFFFF)  /* 0xFFFF = transparent */
-                gfx_draw_pixel(x + col, y + row, pix);
+            /* bit0 = leftmost pixel (LSB-first font encoding) */
+            u8 idx = (bits & (1 << col)) ? fg_idx : bg_idx;
+            if (idx != 0xFF)
+                gfx_draw_pixel_idx(x + col, y + row, idx);
         }
     }
 }

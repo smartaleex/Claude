@@ -28,6 +28,8 @@ void gfx_init(void);
 void gfx_fill(u16 color);
 void gfx_fill_rect(int x, int y, int w, int h, u16 color);
 void gfx_draw_pixel(int x, int y, u16 color);
+u8   gfx_color_idx(u16 color);
+void gfx_draw_pixel_idx(int x, int y, u8 idx);
 void gfx_draw_hline(int x, int y, int w, u16 color);
 void gfx_draw_vline(int x, int y, int h, u16 color);
 void gfx_draw_rect(int x, int y, int w, int h, u16 color);

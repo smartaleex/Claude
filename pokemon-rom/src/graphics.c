@@ -62,6 +62,23 @@ void gfx_init(void) {
     pal_idx(COL_TAN);     pal_idx(COL_SKYBLUE); pal_idx(COL_GRASS);
     pal_idx(COL_WATER);   pal_idx(COL_SAND);    pal_idx(COL_BARK);
     for (int i = 0; i < 19; i++) pal_idx(TYPE_COLORS[i]);
+    /* Overworld tile colors */
+    pal_idx(RGB( 8,20, 6)); pal_idx(RGB( 4,16, 2)); pal_idx(RGB(22,18,12));
+    pal_idx(RGB( 4,16,26)); pal_idx(RGB( 4,12, 2)); pal_idx(RGB(10,10,10));
+    pal_idx(RGB(26,24,14)); pal_idx(RGB(20,16, 6)); pal_idx(RGB( 8,22, 6));
+    pal_idx(RGB( 8, 8, 8));
+    /* Tile detail colors */
+    pal_idx(RGB(4,18,2));   pal_idx(RGB(2,22,0));   pal_idx(RGB(8,20,30));
+    pal_idx(RGB(24,20,8));  pal_idx(RGB(18,16,10)); pal_idx(RGB(7,7,7));
+    /* HUD background colors */
+    pal_idx(RGB(2,4,6));    pal_idx(RGB(2,4,8));    pal_idx(RGB(2,4,10));
+    pal_idx(RGB(4,8,16));   pal_idx(RGB(4,8,20));   pal_idx(RGB(2,4,10));
+    pal_idx(RGB(2,6,18));   pal_idx(RGB(4,6,8));    pal_idx(RGB(2,4,12));
+    /* Battle background colors */
+    pal_idx(RGB(20,24,12)); pal_idx(RGB(14,18,8));  pal_idx(RGB(16,20,10));
+    pal_idx(RGB(18,14, 6)); pal_idx(RGB(14,10, 4)); pal_idx(RGB(10,14,18));
+    pal_idx(RGB( 6,10,14)); pal_idx(RGB( 0,28, 0));
+    pal_idx(RGB(31,28, 0)); pal_idx(RGB(31, 0, 0));
 
     /* BG2 affine: identity matrix — Mode 4 uses affine BG2, and without
        the BIOS the PA/PD registers default to garbage (often −1.0),
@@ -97,9 +114,18 @@ static inline void m4_pixel(volatile u16* vram, int x, int y, u8 idx) {
 
 /* ── Public drawing primitives ───────────────────────────────────── */
 
+u8 gfx_color_idx(u16 color) {
+    return pal_idx(color);
+}
+
+void gfx_draw_pixel_idx(int x, int y, u8 idx) {
+    if ((unsigned)x >= SCREEN_W || (unsigned)y >= SCREEN_H) return;
+    m4_pixel(back_buf(), x, y, idx);
+}
+
 void gfx_draw_pixel(int x, int y, u16 color) {
     if ((unsigned)x >= SCREEN_W || (unsigned)y >= SCREEN_H) return;
-    if (color == 0xFFFF) return;   /* transparent sentinel used by text */
+    if (color == 0xFFFF) return;
     m4_pixel(back_buf(), x, y, pal_idx(color));
 }
 
