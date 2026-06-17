@@ -1,27 +1,123 @@
 #include "game.h"
 
-/* ── Pixel / fill primitives ─────────────────────────────────────── */
+/* ── Palette management ──────────────────────────────────────────── */
+
+static u16  pal_cache[256];   /* RGB15 value for each palette index    */
+static u8   pal_count = 1;    /* index 0 = black, start at 1           */
+
+u8 gfx_back_page = 1;         /* currently drawing to page 1           */
+
+/* Map an RGB15 color to a palette index, registering if not present. */
+static u8 pal_idx(u16 rgb15) {
+    if (rgb15 == COL_BLACK) return 0;
+    for (u8 i = 1; i < pal_count; i++)
+        if (pal_cache[i] == rgb15) return i;
+    if (pal_count < 255) {
+        u8 idx = pal_count++;
+        pal_cache[idx] = rgb15;
+        PAL_BG[idx]    = rgb15;
+        return idx;
+    }
+    return 1; /* palette full — fall back to first non-black */
+}
+
+/* DMA3 32-bit fill: fills 'words' 32-bit words at dst with val. */
+static volatile u32 dma_fill_val;
+
+static void dma3_fill32(volatile void* dst, u32 val, u32 words) {
+    dma_fill_val  = val;
+    REG_DMA3SAD   = (u32)&dma_fill_val;
+    REG_DMA3DAD   = (u32)dst;
+    REG_DMA3CNT_L = (u16)words;
+    REG_DMA3CNT_H = 0x8500;   /* enable | 32-bit transfer | src fixed */
+    /* DMA has bus priority; CPU stalls until transfer completes */
+    while (REG_DMA3CNT_H & 0x8000);
+}
+
+void gfx_init(void) {
+    /* Palette entry 0 = black (shown when pixel index is 0) */
+    PAL_BG[0]    = COL_BLACK;
+    pal_cache[0] = COL_BLACK;
+    pal_count    = 1;
+
+    /* Pre-register named colors so their indices are stable */
+    pal_idx(COL_WHITE);   pal_idx(COL_RED);     pal_idx(COL_GREEN);
+    pal_idx(COL_BLUE);    pal_idx(COL_YELLOW);  pal_idx(COL_ORANGE);
+    pal_idx(COL_PURPLE);  pal_idx(COL_CYAN);    pal_idx(COL_PINK);
+    pal_idx(COL_GRAY);    pal_idx(COL_DGRAY);   pal_idx(COL_LGRAY);
+    pal_idx(COL_BROWN);   pal_idx(COL_DARKBLUE);pal_idx(COL_DARKGREEN);
+    pal_idx(COL_DKRED);   pal_idx(COL_GOLD);    pal_idx(COL_SILVER);
+    pal_idx(COL_TAN);     pal_idx(COL_SKYBLUE); pal_idx(COL_GRASS);
+    pal_idx(COL_WATER);   pal_idx(COL_SAND);    pal_idx(COL_BARK);
+    for (int i = 0; i < 19; i++) pal_idx(TYPE_COLORS[i]);
+
+    /* Clear both VRAM pages to black (palette index 0) */
+    dma3_fill32(VRAM_PAGE0, 0, SCREEN_W * SCREEN_H / 4);
+    dma3_fill32(VRAM_PAGE1, 0, SCREEN_W * SCREEN_H / 4);
+
+    gfx_back_page = 1;   /* start drawing to page 1; page 0 displayed */
+}
+
+/* ── Back-buffer pointer ─────────────────────────────────────────── */
+
+static inline volatile u16* back_buf(void) {
+    return gfx_back_page ? VRAM_PAGE1 : VRAM_PAGE0;
+}
+
+/* Write one pixel into the back buffer (Mode 4: 2 pixels per u16). */
+static inline void m4_pixel(volatile u16* vram, int x, int y, u8 idx) {
+    volatile u16* cell = vram + (y * (SCREEN_W / 2) + (x >> 1));
+    if (x & 1)
+        *cell = (*cell & 0x00FFu) | ((u16)idx << 8);
+    else
+        *cell = (*cell & 0xFF00u) | (u16)idx;
+}
+
+/* ── Public drawing primitives ───────────────────────────────────── */
 
 void gfx_draw_pixel(int x, int y, u16 color) {
-    if ((unsigned)x < SCREEN_W && (unsigned)y < SCREEN_H)
-        VRAM[y * SCREEN_W + x] = color;
+    if ((unsigned)x >= SCREEN_W || (unsigned)y >= SCREEN_H) return;
+    if (color == 0xFFFF) return;   /* transparent sentinel used by text */
+    m4_pixel(back_buf(), x, y, pal_idx(color));
 }
 
 void gfx_fill(u16 color) {
-    volatile u32* p = (volatile u32*)VRAM;
-    u32 c32 = (u32)color | ((u32)color << 16);
-    for (int i = 0; i < (SCREEN_W * SCREEN_H / 2); i++)
-        p[i] = c32;
+    u8  idx    = pal_idx(color);
+    u32 packed = (u32)idx | ((u32)idx << 8) | ((u32)idx << 16) | ((u32)idx << 24);
+    dma3_fill32(back_buf(), packed, SCREEN_W * SCREEN_H / 4);
 }
 
 void gfx_fill_rect(int x, int y, int w, int h, u16 color) {
     int x2 = x + w, y2 = y + h;
-    if (x < 0) x = 0; if (y < 0) y = 0;
+    if (x  < 0)       x  = 0;
+    if (y  < 0)       y  = 0;
     if (x2 > SCREEN_W) x2 = SCREEN_W;
     if (y2 > SCREEN_H) y2 = SCREEN_H;
+    if (x >= x2 || y >= y2) return;
+
+    u8  idx  = pal_idx(color);
+    u16 pair = (u16)idx | ((u16)idx << 8);
+    volatile u16* vram = back_buf();
+
     for (int row = y; row < y2; row++) {
-        volatile u16* p = VRAM + row * SCREEN_W + x;
-        for (int col = x; col < x2; col++) *p++ = color;
+        volatile u16* line = vram + row * (SCREEN_W / 2);
+        int col = x;
+
+        /* handle odd left edge */
+        if (col & 1) {
+            volatile u16* cell = line + (col >> 1);
+            *cell = (*cell & 0x00FFu) | ((u16)idx << 8);
+            col++;
+        }
+        /* bulk 16-bit pair writes */
+        volatile u16* p     = line + (col >> 1);
+        int           pairs = (x2 - col) >> 1;
+        for (int i = 0; i < pairs; i++) *p++ = pair;
+        col += pairs << 1;
+
+        /* handle odd right edge */
+        if (col < x2)
+            *p = (*p & 0xFF00u) | (u16)idx;
     }
 }
 
@@ -34,10 +130,10 @@ void gfx_draw_vline(int x, int y, int h, u16 color) {
 }
 
 void gfx_draw_rect(int x, int y, int w, int h, u16 color) {
-    gfx_draw_hline(x, y, w, color);
-    gfx_draw_hline(x, y+h-1, w, color);
-    gfx_draw_vline(x, y, h, color);
-    gfx_draw_vline(x+w-1, y, h, color);
+    gfx_draw_hline(x,     y,     w, color);
+    gfx_draw_hline(x,     y+h-1, w, color);
+    gfx_draw_vline(x,     y,     h, color);
+    gfx_draw_vline(x+w-1, y,     h, color);
 }
 
 /* ── Circle / ellipse ────────────────────────────────────────────── */
@@ -50,25 +146,24 @@ static int isqrt(int n) {
 }
 
 void gfx_draw_circle(int cx, int cy, int r, u16 fill, u16 border) {
-    for (int y = -r; y <= r; y++) {
-        int half = isqrt(r*r - y*y);
+    for (int dy = -r; dy <= r; dy++) {
+        int half = isqrt(r*r - dy*dy);
         if (fill != 0xFFFF)
-            gfx_draw_hline(cx - half, cy + y, half*2+1, fill);
-        gfx_draw_pixel(cx - half, cy + y, border);
-        gfx_draw_pixel(cx + half, cy + y, border);
+            gfx_draw_hline(cx - half, cy + dy, half*2+1, fill);
+        gfx_draw_pixel(cx - half, cy + dy, border);
+        gfx_draw_pixel(cx + half, cy + dy, border);
     }
 }
 
 void gfx_draw_ellipse(int cx, int cy, int rx, int ry, u16 fill, u16 border) {
-    for (int y = -ry; y <= ry; y++) {
-        /* x = rx * sqrt(1 - (y/ry)^2) */
-        int sq = ry*ry - y*y;
+    for (int dy = -ry; dy <= ry; dy++) {
+        int sq = ry*ry - dy*dy;
         if (sq < 0) sq = 0;
         int half = gba_div(rx * isqrt(sq * 256), ry * 16);
         if (fill != 0xFFFF)
-            gfx_draw_hline(cx - half, cy + y, half*2+1, fill);
-        gfx_draw_pixel(cx - half, cy + y, border);
-        gfx_draw_pixel(cx + half, cy + y, border);
+            gfx_draw_hline(cx - half, cy + dy, half*2+1, fill);
+        gfx_draw_pixel(cx - half, cy + dy, border);
+        gfx_draw_pixel(cx + half, cy + dy, border);
     }
 }
 
@@ -80,11 +175,8 @@ void gfx_draw_hp_bar(int x, int y, int w, int h, int hp, int max_hp) {
     if (filled > w) filled = w;
     if (filled < 0) filled = 0;
 
-    u16 bar_color;
     int pct = gba_div(hp * 100, max_hp);
-    if (pct > 50) bar_color = RGB(0, 28, 0);
-    else if (pct > 20) bar_color = RGB(31, 28, 0);
-    else bar_color = RGB(31, 0, 0);
+    u16 bar_color = (pct > 50) ? RGB(0,28,0) : (pct > 20) ? RGB(31,28,0) : RGB(31,0,0);
 
     gfx_fill_rect(x, y, w, h, COL_DGRAY);
     if (filled > 0) gfx_fill_rect(x, y, filled, h, bar_color);
@@ -93,63 +185,43 @@ void gfx_draw_hp_bar(int x, int y, int w, int h, int hp, int max_hp) {
 
 /* ── Pokemon silhouette sprite ───────────────────────────────────── */
 
-/* Draw a stylized Pokemon sprite using ellipses colored by type.
-   The shape varies by species_id to give each Pokemon a unique look. */
 void gfx_draw_pokemon(int cx, int cy, int radius, u16 species_id, int back) {
     const SpeciesData* sp = &species_data[species_id];
-    u16 fill = TYPE_COLORS[sp->type1];
+    u16 fill   = TYPE_COLORS[sp->type1];
     u16 border = COL_BLACK;
 
-    /* vary shape using species_id */
     u8 variant = (u8)(species_id & 0xFF) ^ (u8)(species_id >> 8);
+    int rx = radius, ry = radius;
 
-    int rx = radius;
-    int ry = radius;
-
-    /* Some species are wider, some taller, some rounder */
     u8 shape = variant & 3;
-    if (shape == 0) { rx = radius; ry = (radius*3)/4; }          /* wide */
-    else if (shape == 1) { rx = (radius*3)/4; ry = radius; }     /* tall */
-    else if (shape == 2) { rx = (radius*5)/6; ry = (radius*5)/6;} /* round */
-    else { rx = radius; ry = radius; }
+    if      (shape == 0) { ry = (radius*3)/4; }
+    else if (shape == 1) { rx = (radius*3)/4; }
+    else if (shape == 2) { rx = ry = (radius*5)/6; }
 
-    if (back) {
-        /* back sprite: slightly smaller, viewed from behind */
-        rx = (rx * 4) / 5;
-        ry = (ry * 4) / 5;
-        cy += radius / 5;
-    }
+    if (back) { rx = (rx*4)/5; ry = (ry*4)/5; cy += radius/5; }
 
-    /* body */
     gfx_draw_ellipse(cx, cy, rx, ry, fill, border);
 
-    /* head (smaller circle above body, if radius big enough) */
     if (radius >= 18) {
-        int hr = (radius * 2) / 5;
+        int hr = (radius*2)/5;
         int hx = cx + (back ? 0 : (((variant>>2)&1) ? -rx/4 : rx/4));
         int hy = cy - ry - hr + 3;
         u16 hfill = TYPE_COLORS[(sp->type2 != TYPE_NONE) ? sp->type2 : sp->type1];
         gfx_draw_ellipse(hx, hy, hr, hr, hfill, border);
-
-        /* eye dots */
         if (!back) {
-            gfx_draw_pixel(hx + 2, hy - 2, COL_WHITE);
-            gfx_draw_pixel(hx - 2, hy - 2, COL_WHITE);
+            gfx_draw_pixel(hx+2, hy-2, COL_WHITE);
+            gfx_draw_pixel(hx-2, hy-2, COL_WHITE);
         }
     }
 
-    /* optional tail / feature based on variant */
     if ((variant & 0x0C) == 0x04 && radius >= 16) {
-        /* tail to the right */
         int tx = cx + rx;
         for (int i = 0; i < radius/3; i++) {
-            gfx_draw_pixel(tx + i, cy - i/2, fill);
-            gfx_draw_pixel(tx + i, cy - i/2 + 1, border);
+            gfx_draw_pixel(tx+i, cy - i/2,     fill);
+            gfx_draw_pixel(tx+i, cy - i/2 + 1, border);
         }
     } else if ((variant & 0x0C) == 0x08 && radius >= 16) {
-        /* fin on top */
-        for (int i = 0; i < radius/3; i++) {
+        for (int i = 0; i < radius/3; i++)
             gfx_draw_pixel(cx, cy - ry - i, fill);
-        }
     }
 }

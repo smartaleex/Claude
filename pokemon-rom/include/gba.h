@@ -18,13 +18,29 @@ typedef int32_t  s32;
 #define ROM_BASE    0x08000000
 
 /* ── Display registers ───────────────────────────────────────────── */
-#define REG_DISPCNT   (*(volatile u32*)(IO_BASE + 0x000))
+#define REG_DISPCNT   (*(volatile u16*)(IO_BASE + 0x000))
 #define REG_DISPSTAT  (*(volatile u16*)(IO_BASE + 0x004))
 #define REG_VCOUNT    (*(volatile u16*)(IO_BASE + 0x006))
 
-#define DCNT_MODE3    0x0003
 #define DCNT_BG2      0x0400
-#define MODE3_ENABLE  (DCNT_MODE3 | DCNT_BG2)
+
+/* Mode 4: 8-bpp paletted, double-buffered */
+#define DCNT_MODE4    0x0004
+#define DCNT_PAGE     0x0010   /* page-select bit: 0=page0 shown, 1=page1 shown */
+#define MODE4_ENABLE  (DCNT_MODE4 | DCNT_BG2)   /* 0x0404 */
+
+/* Mode 4 VRAM pages (each 240×160 bytes) */
+#define VRAM_PAGE0 ((volatile u16*)(VRAM_BASE))
+#define VRAM_PAGE1 ((volatile u16*)(VRAM_BASE + 0xA000))
+
+/* Palette BG RAM (256 × RGB15 entries) */
+#define PAL_BG ((volatile u16*)(PAL_BASE))
+
+/* ── DMA channel 3 ───────────────────────────────────────────────── */
+#define REG_DMA3SAD   (*(volatile u32*)(IO_BASE + 0x0D4))
+#define REG_DMA3DAD   (*(volatile u32*)(IO_BASE + 0x0D8))
+#define REG_DMA3CNT_L (*(volatile u16*)(IO_BASE + 0x0DC))
+#define REG_DMA3CNT_H (*(volatile u16*)(IO_BASE + 0x0DE))
 
 /* ── Key input ───────────────────────────────────────────────────── */
 #define REG_KEYINPUT  (*(volatile u16*)(IO_BASE + 0x130))
@@ -40,12 +56,11 @@ typedef int32_t  s32;
 #define KEY_R       0x0100
 #define KEY_L       0x0200
 
-/* ── VRAM ────────────────────────────────────────────────────────── */
-#define VRAM ((volatile u16*)(VRAM_BASE))
+/* ── Screen dimensions ───────────────────────────────────────────── */
 #define SCREEN_W 240
 #define SCREEN_H 160
 
-/* ── RGB color helpers (RGB15 format) ────────────────────────────── */
+/* ── RGB color helpers (RGB15 format, stored in palette RAM) ─────── */
 #define RGB(r,g,b) ((u16)((r) | ((g)<<5) | ((b)<<10)))
 
 #define COL_BLACK     RGB( 0, 0, 0)
@@ -74,10 +89,15 @@ typedef int32_t  s32;
 #define COL_SAND      RGB(28,26,16)
 #define COL_BARK      RGB(14, 9, 3)
 
-/* ── vsync / input ───────────────────────────────────────────────── */
+/* ── Double-buffer page tracker (defined in graphics.c) ─────────── */
+extern u8 gfx_back_page;   /* 0 = drawing to page 0, 1 = drawing to page 1 */
+
+/* ── vsync: wait for VBlank then flip pages ──────────────────────── */
 static inline void vsync(void) {
-    while (REG_VCOUNT >= 160);
-    while (REG_VCOUNT < 160);
+    while (REG_VCOUNT >= 160);   /* wait for end of any current VBlank   */
+    while (REG_VCOUNT < 160);    /* wait for start of next VBlank        */
+    REG_DISPCNT ^= DCNT_PAGE;    /* flip display page atomically          */
+    gfx_back_page ^= 1;          /* track which page is now the back buf  */
 }
 
 /* keys_held: currently pressed keys (active HIGH) */
@@ -86,8 +106,6 @@ static inline u16 keys_held(void) {
 }
 
 /* ── Integer math helpers ────────────────────────────────────────── */
-/* ARM7TDMI has no hardware divide; arm-none-eabi-gcc + -lgcc
-   compiles / and % to __aeabi_idiv/__aeabi_idivmod automatically. */
 static inline s32 gba_div(s32 a, s32 b) { if (!b) return 0; return a / b; }
 static inline s32 gba_mod(s32 a, s32 b) { if (!b) return 0; return a % b; }
 

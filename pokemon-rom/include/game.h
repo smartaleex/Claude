@@ -21,6 +21,9 @@ void battle_update(void);
 void overworld_init(void);
 void overworld_update(void);
 
+/* graphics init (call once at startup after setting MODE4_ENABLE) */
+void gfx_init(void);
+
 /* graphics primitives */
 void gfx_fill(u16 color);
 void gfx_fill_rect(int x, int y, int w, int h, u16 color);

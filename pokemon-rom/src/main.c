@@ -133,8 +133,9 @@ static void draw_starter_select(u16 just) {
 }
 
 int main(void) {
-    REG_DISPCNT = MODE3_ENABLE;
+    REG_DISPCNT = MODE4_ENABLE;
     rng_state = 0x12345678;
+    gfx_init();
 
     /* Try to load a saved game */
     if (load_game() && party_count > 0) {
