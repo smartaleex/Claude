@@ -51,6 +51,16 @@ void gfx_init(void) {
     pal_idx(COL_WATER);   pal_idx(COL_SAND);    pal_idx(COL_BARK);
     for (int i = 0; i < 19; i++) pal_idx(TYPE_COLORS[i]);
 
+    /* BG2 affine: identity matrix — Mode 4 uses affine BG2, and without
+       the BIOS the PA/PD registers default to garbage (often −1.0),
+       which mirrors or scales the display. Explicitly set 1:1 scale. */
+    REG_BG2PA = 0x0100;   /* x-scale = 1.0 in 8.8 fixed point */
+    REG_BG2PB = 0x0000;   /* x-shear = 0                      */
+    REG_BG2PC = 0x0000;   /* y-shear = 0                      */
+    REG_BG2PD = 0x0100;   /* y-scale = 1.0                    */
+    REG_BG2X  = 0;        /* reference point X = 0            */
+    REG_BG2Y  = 0;        /* reference point Y = 0            */
+
     /* Clear both VRAM pages to black (palette index 0) */
     dma3_fill32(VRAM_PAGE0, 0, SCREEN_W * SCREEN_H / 4);
     dma3_fill32(VRAM_PAGE1, 0, SCREEN_W * SCREEN_H / 4);

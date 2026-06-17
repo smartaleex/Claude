@@ -89,6 +89,14 @@ typedef int32_t  s32;
 #define COL_SAND      RGB(28,26,16)
 #define COL_BARK      RGB(14, 9, 3)
 
+/* ── BG2 affine registers (Mode 4/5 — must be set to identity) ──── */
+#define REG_BG2PA  (*(volatile s16*)(IO_BASE + 0x020))   /* x-scale  (8.8) */
+#define REG_BG2PB  (*(volatile s16*)(IO_BASE + 0x022))   /* x-shear  (8.8) */
+#define REG_BG2PC  (*(volatile s16*)(IO_BASE + 0x024))   /* y-shear  (8.8) */
+#define REG_BG2PD  (*(volatile s16*)(IO_BASE + 0x026))   /* y-scale  (8.8) */
+#define REG_BG2X   (*(volatile s32*)(IO_BASE + 0x028))   /* ref pt X (19.8)*/
+#define REG_BG2Y   (*(volatile s32*)(IO_BASE + 0x02C))   /* ref pt Y (19.8)*/
+
 /* ── Double-buffer page tracker (defined in graphics.c) ─────────── */
 extern u8 gfx_back_page;   /* 0 = drawing to page 0, 1 = drawing to page 1 */
 
