@@ -79,6 +79,16 @@ void gfx_init(void) {
     pal_idx(RGB(18,14, 6)); pal_idx(RGB(14,10, 4)); pal_idx(RGB(10,14,18));
     pal_idx(RGB( 6,10,14)); pal_idx(RGB( 0,28, 0));
     pal_idx(RGB(31,28, 0)); pal_idx(RGB(31, 0, 0));
+    /* Named Pokemon sprite colors */
+    pal_idx(RGB( 8,22,14)); pal_idx(RGB(14,28,20)); pal_idx(RGB( 2,12, 4));
+    pal_idx(RGB(20,24, 0)); pal_idx(RGB(28,22, 0));   /* Bulbasaur */
+    pal_idx(RGB(31,14, 4)); pal_idx(RGB(31,26,18)); pal_idx(RGB(31,28, 2));
+    pal_idx(RGB(31,14, 2));                            /* Charmander */
+    pal_idx(RGB( 8,18,28)); pal_idx(RGB(20,24,28)); pal_idx(RGB(18,14, 4));
+    pal_idx(RGB( 8,18, 4));                            /* Squirtle */
+    pal_idx(RGB(31,28, 4)); pal_idx(RGB(20,12, 2)); pal_idx(RGB(31, 4, 4));  /* Pikachu */
+    pal_idx(RGB(14, 6,18)); pal_idx(RGB(20,10,24)); pal_idx(RGB(28, 4, 4));  /* Gengar */
+    pal_idx(RGB(22,16,24)); pal_idx(RGB(28,20,28));                          /* Mewtwo */
 
     /* BG2 affine: identity matrix — Mode 4 uses affine BG2, and without
        the BIOS the PA/PD registers default to garbage (often −1.0),
@@ -235,25 +245,249 @@ void gfx_draw_hp_bar(int x, int y, int w, int h, int hp, int max_hp) {
     gfx_draw_rect(x-1, y-1, w+2, h+2, COL_LGRAY);
 }
 
-/* ── Pokemon silhouette sprite ───────────────────────────────────── */
+/* ── Named Pokemon sprite renderers ─────────────────────────────── */
 
-void gfx_draw_pokemon(int cx, int cy, int radius, u16 species_id, int back) {
+static void draw_bulbasaur(int cx, int cy, int r, int back) {
+    u16 gbody = RGB( 8,22,14);
+    u16 gbel  = RGB(14,28,20);
+    u16 gbulb = RGB( 2,12, 4);
+    u16 gseed = RGB(20,24, 0);
+    u16 geye  = RGB(28,22, 0);
+    u16 blk   = COL_BLACK;
+    if (back) { cy += r/8; }
+    /* Bulb (upper-right for front, upper-left for back) */
+    int bx = cx + (back ? -r/3 : r/3);
+    gfx_draw_ellipse(bx, cy - r/4, r*3/8, r*9/16, gbulb, blk);
+    gfx_draw_hline(bx - r/4, cy - r/4,      r/2,   gseed);
+    gfx_draw_hline(bx - r/5, cy - r/4 + r/7, r*2/5, gseed);
+    gfx_draw_vline(bx, cy - r*9/16 + r/10,   r*7/8, gseed);
+    /* Main body */
+    gfx_draw_ellipse(cx, cy + r/10, r*5/7, r*4/9, gbody, blk);
+    gfx_draw_ellipse(cx + (back ? r/5 : -r/5), cy + r/10, r/3, r/3, gbel, blk);
+    /* Head (front-left for front, front-right for back) */
+    int hx = cx + (back ? r*3/8 : -r*3/8);
+    gfx_draw_ellipse(hx, cy - r/8, r*3/8, r/3, gbody, blk);
+    if (!back) {
+        gfx_draw_circle(hx - r/8, cy - r/5, r/9, geye, blk);
+        gfx_draw_circle(hx + r/9, cy - r/5, r/9, geye, blk);
+        gfx_draw_pixel(hx - r/8, cy - r/5, blk);
+        gfx_draw_pixel(hx + r/9, cy - r/5, blk);
+    }
+    /* Four stubby legs */
+    int ly = cy + r*4/9, lw = r/6, lh = r*3/11;
+    gfx_fill_rect(cx-r*3/5, ly, lw, lh, gbody); gfx_draw_rect(cx-r*3/5, ly, lw, lh, blk);
+    gfx_fill_rect(cx-r/4,   ly, lw, lh, gbody); gfx_draw_rect(cx-r/4,   ly, lw, lh, blk);
+    gfx_fill_rect(cx+r/8,   ly, lw, lh, gbody); gfx_draw_rect(cx+r/8,   ly, lw, lh, blk);
+    gfx_fill_rect(cx+r*2/5, ly, lw, lh, gbody); gfx_draw_rect(cx+r*2/5, ly, lw, lh, blk);
+}
+
+static void draw_charmander(int cx, int cy, int r, int back) {
+    u16 corg  = RGB(31,14, 4);
+    u16 cbel  = RGB(31,26,18);
+    u16 cflm1 = RGB(31,28, 2);
+    u16 cflm2 = RGB(31,14, 2);
+    u16 blk   = COL_BLACK;
+    if (back) { cx += 0; cy += r/6; r = r*4/5; }
+    /* Body (upright oval) */
+    gfx_draw_ellipse(cx, cy + r/8, r*3/8, r*5/9, corg, blk);
+    /* Cream belly */
+    gfx_draw_ellipse(cx - r/8, cy + r/8, r*2/7, r*2/5, cbel, blk);
+    /* Head */
+    gfx_draw_ellipse(cx, cy - r*3/8, r*3/8, r*3/8, corg, blk);
+    if (!back) {
+        /* Eye with white highlight */
+        gfx_draw_circle(cx - r/5, cy - r/2, r/8, blk, blk);
+        gfx_draw_pixel(cx - r/5 + 1, cy - r/2 - 1, COL_WHITE);
+        /* Nostril */
+        gfx_draw_pixel(cx - r/3, cy - r*5/14, blk);
+    }
+    /* Arms */
+    gfx_draw_ellipse(cx - r/2, cy,        r/6, r/4, corg, blk);
+    gfx_draw_ellipse(cx + r/2, cy - r/10, r/6, r/4, corg, blk);
+    /* Legs */
+    int ly = cy + r*5/9;
+    gfx_fill_rect(cx-r/3,  ly, r/4, r/3, corg); gfx_draw_rect(cx-r/3,  ly, r/4, r/3, blk);
+    gfx_fill_rect(cx+r/12, ly, r/4, r/3, corg); gfx_draw_rect(cx+r/12, ly, r/4, r/3, blk);
+    /* Tail: stub right then down */
+    int tx = cx + r*3/8, ty = cy + r/5;
+    gfx_draw_vline(tx,       ty, r/4, corg);
+    gfx_draw_hline(tx,       ty + r/4 - 1, r/5, corg);
+    gfx_draw_vline(tx + r/5, ty + r/4, r/5, corg);
+    /* Flame (two overlapping ellipses: orange base, yellow core) */
+    gfx_draw_ellipse(tx + r/5, ty + r*7/12, r/5, r/4, cflm2, blk);
+    gfx_draw_ellipse(tx + r/5, ty + r*5/12, r/7, r/5, cflm1, blk);
+    gfx_draw_pixel(tx + r/5 - r/8, ty + r*3/10, cflm1);
+    gfx_draw_pixel(tx + r/5 + r/8, ty + r*3/10, cflm1);
+}
+
+static void draw_squirtle(int cx, int cy, int r, int back) {
+    u16 sblue = RGB( 8,18,28);
+    u16 slblu = RGB(20,24,28);
+    u16 shbrn = RGB(18,14, 4);
+    u16 shgrn = RGB( 8,18, 4);
+    u16 blk   = COL_BLACK;
+    if (back) { cy += r/6; r = r*4/5; }
+    /* Shell (oval behind, slightly offset right for front view) */
+    int sx = back ? cx : cx + r/8;
+    gfx_draw_ellipse(sx, cy + r/8, r*3/5, r/2, shbrn, blk);
+    /* Shell cross/hex line pattern */
+    gfx_draw_hline(sx - r*2/5, cy + r/8,       r*4/5, shgrn);
+    gfx_draw_hline(sx - r/3,   cy + r*3/8,      r*2/3, shgrn);
+    gfx_draw_vline(sx,         cy - r*3/8,       r*3/4, shgrn);
+    /* Body/belly oval in front */
+    gfx_draw_ellipse(cx - (back ? 0 : r/5), cy + r/8, r*2/5, r*4/9, slblu, blk);
+    /* Head */
+    gfx_draw_ellipse(cx, cy - r*3/8, r*3/8, r*3/8, sblue, blk);
+    if (!back) {
+        gfx_draw_circle(cx - r/5, cy - r/2, r/9, blk, blk);
+        gfx_draw_circle(cx + r/5, cy - r/2, r/9, blk, blk);
+        gfx_draw_pixel(cx - r/5 + 1, cy - r/2 - 1, COL_WHITE);
+        gfx_draw_pixel(cx + r/5 + 1, cy - r/2 - 1, COL_WHITE);
+    }
+    /* Arms */
+    gfx_draw_ellipse(cx - r/2, cy,        r/5, r/3, sblue, blk);
+    gfx_draw_ellipse(cx + r/2, cy - r/8,  r/5, r/3, sblue, blk);
+    /* Legs */
+    int ly = cy + r*4/9;
+    gfx_fill_rect(cx-r*3/8, ly, r/4, r/3, sblue); gfx_draw_rect(cx-r*3/8, ly, r/4, r/3, blk);
+    gfx_fill_rect(cx+r/8,   ly, r/4, r/3, sblue); gfx_draw_rect(cx+r/8,   ly, r/4, r/3, blk);
+    /* Curly tail (two overlapping circles) */
+    gfx_draw_circle(cx + r*3/4, cy + r/4, r/5, sblue, blk);
+    gfx_draw_circle(cx + r*5/6, cy + r*3/8, r/7, sblue, blk);
+}
+
+static void draw_pikachu(int cx, int cy, int r, int back) {
+    u16 pyel = RGB(31,28, 4);
+    u16 pbrn = RGB(20,12, 2);
+    u16 pred = RGB(31, 4, 4);
+    u16 blk  = COL_BLACK;
+    if (back) { cy += r/6; r = r*4/5; }
+    /* Ears (two tall narrow ovals with black tips) */
+    for (int s = -1; s <= 1; s += 2) {
+        int ex = cx + s * r*3/8;
+        gfx_draw_ellipse(ex, cy - r*3/4, r/9, r*3/8, pyel, blk);
+        gfx_fill_rect(ex - r/10, cy - r*3/4 - r*3/8 + r/10, r/5, r/5, blk);
+    }
+    /* Head (wide oval) */
+    gfx_draw_ellipse(cx, cy - r/5, r/2, r*2/5, pyel, blk);
+    if (!back) {
+        /* Eyes with white glints */
+        gfx_draw_circle(cx - r/4, cy - r*3/10, r/10, blk, blk);
+        gfx_draw_circle(cx + r/4, cy - r*3/10, r/10, blk, blk);
+        gfx_draw_pixel(cx - r/4 + 1, cy - r*3/10 - 1, COL_WHITE);
+        gfx_draw_pixel(cx + r/4 + 1, cy - r*3/10 - 1, COL_WHITE);
+        /* Red cheeks */
+        gfx_draw_circle(cx - r*2/5, cy - r/8, r/7, pred, blk);
+        gfx_draw_circle(cx + r*2/5, cy - r/8, r/7, pred, blk);
+        /* Nose + mouth */
+        gfx_draw_pixel(cx, cy - r/6, blk);
+        gfx_draw_hline(cx - r/8, cy - r/9, r/4 + 1, blk);
+    }
+    /* Body */
+    gfx_draw_ellipse(cx, cy + r/5, r*2/5, r*3/8, pyel, blk);
+    /* Brown back stripes */
+    gfx_draw_hline(cx - r/4, cy + r/10,      r/2, pbrn);
+    gfx_draw_hline(cx - r/4, cy + r*3/8 - r/10, r/2, pbrn);
+    /* Arms */
+    gfx_draw_ellipse(cx - r/2, cy + r/10, r/7, r/4, pyel, blk);
+    gfx_draw_ellipse(cx + r/2, cy + r/10, r/7, r/4, pyel, blk);
+    /* Legs */
+    int ly = cy + r/2;
+    gfx_fill_rect(cx - r/3,  ly, r/4, r/3, pyel); gfx_draw_rect(cx - r/3,  ly, r/4, r/3, blk);
+    gfx_fill_rect(cx + r/12, ly, r/4, r/3, pyel); gfx_draw_rect(cx + r/12, ly, r/4, r/3, blk);
+    /* Lightning bolt tail (zigzag to the right, 4 segments) */
+    int tx = cx + r*2/5, ty = cy + r/5;
+    gfx_fill_rect(tx,         ty - r/6,   r/5, r/3, pyel); gfx_draw_rect(tx,         ty - r/6,   r/5, r/3, blk);
+    gfx_fill_rect(tx + r/5,   ty - r*3/8, r/5, r/3, pyel); gfx_draw_rect(tx + r/5,   ty - r*3/8, r/5, r/3, blk);
+    gfx_fill_rect(tx + r*2/5, ty - r/6,   r/5, r/3, pyel); gfx_draw_rect(tx + r*2/5, ty - r/6,   r/5, r/3, blk);
+    gfx_fill_rect(tx + r*3/5, ty - r*3/8, r/6, r/4, pyel); gfx_draw_rect(tx + r*3/5, ty - r*3/8, r/6, r/4, blk);
+}
+
+static void draw_gengar(int cx, int cy, int r, int back) {
+    u16 gpur  = RGB(14, 6,18);
+    u16 gpur2 = RGB(20,10,24);
+    u16 gred  = RGB(28, 4, 4);
+    u16 blk   = COL_BLACK;
+    if (back) { cy += r/6; r = r*4/5; }
+    /* Main round body */
+    gfx_draw_ellipse(cx, cy, r*4/5, r*3/4, gpur, blk);
+    /* Lighter belly */
+    gfx_draw_ellipse(cx, cy + r/5, r*3/5, r*2/5, gpur2, blk);
+    /* Top spikes (3 bumps) */
+    gfx_fill_rect(cx - r/2 - r/10, cy - r*3/4 - r/5, r/5, r/4, gpur); gfx_draw_rect(cx-r/2-r/10, cy-r*3/4-r/5, r/5, r/4, blk);
+    gfx_fill_rect(cx - r/10,        cy - r*3/4 - r/5, r/5, r/4, gpur); gfx_draw_rect(cx-r/10,     cy-r*3/4-r/5, r/5, r/4, blk);
+    gfx_fill_rect(cx + r/3,         cy - r*3/4 - r/5, r/5, r/4, gpur); gfx_draw_rect(cx+r/3,      cy-r*3/4-r/5, r/5, r/4, blk);
+    /* Side spikes */
+    gfx_fill_rect(cx - r*4/5 - r/5, cy - r/8, r/4, r/5, gpur); gfx_draw_rect(cx-r*4/5-r/5, cy-r/8, r/4, r/5, blk);
+    gfx_fill_rect(cx + r*4/5,        cy - r/8, r/4, r/5, gpur); gfx_draw_rect(cx+r*4/5,     cy-r/8, r/4, r/5, blk);
+    /* Ear bumps */
+    gfx_draw_ellipse(cx - r*2/5, cy - r*3/4, r/6, r/4, gpur, blk);
+    gfx_draw_ellipse(cx + r*2/5, cy - r*3/4, r/6, r/4, gpur, blk);
+    /* Red eyes */
+    gfx_draw_circle(cx - r/3, cy - r/5, r/8, gred, blk);
+    gfx_draw_circle(cx + r/3, cy - r/5, r/8, gred, blk);
+    gfx_draw_pixel(cx - r/3, cy - r/5, blk);
+    gfx_draw_pixel(cx + r/3, cy - r/5, blk);
+    /* Wide grin */
+    gfx_draw_hline(cx - r*2/5, cy + r/8, r*4/5, blk);
+    /* Teeth (white pixel pairs under grin) */
+    for (int t = -2; t <= 2; t++)
+        gfx_fill_rect(cx + t*(r/5) - 1, cy + r/8 + 1, 2, r/8, COL_WHITE);
+    /* Tongue */
+    gfx_draw_ellipse(cx, cy + r/4, r/5, r/8, COL_RED, blk);
+    /* Side hands */
+    gfx_draw_circle(cx - r*4/5, cy + r/4, r/7, gpur, blk);
+    gfx_draw_circle(cx + r*4/5, cy + r/4, r/7, gpur, blk);
+    gfx_draw_circle(cx,          cy + r*3/4, r/7, gpur, blk);
+}
+
+static void draw_mewtwo(int cx, int cy, int r, int back) {
+    u16 mbody = RGB(22,16,24);
+    u16 minn  = RGB(28,20,28);
+    u16 mpur  = RGB(14, 6,18);
+    u16 blk   = COL_BLACK;
+    if (back) { cy += r/6; r = r*4/5; }
+    /* Psychic tube at back of skull */
+    gfx_fill_rect(cx - r*3/5, cy - r*3/4, r/8, r/2, mpur);
+    gfx_draw_rect(cx - r*3/5, cy - r*3/4, r/8, r/2, blk);
+    /* Large round head (Mewtwo's most iconic feature) */
+    gfx_draw_ellipse(cx, cy - r*3/8, r/2, r*2/5, mbody, blk);
+    /* Lighter inner head area */
+    gfx_draw_ellipse(cx + r/8, cy - r*3/8, r/4, r/5, minn, blk);
+    /* Narrow menacing eyes */
+    gfx_draw_hline(cx - r/3,  cy - r*3/8, r/5, blk);
+    gfx_draw_hline(cx + r/10, cy - r*3/8, r/5, blk);
+    /* Thin neck */
+    gfx_fill_rect(cx - r/8, cy, r/4, r/5, mbody);
+    /* Body (smaller oval below neck) */
+    gfx_draw_ellipse(cx, cy + r/3, r/3, r/3, mbody, blk);
+    gfx_draw_ellipse(cx, cy + r/3, r/5, r/4, minn, blk);
+    /* Arms */
+    gfx_draw_ellipse(cx - r*2/3, cy + r/5, r/6, r/3, mbody, blk);
+    gfx_draw_ellipse(cx + r*2/3, cy + r/5, r/6, r/3, mbody, blk);
+    /* Legs */
+    int ly = cy + r*2/3;
+    gfx_fill_rect(cx - r/3,  ly, r/4, r/3, mbody); gfx_draw_rect(cx - r/3,  ly, r/4, r/3, blk);
+    gfx_fill_rect(cx + r/12, ly, r/4, r/3, mbody); gfx_draw_rect(cx + r/12, ly, r/4, r/3, blk);
+    /* Thick tail (2 pixels wide, curves right) */
+    int tx = cx + r/2, ty = cy + r/3;
+    gfx_draw_vline(tx,     ty, r/2, mpur);
+    gfx_draw_vline(tx + 1, ty, r/2, mpur);
+    gfx_draw_circle(tx, ty + r*3/5, r/6, mpur, blk);
+}
+
+static void draw_pokemon_generic(int cx, int cy, int radius, u16 species_id, int back) {
     const SpeciesData* sp = &species_data[species_id];
     u16 fill   = TYPE_COLORS[sp->type1];
     u16 border = COL_BLACK;
-
-    u8 variant = (u8)(species_id & 0xFF) ^ (u8)(species_id >> 8);
+    u8  variant = (u8)(species_id & 0xFF) ^ (u8)(species_id >> 8);
     int rx = radius, ry = radius;
-
-    u8 shape = variant & 3;
+    u8  shape = variant & 3;
     if      (shape == 0) { ry = (radius*3)/4; }
     else if (shape == 1) { rx = (radius*3)/4; }
     else if (shape == 2) { rx = ry = (radius*5)/6; }
-
     if (back) { rx = (rx*4)/5; ry = (ry*4)/5; cy += radius/5; }
-
     gfx_draw_ellipse(cx, cy, rx, ry, fill, border);
-
     if (radius >= 18) {
         int hr = (radius*2)/5;
         int hx = cx + (back ? 0 : (((variant>>2)&1) ? -rx/4 : rx/4));
@@ -265,7 +499,6 @@ void gfx_draw_pokemon(int cx, int cy, int radius, u16 species_id, int back) {
             gfx_draw_pixel(hx-2, hy-2, COL_WHITE);
         }
     }
-
     if ((variant & 0x0C) == 0x04 && radius >= 16) {
         int tx = cx + rx;
         for (int i = 0; i < radius/3; i++) {
@@ -277,3 +510,16 @@ void gfx_draw_pokemon(int cx, int cy, int radius, u16 species_id, int back) {
             gfx_draw_pixel(cx, cy - ry - i, fill);
     }
 }
+
+void gfx_draw_pokemon(int cx, int cy, int radius, u16 species_id, int back) {
+    switch (species_id) {
+    case   1: draw_bulbasaur(cx, cy, radius, back);  return;
+    case   4: draw_charmander(cx, cy, radius, back); return;
+    case   7: draw_squirtle(cx, cy, radius, back);   return;
+    case  25: draw_pikachu(cx, cy, radius, back);    return;
+    case  94: draw_gengar(cx, cy, radius, back);     return;
+    case 150: draw_mewtwo(cx, cy, radius, back);     return;
+    default:  draw_pokemon_generic(cx, cy, radius, species_id, back); return;
+    }
+}
+
