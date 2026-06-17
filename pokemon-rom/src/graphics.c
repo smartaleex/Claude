@@ -10,12 +10,25 @@ u8 gfx_back_page = 1;         /* currently drawing to page 1           */
 /* Map an RGB15 color to a palette index, registering if not present. */
 static u8 pal_idx(u16 rgb15) {
     if (rgb15 == COL_BLACK) return 0;
-    for (u8 i = 1; i < pal_count; i++)
-        if (pal_cache[i] == rgb15) return i;
+    /* 4-entry MRU cache — text rendering repeatedly uses the same few colors */
+    static u16 cc[4] = {0,0,0,0};
+    static u8  ci[4] = {0,0,0,0};
+    static u8  ch    = 0;
+    if (cc[0] == rgb15) return ci[0];
+    if (cc[1] == rgb15) return ci[1];
+    if (cc[2] == rgb15) return ci[2];
+    if (cc[3] == rgb15) return ci[3];
+    for (u8 i = 1; i < pal_count; i++) {
+        if (pal_cache[i] == rgb15) {
+            cc[ch] = rgb15; ci[ch] = i; ch = (ch + 1) & 3;
+            return i;
+        }
+    }
     if (pal_count < 255) {
         u8 idx = pal_count++;
         pal_cache[idx] = rgb15;
         PAL_BG[idx]    = rgb15;
+        cc[ch] = rgb15; ci[ch] = idx; ch = (ch + 1) & 3;
         return idx;
     }
     return 1; /* palette full — fall back to first non-black */
@@ -30,8 +43,7 @@ static void dma3_fill32(volatile void* dst, u32 val, u32 words) {
     REG_DMA3DAD   = (u32)dst;
     REG_DMA3CNT_L = (u16)words;
     REG_DMA3CNT_H = 0x8500;   /* enable | 32-bit transfer | src fixed */
-    /* DMA has bus priority; CPU stalls until transfer completes */
-    while (REG_DMA3CNT_H & 0x8000);
+    /* Immediate DMA: hardware stalls CPU until done; no polling needed */
 }
 
 void gfx_init(void) {
@@ -150,7 +162,11 @@ void gfx_draw_rect(int x, int y, int w, int h, u16 color) {
 
 static int isqrt(int n) {
     if (n <= 0) return 0;
-    int x = n, y = (x + 1) >> 1;
+    /* Start near sqrt(n) using bit length to get fast Newton convergence */
+    int x = 1;
+    int tmp = n;
+    while (tmp > 3) { tmp >>= 2; x <<= 1; }
+    int y = (x + gba_div(n, x)) >> 1;
     while (y < x) { x = y; y = (x + gba_div(n, x)) >> 1; }
     return x;
 }
@@ -169,7 +185,7 @@ void gfx_draw_ellipse(int cx, int cy, int rx, int ry, u16 fill, u16 border) {
     for (int dy = -ry; dy <= ry; dy++) {
         int sq = ry*ry - dy*dy;
         if (sq < 0) sq = 0;
-        int half = gba_div(rx * isqrt(sq * 256), ry * 16);
+        int half = (ry > 0) ? gba_div(rx * isqrt(sq), ry) : 0;
         if (fill != 0xFFFF)
             gfx_draw_hline(cx - half, cy + dy, half*2+1, fill);
         gfx_draw_pixel(cx - half, cy + dy, border);
