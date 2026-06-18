@@ -46,6 +46,9 @@ void txt_draw_str_centered(int y, const char* s, u16 fg, u16 bg);
 /* Pokemon sprite (type-colored silhouette) */
 void gfx_draw_pokemon(int cx, int cy, int radius, u16 species_id, int back);
 
+/* Sprite bitmap table [6 pokemon][front=0/back=1] — sprite_data.c */
+extern const u8* const spr_table[6][2];
+
 /* Save/load */
 void save_game(void);
 int  load_game(void);   /* returns 1 if loaded successfully */
