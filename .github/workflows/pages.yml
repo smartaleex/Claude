@@ -2,10 +2,18 @@ name: Deploy Alex HQ to GitHub Pages
 
 on:
   push:
-    branches: [claude/alex-hq-web-app-ndzk1l, main]
+    branches: [claude/alex-hq-web-app-ndzk1l]
     paths-ignore:
       - 'zetaris-prospector/**'
   workflow_dispatch:
+
+# NOTE: the `github-pages` environment only accepts deployments from the
+# repository's default branch unless you add a deployment branch rule.
+# This app lives on a feature branch, so before the first successful run:
+#   Settings -> Environments -> github-pages -> Deployment branches and tags
+#   -> Add rule -> claude/*
+# Without that, the job is rejected in ~3s with "not allowed to deploy to
+# github-pages due to environment protection rules" and never builds.
 
 permissions:
   contents: read

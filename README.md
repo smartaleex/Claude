@@ -15,11 +15,20 @@ Six tools, one app, on your phone. No build step, no server, no subscription.
 
 ## Get it on your phone
 
-**1. Turn on GitHub Pages** — repo → Settings → Pages → Source: **GitHub Actions**. Push to this
-branch and the workflow publishes it. Your URL will be:
+**1. Turn on GitHub Pages** — repo → Settings → Pages → Source: **GitHub Actions**.
+
+**1b. Allow this branch to deploy.** The `github-pages` environment only accepts deploys from the
+repository's *default* branch out of the box, and this app lives on a feature branch — so the first
+run fails in about 3 seconds with *"not allowed to deploy to github-pages due to environment
+protection rules"*. Fix it once:
+
+> Settings → **Environments** → `github-pages` → **Deployment branches and tags** →
+> *Add deployment branch or tag rule* → `claude/*`
+
+Then re-run the failed job. Your URL will be:
 
 ```
-https://smartaleex.github.io/claude/
+https://smartaleex.github.io/Claude/
 ```
 
 **2. Add it to your home screen** — open that URL in Safari, tap Share → *Add to Home Screen*.
