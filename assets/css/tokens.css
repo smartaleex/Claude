@@ -18,31 +18,35 @@
   --muted:     #757B90;
   --faint:     #A7ADC0;
 
-  /* ---- brand (the shell) ---- */
-  --brand-1:   #4F46E5;
-  --brand-2:   #7C3AED;
-  --brand-tint:#EEEBFE;
-  --brand-grad: linear-gradient(118deg, var(--brand-1) 6%, var(--brand-2) 94%);
+  /* ---- brand ----
+     Taken straight off the app icon: blue at dawn through violet and
+     pink to sunrise orange. The shell uses the full sweep; each tool
+     takes one slice of it, so nothing ever looks bolted on. */
+  --brand-1:   #4A7CF7;
+  --brand-2:   #EC4899;
+  --brand-tint:#EDF0FE;
+  --brand-grad: linear-gradient(140deg, #4A7CF7 0%, #8B5CF6 42%, #EC4899 78%, #F97316 100%);
 
-  /* ---- per-app accents ----
-     Each tool owns a hue so you know where you are at a glance,
-     but they all share the same lightness/chroma discipline. */
-  --fuel-1:#4F46E5;  --fuel-2:#7C3AED;  --fuel-tint:#EEEBFE;
-  --ldgr-1:#0E9F6E;  --ldgr-2:#0891B2;  --ldgr-tint:#E3F5EE;
-  --shout-1:#F97316; --shout-2:#EC4899; --shout-tint:#FDEDE3;
-  --forge-1:#0EA5E9; --forge-2:#4F46E5; --forge-tint:#E3F2FD;
-  --clear-1:#14B8A6; --clear-2:#0E9F6E; --clear-tint:#E0F5F2;
-  --vale-1:#E11D48;  --vale-2:#F59E0B;  --vale-tint:#FDE8EC;
+  /* ---- per-app accents: six slices of the same spectrum ---- */
+  --forge-1:#2563EB; --forge-2:#4F46E5; --forge-tint:#E4ECFE;  /* dawn blue   */
+  --fuel-1:#5850EC;  --fuel-2:#8B5CF6;  --fuel-tint:#ECEBFE;   /* indigo      */
+  --ldgr-1:#8B5CF6;  --ldgr-2:#C026D3;  --ldgr-tint:#F3EAFD;   /* violet      */
+  --vale-1:#C026D3;  --vale-2:#EC4899;  --vale-tint:#FBEAFB;   /* fuchsia     */
+  --shout-1:#EC4899; --shout-2:#F43F5E; --shout-tint:#FDEAF2;  /* pink        */
+  --clear-1:#F97316; --clear-2:#FBBF24; --clear-tint:#FEF0E2;  /* sunrise     */
 
   /* ---- semantic ---- */
   --good:#16A34A;  --good-tint:#E4F5E9;
   --warn:#D97706;  --warn-tint:#FDF0DC;
   --bad:#DC2626;   --bad-tint:#FCE9E9;
 
-  /* ---- macro colours (shared by Fuel + Forge) ---- */
-  --pro:#E8590C;  --pro-tint:#FDEEE3;  --pro-bar:#F8DFCC;
-  --carb:#2F9E44; --carb-tint:#E6F4EA; --carb-bar:#D3EBD9;
-  --fat:#6D4AFF;  --fat-tint:#EFEAFE;  --fat-bar:#E2DAFB;
+  /* ---- macro colours (shared by Fuel + Forge) ----
+     Pulled onto the icon spectrum so the macro bars sit inside the
+     palette rather than fighting it. Protein takes the warmest end
+     because it is the number that matters most on a bulk. */
+  --pro:#F43F5E;  --pro-tint:#FDEAEE;  --pro-bar:#FAD3DA;
+  --carb:#8B5CF6; --carb-tint:#F0EBFE; --carb-bar:#DFD5FC;
+  --fat:#F59E0B;  --fat-tint:#FEF3E2;  --fat-bar:#FBE3C0;
 
   /* ---- geometry ---- */
   --r-xs:10px; --r-sm:14px; --r-md:18px; --r-lg:24px; --r-xl:28px; --r-pill:999px;

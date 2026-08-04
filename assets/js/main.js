@@ -2,7 +2,7 @@
    main.js — app shell: registry, router, tab bar, home dashboard.
    ============================================================ */
 
-import { initAI, aiStatus, setKey, aiSettings, testKey } from './core/ai.js';
+import { initAI, aiStatus, setKey, aiSettings, testKey, discoverModels } from './core/ai.js';
 import { exportAll, importAll, Slice, today } from './core/store.js';
 import { esc, $, toast, openSheet, closeSheet, sheetVal, bindActions, haptic } from './core/ui.js';
 
@@ -19,26 +19,28 @@ import * as vale   from './apps/vale.js';
 export const APPS = {
   fuel:   { id:'fuel',   name:'Fuel',   tab:'Fuel',   icon:'🍳', title:'Fuel',
             blurb:'Macros & lean bulk', mod:fuel,
-            accent:['#4F46E5','#7C3AED','#EEEBFE','rgba(88,70,235,.30)'] },
+            accent:['#5850EC','#8B5CF6','#ECEBFE','rgba(88,80,236,.30)'] },
   forge:  { id:'forge',  name:'Forge',  tab:'Forge',  icon:'💪', title:'Forge',
             blurb:'Training & physique', mod:forge,
-            accent:['#0EA5E9','#4F46E5','#E3F2FD','rgba(14,165,233,.30)'] },
-  ledger: { id:'ledger', name:'Ledger', tab:'Ledger', icon:'💰', title:'Ledger',
-            blurb:'Money & the house', mod:ledger,
-            accent:['#0E9F6E','#0891B2','#E3F5EE','rgba(14,159,110,.28)'] },
+            accent:['#2563EB','#4F46E5','#E4ECFE','rgba(37,99,235,.30)'] },
+  clear:  { id:'clear',  name:'Clear',  tab:'Clear',  icon:'🌅', title:'Clear',
+            blurb:'Nicotine taper', mod:clear,
+            accent:['#F97316','#FBBF24','#FEF0E2','rgba(249,115,22,.30)'] },
   shout:  { id:'shout',  name:'Shout',  tab:'Shout',  icon:'🍻', title:'Shout',
             blurb:'Mates & plans', mod:shout,
-            accent:['#F97316','#EC4899','#FDEDE3','rgba(249,115,22,.28)'] },
-  clear:  { id:'clear',  name:'Clear',  tab:'Clear',  icon:'🌱', title:'Clear',
-            blurb:'Nicotine taper', mod:clear,
-            accent:['#14B8A6','#0E9F6E','#E0F5F2','rgba(20,184,166,.28)'] },
+            accent:['#EC4899','#F43F5E','#FDEAF2','rgba(236,72,153,.28)'] },
+  ledger: { id:'ledger', name:'Ledger', tab:'Ledger', icon:'💰', title:'Ledger',
+            blurb:'Money & the house', mod:ledger,
+            accent:['#8B5CF6','#C026D3','#F3EAFD','rgba(139,92,246,.28)'] },
   vale:   { id:'vale',   name:'Vale',   tab:'Vale',   icon:'🇪🇸', title:'Vale',
             blurb:'Spanish, properly', mod:vale,
-            accent:['#E11D48','#F59E0B','#FDE8EC','rgba(225,29,72,.28)'] },
+            accent:['#C026D3','#EC4899','#FBEAFB','rgba(192,38,211,.28)'] },
 };
 
-const TABS = ['home','fuel','forge','ledger','shout','more'];
-const MORE = ['clear','vale'];
+// Clear earns a bottom-bar slot: it's a several-times-a-day log, where
+// Ledger is a weekly sit-down. Frequency of use decides the tab bar.
+const TABS = ['home','fuel','forge','clear','shout','more'];
+const MORE = ['ledger','vale'];
 
 const view = $('#view');
 let current = 'home';
@@ -291,7 +293,14 @@ function openAISetup(){
       Stored only in this browser. Sent to Google when you use an AI feature, and nowhere else.
     </div>
 
-    <button class="btn btn-plain block" style="margin-top:14px" data-act="test" id="test-btn">Test it</button>
+    <div class="grid2" style="margin-top:14px;gap:8px">
+      <button class="btn btn-plain" data-act="test" id="test-btn">Test it</button>
+      <button class="btn btn-plain" data-act="discover" id="disc-btn">Find a model</button>
+    </div>
+    <div class="tiny muted" style="margin-top:8px">
+      Getting "quota" errors on the first try? That means the model has no free allowance on your
+      Google project. <b>Find a model</b> checks each one and picks a working one.
+    </div>
     <div id="test-out"></div>
 
     <button class="btn btn-primary block" style="margin-top:10px" data-act="save">Save key</button>
@@ -316,10 +325,43 @@ function openAISetup(){
       if (!k){ toast('Paste a key first'); return; }
       const btn = document.getElementById('test-btn');
       btn.disabled = true;
-      btn.innerHTML = `<span class="spin dark"></span> Checking…`;
+      btn.innerHTML = `<span class="spin dark"></span>`;
+      setKey(k);                       // so the working model gets remembered
       showResult(await testKey(k));
       btn.disabled = false;
       btn.textContent = 'Test it';
+    },
+
+    discover: async () => {
+      const k = sheetVal('gk').trim();
+      if (!k){ toast('Paste a key first'); return; }
+      const btn = document.getElementById('disc-btn');
+      btn.disabled = true;
+      btn.innerHTML = `<span class="spin dark"></span>`;
+      const out = document.getElementById('test-out');
+      try{
+        setKey(k);
+        const { results, picked } = await discoverModels(k);
+        out.innerHTML = `
+          <div class="card tight" style="box-shadow:none;margin-top:10px;background:var(--surface-2)">
+            <div class="tiny" style="font-weight:700;margin-bottom:8px;color:${picked?'var(--good)':'var(--bad)'}">
+              ${picked ? `✓ Using ${esc(picked)}` : 'No model has free quota right now'}
+            </div>
+            ${results.map(r => `
+              <div class="spread" style="padding:5px 0">
+                <span class="tiny mono" style="opacity:${r.ok?1:.55}">${esc(r.model)}</span>
+                <span class="tiny" style="color:${r.ok?'var(--good)':'var(--muted)'}">${esc(r.note)}</span>
+              </div>`).join('')}
+            ${!picked ? `<div class="tiny muted" style="margin-top:8px;line-height:1.55">
+              Free quota resets at midnight US Pacific. Everything except photo analysis and
+              open-ended text keeps working in the meantime.</div>` : ''}
+          </div>`;
+      }catch(e){
+        showResult({ ok:false, message:e.message });
+      }finally{
+        btn.disabled = false;
+        btn.textContent = 'Find a model';
+      }
     },
     // Never block on format — Google is the authority on whether a
     // credential works, not a regex here.

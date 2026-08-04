@@ -11,13 +11,33 @@ import {
 } from '../core/ui.js';
 import { offlineMatch, offlineSuggest, looksBranded } from '../data/foods.js';
 
-/* At 185cm / 75kg and already lean, the job is a controlled surplus:
-   ~2,900 kcal and 2g/kg protein puts on size without adding fat. */
+/* At 185cm / 75kg and already lean, the job is a controlled surplus.
+   Maintenance works out around 2,650, so ~2,930 kcal and ~2.1g/kg protein
+   adds size without adding fat. Both numbers are recomputed from the
+   profile below, so they follow bodyweight up as the bulk progresses. */
 const store = new Slice('fuel', {
-  targets: { kcal:2900, p:160, c:340, f:95 },
+  targets: { kcal:2930, p:160, c:345, f:95 },
+  profile: { kg:75, cm:185, age:28, activity:1.5 },
   days: {},
   weights: {},   // dayKey -> kg
 });
+
+const ACTIVITY = [
+  { v:1.375, l:'Light',    d:'Desk job, 2-3 sessions' },
+  { v:1.5,   l:'Moderate', d:'Desk job, 4 sessions, on your feet a bit' },
+  { v:1.65,  l:'High',     d:'Active job or 5+ sessions' },
+];
+
+/** Mifflin-St Jeor. Uses the latest logged weight if there is one. */
+function maintenance(){
+  const p = store.get().profile;
+  const ws = store.get().weights;
+  const keys = Object.keys(ws).sort();
+  const kg = keys.length ? ws[keys.at(-1)] : p.kg;
+  const bmr = 10*kg + 6.25*p.cm - 5*p.age + 5;
+  return Math.round(bmr * p.activity);
+}
+const bulkTarget = () => maintenance() + 275;
 
 let tab = 'today';
 let viewDay = null;
@@ -206,9 +226,16 @@ function historyHTML(){
   }).join('')}</div>`;
 }
 
-/* ---------------- trends ---------------- */
+/* ---------------- trends ----------------
+   A day where you logged a coffee and then forgot isn't a 220 kcal day,
+   it's a missing day. Counting it would drag every average down and
+   invent a problem that isn't there — so one threshold, used by every
+   average on this screen, keeps the numbers consistent with each other. */
+const MIN_LOG = 800;
+const loggedDays = n => lastNDays(n).filter(d => totals(d).kcal >= MIN_LOG);
+
 function avgOver(n){
-  const ds = lastNDays(n).filter(d => entries(d).length);
+  const ds = loggedDays(n);
   if (!ds.length) return null;
   const s = ds.reduce((a,d) => { const t = totals(d); return { kcal:a.kcal+t.kcal, p:a.p+t.p }; }, { kcal:0, p:0 });
   return { kcal: Math.round(s.kcal/ds.length), p: Math.round(s.p/ds.length), n: ds.length };
@@ -224,7 +251,7 @@ function proteinStreak(){
 function trendsHTML(){
   const a7 = avgOver(7), a30 = avgOver(30);
   const T = store.get().targets;
-  const logged30 = lastNDays(30).filter(d => entries(d).length);
+  const logged30 = loggedDays(30);
   const hit = logged30.length ? Math.round(logged30.filter(d => totals(d).p >= T.p).length / logged30.length * 100) : null;
   const f = (v,u) => v === null || v === undefined ? `<span style="color:var(--faint)">—</span>` : `${num(v)}<small> ${u}</small>`;
 
@@ -233,6 +260,7 @@ function trendsHTML(){
   const latest = wKeys.length ? ws[wKeys.at(-1)] : null;
 
   return `
+  ${realityCheck()}
   <div class="grid2 in">
     ${stat(f(a7?.kcal,'kcal'), '7-day avg intake')}
     ${stat(f(a7?.p,'g'), '7-day avg protein', 'var(--pro)')}
@@ -264,6 +292,77 @@ function trendsHTML(){
       <div class="tiny muted center" style="margin-top:8px">
         ${weightTrendNote()}
       </div>` : ''}
+  </div>`;
+}
+
+/* ---------------- reality check ----------------
+   The single most useful thing this app can tell him. It is easy to hit
+   a protein target, feel diligent, and still eat under maintenance —
+   which is exactly what his first month of logs showed. Averages are
+   measured over days he actually logged; part-logged days (a coffee and
+   nothing else) would drag the mean down and invent a problem. */
+function realityCheck(){
+  const days = loggedDays(21);
+  const skipped = lastNDays(21).filter(d => entries(d).length && totals(d).kcal < MIN_LOG).length;
+  if (days.length < 3) return '';
+
+  const avg = Math.round(days.reduce((n,d) => n + totals(d).kcal, 0) / days.length);
+  const avgP = Math.round(days.reduce((n,d) => n + totals(d).p, 0) / days.length);
+  const maint = maintenance();
+  const target = bulkTarget();
+  const vsMaint = avg - maint;
+
+  let tone, title, body;
+  if (vsMaint < -150){
+    tone = 'bad';
+    title = "You're eating below maintenance";
+    body = `Averaging ${num(avg)} kcal against an estimated ${num(maint)} maintenance — about
+            ${num(-vsMaint)} short every day. You can train perfectly and hit protein, but
+            no surplus means no new muscle. This is the reason the build isn't moving.`;
+  } else if (vsMaint < 120){
+    tone = 'warn';
+    title = 'Maintaining, not building';
+    body = `Averaging ${num(avg)} kcal against ${num(maint)} maintenance. You're holding your
+            weight rather than gaining. Add roughly ${num(target-avg)} a day to get moving.`;
+  } else if (avg <= target + 250){
+    tone = 'good';
+    title = 'Surplus is right where it should be';
+    body = `Averaging ${num(avg)} kcal, about ${num(vsMaint)} over maintenance. That's the
+            range where the gain is mostly muscle rather than fat.`;
+  } else {
+    tone = 'warn';
+    title = 'Surplus is bigger than it needs to be';
+    body = `Averaging ${num(avg)} kcal, ${num(vsMaint)} over maintenance. Past about
+            ${num(target - maint + 250)} the extra mostly goes on as fat. Easing back
+            ${num(avg-target)} keeps it lean.`;
+  }
+
+  const pGap = 158 - avgP;
+  const c = tone === 'bad' ? 'var(--bad)' : tone === 'warn' ? 'var(--warn)' : 'var(--good)';
+  const bg = tone === 'bad' ? 'var(--bad-tint)' : tone === 'warn' ? 'var(--warn-tint)' : 'var(--good-tint)';
+
+  return `
+  <div class="card in" style="background:${bg};border-color:transparent;margin-bottom:14px">
+    <div class="spread" style="align-items:baseline">
+      <div class="card-title" style="color:${c}">${title}</div>
+      <span class="tiny" style="color:${c};font-weight:700">${days.length} days</span>
+    </div>
+    <p class="card-note" style="margin-top:6px;line-height:1.6">${body}</p>
+    <div class="hr" style="margin:12px 0"></div>
+    <div class="grid3" style="gap:8px">
+      <div><div class="tiny muted">Your average</div><b class="mono" style="font-size:15px">${num(avg)}</b></div>
+      <div><div class="tiny muted">Maintenance</div><b class="mono" style="font-size:15px">${num(maint)}</b></div>
+      <div><div class="tiny muted">Bulk target</div><b class="mono" style="font-size:15px">${num(target)}</b></div>
+    </div>
+    ${pGap > 12 ? `<div class="tiny" style="margin-top:10px;color:${c}">
+      Protein is averaging ${num(avgP)}g against ~158g. Worth closing, but calories are the bigger lever.
+    </div>` : ''}
+    ${skipped ? `<div class="tiny muted" style="margin-top:8px">
+      ${skipped} part-logged day${skipped>1?'s':''} excluded — days with under ${num(MIN_LOG)} kcal aren't counted.
+    </div>` : ''}
+    ${Math.abs(store.get().targets.kcal - target) > 60 ? `
+      <button class="btn btn-sm block" style="margin-top:12px;background:${c};color:#fff"
+              data-act="applytarget">Set my target to ${num(target)} kcal</button>` : ''}
   </div>`;
 }
 
@@ -472,28 +571,79 @@ Respond with ONLY this JSON:
 /* ---------------- sheets ---------------- */
 function openTargets(){
   const T = store.get().targets;
+  const P = store.get().profile;
   const ai = aiStatus();
   openSheet(`
     <h2>Targets</h2>
-    <p class="sub">Lean bulk numbers. At 185cm and lean, a controlled surplus beats a big one.</p>
+    <p class="sub">A controlled surplus beats a big one. You're already lean — the gap is size, not body fat.</p>
+
+    <div class="card tight" style="box-shadow:none;background:var(--surface-2);margin-bottom:16px">
+      <div class="spread">
+        <div><div class="tiny muted">Maintenance</div>
+          <b class="mono" style="font-size:18px">${num(maintenance())}</b></div>
+        <div style="text-align:right"><div class="tiny muted">Suggested bulk</div>
+          <b class="mono" style="font-size:18px;color:var(--accent-1)">${num(bulkTarget())}</b></div>
+      </div>
+      <button class="btn btn-soft btn-sm block" style="margin-top:12px" data-act="auto">Use the suggested numbers</button>
+    </div>
+
+    <label class="label">Daily targets</label>
     <div class="grid2">
       ${[['k','Kcal',T.kcal],['p','Protein (g)',T.p],['c','Carbs (g)',T.c],['f','Fat (g)',T.f]].map(([k,l,v]) =>
         `<div><label class="label">${l}</label>
          <input class="input" type="number" inputmode="numeric" id="t-${k}" value="${v}"></div>`).join('')}
     </div>
-    <button class="btn btn-primary block" data-act="save">Save targets</button>
+
+    <label class="label" style="margin-top:20px">About you — this is what maintenance is calculated from</label>
+    <div class="grid3">
+      ${[['kg','Weight kg',P.kg],['cm','Height cm',P.cm],['age','Age',P.age]].map(([k,l,v]) =>
+        `<div><label class="label" style="font-size:10px">${l}</label>
+         <input class="input" type="number" inputmode="numeric" id="p-${k}" value="${v}"></div>`).join('')}
+    </div>
+    <label class="label" style="margin-top:14px">Activity</label>
+    <div class="chips">
+      ${ACTIVITY.map(a => `<button class="chip ${Math.abs(P.activity-a.v)<0.01?'on':''}"
+        data-act="act" data-v="${a.v}">${a.l}</button>`).join('')}
+    </div>
+    <div class="tiny muted" style="margin-top:6px">${esc(ACTIVITY.find(a => Math.abs(P.activity-a.v)<0.01)?.d || '')}</div>
+
+    <button class="btn btn-primary block" style="margin-top:20px" data-act="save">Save</button>
     <div class="tiny muted center" style="margin-top:14px">AI: ${esc(ai.label)}</div>
     <button class="btn btn-ghost block" data-act="close">Close</button>
   `);
+
+  let act = P.activity;
+  const persistProfile = () => store.update(s => {
+    s.profile = { kg: sheetNum('p-kg', 75), cm: sheetNum('p-cm', 185),
+                  age: sheetNum('p-age', 28), activity: act };
+  });
+
   bindActions(document.querySelector('.sheet'), {
+    act: (d, el) => {
+      act = +d.v;
+      el.parentElement.querySelectorAll('.chip').forEach(c => c.classList.toggle('on', c === el));
+      persistProfile();
+      // Reopen so the maintenance figure reflects the change immediately.
+      openTargets();
+    },
+    auto: () => {
+      persistProfile();
+      const kcal = bulkTarget();
+      const p = Math.round(store.get().profile.kg * 2.1);
+      const f = Math.round(kcal * 0.28 / 9);              // ~28% of calories from fat
+      const c = Math.round((kcal - p*4 - f*9) / 4);       // carbs fill the rest
+      store.update(s => { s.targets = { kcal, p, c, f }; });
+      closeSheet(); toast('Targets updated'); render();
+    },
     save: () => {
+      persistProfile();
       store.update(s => {
         s.targets = {
-          kcal: sheetNum('t-k', 2900), p: sheetNum('t-p', 160),
-          c: sheetNum('t-c', 340), f: sheetNum('t-f', 95),
+          kcal: sheetNum('t-k', 2930), p: sheetNum('t-p', 160),
+          c: sheetNum('t-c', 345), f: sheetNum('t-f', 95),
         };
       });
-      closeSheet(); toast('Targets saved'); render();
+      closeSheet(); toast('Saved'); render();
     },
     close: closeSheet,
   });
@@ -541,6 +691,14 @@ function bind(){
     openday: d => { viewDay = d.d; render(); },
     targets: openTargets,
     logweight: openWeight,
+    applytarget: () => {
+      const kcal = bulkTarget();
+      const p = Math.round(store.get().profile.kg * 2.1);
+      const f = Math.round(kcal * 0.28 / 9);
+      const c = Math.round((kcal - p*4 - f*9) / 4);
+      store.update(s => { s.targets = { kcal, p, c, f }; });
+      haptic(); toast(`Target set to ${num(kcal)} kcal`); render();
+    },
     showlog: () => { adding = false; render(); },
     showadd: () => { adding = true; render(); setTimeout(() => document.getElementById('fuel-desc')?.focus(), 80); },
     meal: d => { mealSel = d.v; render(); },

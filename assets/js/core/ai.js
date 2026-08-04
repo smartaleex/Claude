@@ -22,13 +22,34 @@
 
 import { Slice } from './store.js';
 
+/* Models to try, cheapest/fastest first. A 429 on the very first call of
+   the day is not rate limiting — it means that model has zero free-tier
+   allowance in the user's Google project, which varies by project and
+   changes over time. So treat 429 and 404 as "try the next model" rather
+   than as fatal, and remember whichever one works. */
+export const MODEL_CHAIN = [
+  'gemini-2.5-flash',
+  'gemini-2.0-flash',
+  'gemini-flash-latest',
+  'gemini-2.5-flash-lite',
+  'gemini-2.0-flash-lite',
+];
+
 const settings = new Slice('settings', {
   geminiKey: '',
   aiEnabled: true,
-  model: 'gemini-2.0-flash',
+  model: '',          // empty = auto-pick from MODEL_CHAIN
   callCount: 0,
   lastCallDay: '',
 });
+
+export function setModel(m){ settings.update(s => { s.model = m || ''; }); }
+
+/** Preferred model first, then the rest of the chain as fallbacks. */
+function modelOrder(){
+  const pref = settings.get()?.model;
+  return pref ? [pref, ...MODEL_CHAIN.filter(m => m !== pref)] : [...MODEL_CHAIN];
+}
 
 let ready = false;
 export async function initAI(){ if (!ready){ await settings.load(); ready = true; } return settings; }
@@ -119,7 +140,8 @@ function geminiRequest({ parts, maxTokens, model, key, mode }){
 
 function geminiError(status, data){
   const m = data?.error?.message || `HTTP ${status}`;
-  if (status === 429) return new Error('Gemini free-tier limit reached. Try again in a minute.');
+  if (status === 429)
+    return new Error('Every model your key can reach is out of free quota. Try again after midnight Pacific, or run Find a working model in Settings.');
   if (/API key not valid|API_KEY_INVALID/i.test(m))
     return new Error('Google rejected that key. Copy it again from AI Studio — it may have been truncated.');
   if (status === 401 || status === 403)
@@ -128,12 +150,9 @@ function geminiError(status, data){
   return new Error(m.slice(0, 140));
 }
 
-async function callGemini({ prompt, images, maxTokens, key, model }){
-  const parts = [
-    ...(images||[]).map(im => ({ inline_data:{ mime_type:im.media, data:im.b64 } })),
-    { text: prompt },
-  ];
-  let lastErr = null;
+/** One model, cycling auth styles. Throws with .status attached. */
+async function callModel({ parts, maxTokens, key, model }){
+  let lastErr = null, lastStatus = 0;
 
   for (const mode of AUTH_MODES){
     let res, data;
@@ -141,37 +160,102 @@ async function callGemini({ prompt, images, maxTokens, key, model }){
       res = await geminiRequest({ parts, maxTokens, model, key, mode });
       data = await res.json().catch(() => null);
     }catch{
-      throw new Error('Could not reach Google. Check your connection.');
+      const e = new Error('Could not reach Google. Check your connection.');
+      e.status = 0; throw e;
     }
 
     if (res.ok && !data?.error){
       const text = data?.candidates?.[0]?.content?.parts?.map(p => p.text).filter(Boolean).join('\n');
       if (text) return text;
-      // 200 with no candidates means the prompt was blocked — a different
-      // auth mode will not change that, so stop here.
-      throw new Error(data?.promptFeedback?.blockReason
+      const e = new Error(data?.promptFeedback?.blockReason
         ? `Google blocked that request (${data.promptFeedback.blockReason}).`
         : 'Google returned an empty response.');
+      e.status = 200; throw e;   // not worth retrying anything
     }
 
+    lastStatus = res.status;
     lastErr = geminiError(res.status, data);
-    // Only an auth rejection is worth retrying with a different mode.
+    lastErr.status = res.status;
+    // Only an auth rejection is worth a different auth style.
     if (res.status !== 401 && res.status !== 403) throw lastErr;
   }
-  throw lastErr || new Error('Gemini request failed.');
+  const e = lastErr || new Error('Gemini request failed.');
+  e.status = lastStatus; throw e;
+}
+
+async function callGemini({ prompt, images, maxTokens, key }){
+  const parts = [
+    ...(images||[]).map(im => ({ inline_data:{ mime_type:im.media, data:im.b64 } })),
+    { text: prompt },
+  ];
+  let lastErr = null;
+
+  for (const model of modelOrder()){
+    try{
+      const text = await callModel({ parts, maxTokens, key, model });
+      // Stick with whatever worked so the next call goes straight there.
+      if (settings.get().model !== model) setModel(model);
+      return text;
+    }catch(e){
+      lastErr = e;
+      // Out of quota (429) or model not available to this key (404):
+      // both mean "this model is a dead end", so try the next one.
+      if (e.status !== 429 && e.status !== 404) throw e;
+    }
+  }
+  throw lastErr || new Error('No Gemini model was available.');
+}
+
+/* ---------------- model discovery ----------------
+   Asks Google which models this key can actually see, then sends a
+   one-token probe to each so the user learns which are usable now
+   rather than which merely exist. */
+export async function discoverModels(key){
+  const k = (key || settings.get().geminiKey || '').trim();
+  if (!k) throw new Error('No key set.');
+
+  let listed = [];
+  try{
+    const res = await fetch('https://generativelanguage.googleapis.com/v1beta/models',
+      { headers:{ 'x-goog-api-key': k } });
+    const data = await res.json().catch(() => null);
+    if (data?.models){
+      listed = data.models
+        .filter(m => (m.supportedGenerationMethods || []).includes('generateContent'))
+        .map(m => m.name.replace(/^models\//, ''));
+    }
+  }catch{ /* fall back to the built-in chain */ }
+
+  // Probe the chain first (they're the ones we'd actually use), then any
+  // other flash-class models the key can see.
+  const extra = listed.filter(m => /flash|lite/i.test(m) && !MODEL_CHAIN.includes(m)).slice(0, 4);
+  const candidates = [...MODEL_CHAIN.filter(m => !listed.length || listed.includes(m)), ...extra];
+
+  const results = [];
+  for (const model of candidates){
+    try{
+      await callModel({ parts:[{ text:'Reply with only: {"ok":true}' }], maxTokens:32, key:k, model });
+      results.push({ model, ok:true, note:'Working' });
+    }catch(e){
+      results.push({ model, ok:false,
+        note: e.status === 429 ? 'No free quota' : e.status === 404 ? 'Not available' : (e.message || 'Failed').slice(0,50) });
+    }
+  }
+  const winner = results.find(r => r.ok);
+  if (winner) setModel(winner.model);
+  return { results, picked: winner?.model || null };
 }
 
 /** Cheap round-trip so the user finds out now, not mid-task. */
 export async function testKey(key){
   await initAI();
-  const model = settings.get().model;
   try{
     const txt = await callGemini({
       prompt:'Reply with only this JSON: {"ok":true}',
-      images:[], maxTokens:64, key:(key||'').trim(), model,
+      images:[], maxTokens:64, key:(key||'').trim(),
     });
     extractJSON(txt);
-    return { ok:true, message:'Working — AI features are on.' };
+    return { ok:true, message:`Working on ${settings.get().model} — AI features are on.` };
   }catch(e){
     return { ok:false, message:e.message };
   }
@@ -198,7 +282,7 @@ export async function ask({ prompt, images = [], offline = null, maxTokens = 120
     // Tier 2
     if (s.geminiKey){
       try{
-        const txt = await callGemini({ prompt, images, maxTokens, key:s.geminiKey, model:s.model });
+        const txt = await callGemini({ prompt, images, maxTokens, key:s.geminiKey });
         bumpCount();
         return { data: extractJSON(txt), source:'Gemini', tier:2 };
       }catch(e){ errors.push('Gemini: ' + e.message); }
