@@ -18,8 +18,9 @@ import {
 
 const store = new Slice('clear', {
   logs: [],                      // { id, t, mg, tag }
-  strengths: [6, 9, 11],
+  strengths: [6, 9, 11, 17],
   defaultMg: 9,
+  added17: false,                // see ensureStrengths()
   baseBudget: 60,                // mg/day at plan start
   weeklyDrop: 0.10,              // 10% down each week
   floor: 0,
@@ -31,6 +32,19 @@ const TAGS = ['waking','coffee','after food','work','driving','stress','boredom'
 let tab = 'today';
 let root = null;
 let tickTimer = null;
+
+/* Defaults only apply to a fresh install — an existing `strengths` array
+   survives the merge in Slice.load(), so adding 17mg to the defaults
+   alone would never reach a phone that already has the app. Do it once,
+   and record that it happened so removing 17mg later actually sticks. */
+function ensureStrengths(){
+  const s = store.get();
+  if (s.added17) return;
+  store.update(st => {
+    if (!st.strengths.includes(17)) st.strengths = [...st.strengths, 17].sort((a,b) => a-b);
+    st.added17 = true;
+  });
+}
 
 /* ---------------- taper maths ---------------- */
 function budgetFor(day){
@@ -80,6 +94,7 @@ function quitDate(){
 /* ---------------- summary ---------------- */
 export async function summary(){
   await store.load();
+  ensureStrengths();
   const t = today();
   const used = mgOn(t), b = budgetFor(t);
   return {
@@ -93,6 +108,7 @@ export async function summary(){
 export async function mount(el){
   root = el;
   await store.load();
+  ensureStrengths();
   render();
   clearInterval(tickTimer);
   // The "since last pouch" clock is the most motivating number here,
