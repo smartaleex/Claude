@@ -15,21 +15,28 @@ Six tools, one app, on your phone. No build step, no server, no subscription.
 
 ## Get it on your phone
 
-**1. Turn on GitHub Pages** — repo → Settings → Pages → Source: **GitHub Actions**.
+**1. Turn on GitHub Pages** — repo → **Settings → Pages**:
 
-**1b. Allow this branch to deploy.** The `github-pages` environment only accepts deploys from the
-repository's *default* branch out of the box, and this app lives on a feature branch — so the first
-run fails in about 3 seconds with *"not allowed to deploy to github-pages due to environment
-protection rules"*. Fix it once:
+> Source: **Deploy from a branch** · Branch: **`gh-pages`** · Folder: **`/ (root)`** → Save
 
-> Settings → **Environments** → `github-pages` → **Deployment branches and tags** →
-> *Add deployment branch or tag rule* → `claude/*`
-
-Then re-run the failed job. Your URL will be:
+The `gh-pages` branch is created automatically the first time the workflow runs, so if it isn't in
+the dropdown yet, let the Action finish once and come back. Your URL will be:
 
 ```
 https://smartaleex.github.io/Claude/
 ```
+
+<details>
+<summary>Why not the newer "GitHub Actions" Pages source?</summary>
+
+That path deploys through the `github-pages` *environment*, which only accepts deployments from the
+repository's default branch unless you add a deployment branch rule. Alex HQ lives on a feature
+branch, so it was rejected in ~2 seconds with *"not allowed to deploy to github-pages due to
+environment protection rules"* — before the build even ran.
+
+Publishing to a `gh-pages` branch avoids the environment altogether: the workflow just commits
+files. Fewer settings to get right, and it works from any branch.
+</details>
 
 **2. Add it to your home screen** — open that URL in Safari, tap Share → *Add to Home Screen*.
 It then runs full-screen with no browser chrome, and works offline.

@@ -1,5 +1,20 @@
 name: Deploy Alex HQ to GitHub Pages
 
+# WHY THIS PUBLISHES TO A BRANCH INSTEAD OF USING actions/deploy-pages
+#
+# The `github-pages` *environment* only accepts deployments from the repo's
+# default branch unless you add a deployment branch rule. Alex HQ lives on a
+# feature branch, so the modern deploy-pages action was rejected before the
+# build even ran ("not allowed to deploy to github-pages due to environment
+# protection rules").
+#
+# Publishing the built site to a plain `gh-pages` branch sidesteps the
+# environment entirely — this workflow just commits files, which needs no
+# special permission beyond `contents: write`. GitHub then serves that branch.
+#
+# One-time setup: Settings -> Pages -> Source: "Deploy from a branch",
+# Branch: `gh-pages`, folder: `/ (root)`.
+
 on:
   push:
     branches: [claude/alex-hq-web-app-ndzk1l]
@@ -7,44 +22,37 @@ on:
       - 'zetaris-prospector/**'
   workflow_dispatch:
 
-# NOTE: the `github-pages` environment only accepts deployments from the
-# repository's default branch unless you add a deployment branch rule.
-# This app lives on a feature branch, so before the first successful run:
-#   Settings -> Environments -> github-pages -> Deployment branches and tags
-#   -> Add rule -> claude/*
-# Without that, the job is rejected in ~3s with "not allowed to deploy to
-# github-pages due to environment protection rules" and never builds.
-
 permissions:
-  contents: read
-  pages: write
-  id-token: write
+  contents: write
 
-# Let a running deploy finish rather than cancelling it mid-publish.
 concurrency:
-  group: pages
-  cancel-in-progress: false
+  group: pages-publish
+  cancel-in-progress: true
 
 jobs:
-  deploy:
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
+  publish:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
 
       # The app is plain static files — no build step, nothing to install.
-      # Ship only what the site needs.
+      # Copy only what the site needs.
       - name: Stage site
         run: |
           mkdir -p _site
           cp index.html manifest.webmanifest sw.js _site/
           cp -r assets _site/
+          # Stop Pages running the output through Jekyll, which would
+          # ignore any file or folder beginning with an underscore.
+          touch _site/.nojekyll
 
-      - uses: actions/configure-pages@v5
-      - uses: actions/upload-pages-artifact@v3
-        with:
-          path: _site
-      - id: deployment
-        uses: actions/deploy-pages@v4
+      - name: Publish to gh-pages
+        run: |
+          cd _site
+          git init -q
+          git config user.name  "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -q -m "Deploy from ${GITHUB_SHA::7}"
+          git push -f "https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${GITHUB_REPOSITORY}.git" HEAD:gh-pages
+          echo "Published ${GITHUB_SHA::7} to gh-pages."
