@@ -161,31 +161,49 @@ async function homeHTML(){
 function tileHTML(c, i){
   const a = APPS[c.id];
   const [c1, c2, tint] = a.accent;
+  // A tile with chips can't be one big <button> — nested buttons are
+  // invalid HTML and swallow the inner taps.
   return `
-  <button class="card in ${i<3?'in-'+(i+2):''}" data-go2="${c.id}"
-          style="display:flex;align-items:center;gap:14px;text-align:left;width:100%">
-    <div class="av" style="background:linear-gradient(135deg,${c1},${c2});font-size:19px">${a.icon}</div>
-    <div class="grow">
-      <div class="spread" style="align-items:baseline">
-        <span style="font-weight:700;font-size:15.5px">${a.name}</span>
-        ${c.badge ? `<span class="badge" style="background:${tint};color:${c1}">${esc(c.badge)}</span>` : ''}
+  <div class="card in ${i<3?'in-'+(i+2):''}">
+    <div style="display:flex;align-items:center;gap:14px;width:100%" data-go2="${c.id}">
+      <div class="av" style="background:linear-gradient(135deg,${c1},${c2});font-size:19px">${a.icon}</div>
+      <div class="grow" style="text-align:left">
+        <div class="spread" style="align-items:baseline">
+          <span style="font-weight:700;font-size:15.5px">${a.name}</span>
+          ${c.badge ? `<span class="badge" style="background:${tint};color:${c1}">${esc(c.badge)}</span>` : ''}
+        </div>
+        <div style="font-family:'Sora',sans-serif;font-weight:800;font-size:19px;letter-spacing:-.02em;margin-top:3px">${c.headline}</div>
+        <div class="card-note" style="font-size:12.5px;margin-top:1px">${c.detail}</div>
       </div>
-      <div style="font-family:'Sora',sans-serif;font-weight:800;font-size:19px;letter-spacing:-.02em;margin-top:3px">${c.headline}</div>
-      <div class="card-note" style="font-size:12.5px;margin-top:1px">${c.detail}</div>
+      <span class="caret">›</span>
     </div>
-    <span class="caret">›</span>
-  </button>`;
+    ${c.chips?.length ? `
+      <div class="chips scroll" style="margin-top:12px;padding-top:12px;border-top:1px solid var(--line-soft)">
+        ${c.chips.map(ch => `<button class="chip ${ch.on?'on':''}" style="font-size:12.5px;padding:8px 13px"
+            data-act="${esc(ch.act)}" ${Object.entries(ch.data||{}).map(([k,v]) => `data-${k}="${esc(v)}"`).join(' ')}
+          >${ch.on ? '✓ ' : ''}${esc(ch.label)}</button>`).join('')}
+      </div>` : ''}
+  </div>`;
 }
 
 function bindHome(){
   bindActions(view, {
     settings: openSettings,
     'setup-ai': openAISetup,
+    // Start a specific training day straight from HQ.
+    'forge-day': async d => {
+      await APPS.forge.mod.startFromHome(d.d);
+      navigate('forge');
+    },
   });
-  view.addEventListener('click', e => {
-    const b = e.target.closest('[data-go2]');
-    if (b) navigate(b.dataset.go2);
-  }, { once:true });
+  if (!view.__homeBound){
+    view.__homeBound = true;
+    view.addEventListener('click', e => {
+      if (e.target.closest('[data-act]')) return;   // chips handle themselves
+      const b = e.target.closest('[data-go2]');
+      if (b) navigate(b.dataset.go2);
+    });
+  }
 }
 
 /* ---------------- more ---------------- */

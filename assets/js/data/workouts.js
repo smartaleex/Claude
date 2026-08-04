@@ -81,8 +81,9 @@ const N = {
 export const BLOCKS = [
   {
     id: 1,
-    name: 'Width',
-    focus: 'Build the frame — side delts and lat width, high volume, moderate load.',
+    phase: 1,
+    name: 'Foundation',
+    focus: 'Build the frame — side delts and lat width, high volume at moderate load.',
     days: [
       {
         key:'d1', name:'Shoulders & Lats', tag:'Priority', warmup:'pull',
@@ -137,8 +138,9 @@ export const BLOCKS = [
 
   {
     id: 2,
+    phase: 2,
     name: 'Density',
-    focus: 'Same targets, heavier and tighter. Slightly lower reps, more load.',
+    focus: 'Same targets, heavier and tighter. Lower reps, more load, longer rests.',
     days: [
       {
         key:'d1', name:'Shoulders & Lats', tag:'Priority', warmup:'pull',
@@ -192,8 +194,9 @@ export const BLOCKS = [
 
   {
     id: 3,
+    phase: 3,
     name: 'Detail',
-    focus: 'Highest reps, shortest rest, most metabolic. Cable and machine heavy — easiest block on the joints.',
+    focus: 'Highest reps, shortest rests, most metabolic. Cable and machine heavy, so it is the kindest phase on your joints.',
     days: [
       {
         key:'d1', name:'Shoulders & Lats', tag:'Priority', warmup:'pull',

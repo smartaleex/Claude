@@ -14,10 +14,19 @@ import { BLOCKS, WARMUPS, EXTRAS, PHYSIQUE } from '../data/workouts.js';
 const store = new Slice('forge', {
   blockIndex: 0,
   blockStart: today(),
-  sessions: {},     // sessionId -> { day, dayKey, sets:{ exKey:[{w,r}] }, done }
-  lastByEx: {},     // exercise name -> { w, r } for prefilling
+  sessions: {},     // sessionId -> { day, dayKey, sets:{ exKey:[{w}] }, done }
+  lastByEx: {},     // exercise name -> { w } for prefilling
   activeId: null,
 });
+
+/* A set is just a tick. Weight is optional metadata on top of it —
+   in the gym you want one tap, not a form. Reps live in the program
+   (3 × 10-12), so re-entering them per set was noise. */
+const setWeight = s => (s && typeof s === 'object') ? s.w : null;
+const fmtSet = s => {
+  const w = setWeight(s);
+  return w === null || w === undefined || w === '' ? '✓' : `${w}kg`;
+};
 
 let tab = 'plan';
 let root = null;
@@ -63,13 +72,32 @@ function thisWeekCount(){
 export async function summary(){
   await store.load();
   checkBlockRollover();
+  const b = block();
   const d = nextDay();
   const w = thisWeekCount();
   return {
-    headline: d.name,
-    detail: `Block ${block().name} · week ${Math.min(weekInBlock(),6)} of 6`,
+    headline: doneToday(d.key) ? 'Done for today ✓' : d.name,
+    detail: `Phase ${b.phase} · ${b.name} · week ${Math.min(weekInBlock(),6)} of 6`,
     badge: `${w}/4 this week`,
+    // Rendered as a chip row on the HQ tile so today's session can be
+    // switched without opening Forge — plans change on the way to the gym.
+    chips: b.days.map(day => ({
+      label: SHORT[day.key] || day.name,
+      act: 'forge-day',
+      data: { d: day.key },
+      on: doneToday(day.key),
+    })),
   };
+}
+
+/** Short labels for the HQ chip row. */
+const SHORT = { d1:'Delts/Lats', d2:'Push', d3:'Legs', d4:'Back/Arms' };
+
+/** Called from the HQ tile. Only creates the session — rendering is left
+    to mount(), since Forge has no root element until it's navigated to. */
+export async function startFromHome(dayK){
+  await store.load();
+  newSession(dayK);
 }
 
 /* ---------------- mount ---------------- */
@@ -88,7 +116,7 @@ function render(){
       <div>
         <div class="eyebrow">Training · Forge</div>
         <h1 class="page-h1">${tab==='plan' ? 'The plan' : tab==='goal' ? 'The goal' : 'History'}</h1>
-        <div class="page-sub">Block ${esc(block().name)} · week ${Math.min(weekInBlock(),6)} of 6</div>
+        <div class="page-sub">Phase ${block().phase} · ${esc(block().name)} · week ${Math.min(weekInBlock(),6)} of 6</div>
       </div>
       <button class="chip" data-act="settings">⚙</button>
     </div>
@@ -127,26 +155,43 @@ function planHTML(){
   </button>
 
   <div class="card in in-2" style="margin-top:14px;background:var(--accent-tint);border-color:transparent">
-    <div class="card-title">Block ${esc(b.name)}</div>
-    <div class="card-note" style="margin-top:4px">${esc(b.focus)}</div>
+    <div class="spread">
+      <div class="grow">
+        <div class="card-title">Phase ${b.phase} · ${esc(b.name)}</div>
+        <div class="card-note" style="margin-top:4px">${esc(b.focus)}</div>
+      </div>
+    </div>
+    <div class="tiny muted" style="margin-top:10px">
+      Week ${Math.min(weekInBlock(),6)} of 6 — then it rolls to
+      Phase ${(b.phase % BLOCKS.length) + 1}, and cycles back round after Phase ${BLOCKS.length}.
+    </div>
   </div>
 
-  <div class="sec">All four days</div>
+  <div class="sec">Pick today's session</div>
   <div class="stack" style="gap:9px">
     ${b.days.map(d => {
       const last = Object.values(store.get().sessions)
         .filter(s => s.done && s.day === d.key).map(s => s.dayKey).sort().at(-1);
-      return `<button class="rowcard" data-act="start" data-d="${d.key}" style="width:100%;text-align:left">
-        <div class="grow">
+      const isDone = doneToday(d.key);
+      return `<div class="rowcard" style="${isDone?'opacity:.72':''}">
+        <button data-act="${isDone?'undo':'tick'}" data-d="${d.key}" aria-label="Mark done"
+          style="width:30px;height:30px;border-radius:99px;flex:none;display:grid;place-items:center;
+                 font-size:14px;font-weight:800;
+                 background:${isDone?'var(--good)':'var(--bg-sunk)'};
+                 color:${isDone?'#fff':'var(--faint)'}">${isDone?'✓':''}</button>
+        <button class="grow" data-act="start" data-d="${d.key}" style="text-align:left">
           <div class="spread" style="align-items:baseline">
-            <b>${esc(d.name)}</b>
+            <b style="${isDone?'text-decoration:line-through':''}">${esc(d.name)}</b>
             <span class="badge ${d.tag==='Priority'?'accent':'neutral'}">${esc(d.tag)}</span>
           </div>
-          <span class="sub">${last ? 'Last done ' + esc(fmtDayShort(last)) : 'Not done yet'}</span>
-        </div>
+          <span class="sub">${isDone ? 'Done today' : last ? 'Last done ' + esc(fmtDayShort(last)) : 'Not done yet'}</span>
+        </button>
         <span class="caret">›</span>
-      </button>`;
+      </div>`;
     }).join('')}
+  </div>
+  <div class="tiny muted" style="margin:8px 2px 0">
+    Tap the circle to tick a session off, or the name to open it and log sets.
   </div>
 
   <div class="sec">Optional extras</div>
@@ -213,20 +258,26 @@ function sessionHTML(sess){
 function exerciseHTML(ex, key, sess, first){
   const logged = sess.sets[key] || [];
   const prev = store.get().lastByEx[ex.n];
+  const doneAll = logged.length >= ex.s;
   return `
   <div style="padding:16px;${first ? 'border-bottom:1px solid var(--line-soft)' : ''}">
     <div class="spread" style="align-items:flex-start">
       <div class="grow">
-        <b style="font-size:15px">${esc(ex.n)}</b>
-        <div class="tiny muted mono" style="margin-top:2px">${ex.s} × ${esc(ex.r)}${prev ? ` · last ${prev.w}kg × ${prev.r}` : ''}</div>
+        <b style="font-size:15px;${doneAll?'opacity:.55':''}">${esc(ex.n)}</b>
+        <div class="tiny muted mono" style="margin-top:2px">
+          ${logged.length}/${ex.s} × ${esc(ex.r)}${prev?.w != null ? ` · last ${prev.w}kg` : ''}
+        </div>
       </div>
-      <button class="btn btn-soft btn-sm" data-act="addset" data-k="${key}" data-n="${esc(ex.n)}">+ Set</button>
+      <button class="btn ${doneAll?'btn-plain':'btn-soft'} btn-sm" data-act="addset" data-k="${key}" data-n="${esc(ex.n)}">
+        ${doneAll ? '+ Extra' : '+ Set'}
+      </button>
     </div>
     ${ex.note ? `<div class="tiny" style="margin-top:8px;color:var(--accent-1);background:var(--accent-tint);padding:9px 11px;border-radius:11px;line-height:1.5">${esc(ex.note)}</div>` : ''}
     ${logged.length ? `<div class="chips" style="margin-top:10px">
-      ${logged.map((s,i) => `<button class="chip" style="font-size:12.5px;padding:7px 12px" data-act="rmset" data-k="${key}" data-i="${i}">
-        ${s.w}kg × ${s.r} ✕</button>`).join('')}
-    </div>` : ''}
+      ${logged.map((s,i) => `<button class="chip on" style="font-size:12.5px;padding:7px 13px"
+          data-act="editset" data-k="${key}" data-i="${i}" data-n="${esc(ex.n)}">${fmtSet(s)}</button>`).join('')}
+    </div>
+    <div class="tiny muted" style="margin-top:6px">Tap a set to add weight or remove it.</div>` : ''}
   </div>`;
 }
 
@@ -304,71 +355,129 @@ function historyHTML(){
   <div class="stack" style="gap:9px">
     ${sess.slice(0,40).map(s => {
       const day = BLOCKS.flatMap(b => b.days).find(d => d.key === s.day);
-      const nSets = Object.values(s.sets).reduce((n,a) => n + a.length, 0);
-      const vol = Object.values(s.sets).flat().reduce((n,x) => n + x.w*x.r, 0);
+      const nSets = Object.values(s.sets || {}).reduce((n,a) => n + a.length, 0);
+      // Only sets that carry a weight contribute to volume; a ticked set
+      // still counts as training, it just isn't measurable.
+      const weighted = Object.values(s.sets || {}).flat().filter(x => setWeight(x) != null);
+      const vol = weighted.reduce((n,x) => n + setWeight(x), 0);
+      const detail = s.quick || !nSets
+        ? 'Ticked off'
+        : `${nSets} set${nSets>1?'s':''}${weighted.length ? ` · ${num(vol)}kg total` : ''}`;
       return `<div class="rowcard">
         <div class="grow"><b>${esc(day?.name || s.day)}</b>
-          <span class="sub">${esc(fmtDayShort(s.dayKey))} · ${nSets} sets · ${num(vol)}kg volume</span></div>
+          <span class="sub">${esc(fmtDayShort(s.dayKey))} · ${detail}</span></div>
       </div>`;
     }).join('')}
   </div>`;
 }
 
 /* ---------------- actions ---------------- */
-function startSession(dayKey_){
+/** Create and make active. No rendering, so it's safe to call before mount. */
+function newSession(dayKey_){
   const id = uid();
   store.update(s => {
     s.sessions[id] = { id, day:dayKey_, dayKey:today(), sets:{}, done:false };
     s.activeId = id;
   });
   tab = 'plan';
+  return id;
+}
+
+function startSession(dayKey_){
+  newSession(dayKey_);
   haptic();
   render();
 }
 
+/* One tap logs the set. Weight carries over from last time if you've
+   logged it before, otherwise the set is just a tick — you can add the
+   number later, or never. Nothing here should slow you down mid-set. */
 function addSet(key, exName){
-  const prev = store.get().lastByEx[exName] || { w:20, r:10 };
+  const prev = store.get().lastByEx[exName];
+  store.update(s => {
+    const sess = s.sessions[s.activeId];
+    if (!sess.sets[key]) sess.sets[key] = [];
+    sess.sets[key].push({ w: prev?.w ?? null });
+  });
+  haptic();
+  render();
+}
+
+function editSet(key, i, exName){
+  const cur = store.get().sessions[store.get().activeId]?.sets[key]?.[i];
   openSheet(`
     <h2>${esc(exName)}</h2>
-    <p class="sub">Log the set you just did.</p>
-    <div class="grid2">
-      <div><label class="label">Weight (kg)</label>
-        <input class="input" type="number" inputmode="decimal" step="0.5" id="s-w" value="${prev.w}"></div>
-      <div><label class="label">Reps</label>
-        <input class="input" type="number" inputmode="numeric" id="s-r" value="${prev.r}"></div>
-    </div>
-    <button class="btn btn-primary block" data-act="save">Log set</button>
+    <p class="sub">Set ${i+1}. Weight is optional — leave it blank if you'd rather just tick it off.</p>
+    <label class="label">Weight (kg)</label>
+    <input class="input" type="number" inputmode="decimal" step="0.5" id="s-w"
+           value="${setWeight(cur) ?? ''}" placeholder="Optional"
+           style="font-size:22px;font-weight:700;text-align:center;padding:16px">
+    <button class="btn btn-primary block" style="margin-top:14px" data-act="save">Save</button>
+    <button class="btn btn-danger block" style="margin-top:8px" data-act="rm">Remove this set</button>
     <button class="btn btn-ghost block" data-act="close">Cancel</button>
   `);
+  setTimeout(() => document.getElementById('s-w')?.focus(), 120);
+
   bindActions(document.querySelector('.sheet'), {
     save: () => {
-      const w = sheetNum('s-w', 0), r = sheetNum('s-r', 0);
-      if (r <= 0){ toast('Reps?'); return; }
+      const raw = sheetVal('s-w').trim();
+      const w = raw === '' ? null : parseFloat(raw);
       store.update(s => {
-        const sess = s.sessions[s.activeId];
-        if (!sess.sets[key]) sess.sets[key] = [];
-        sess.sets[key].push({ w, r });
-        s.lastByEx[exName] = { w, r };
+        s.sessions[s.activeId].sets[key][i] = { w: Number.isFinite(w) ? w : null };
+        if (Number.isFinite(w)) s.lastByEx[exName] = { w };
       });
+      closeSheet(); render();
+    },
+    rm: () => {
+      store.update(s => { s.sessions[s.activeId].sets[key].splice(i,1); });
       closeSheet(); haptic(); render();
     },
     close: closeSheet,
   });
 }
 
+/* Finishing never requires logged sets. Plenty of sessions get done
+   without anyone touching their phone, and refusing to record those
+   would make the history lie about how much training actually happened. */
 function finishSession(){
-  const s = store.get();
-  const sess = s.sessions[s.activeId];
-  const n = Object.values(sess?.sets || {}).reduce((a,b) => a + b.length, 0);
-  if (!n){
-    toast('Log at least one set first');
-    return;
-  }
-  store.update(st => { st.sessions[st.activeId].done = true; st.activeId = null; });
+  store.update(st => {
+    const sess = st.sessions[st.activeId];
+    if (sess) sess.done = true;
+    st.activeId = null;
+  });
   haptic(20);
   toast('Session done ✓');
   render();
 }
+
+/** Mark a day complete straight from the plan, without opening it. */
+function quickComplete(dayK){
+  const b = block();
+  const name = b.days.find(d => d.key === dayK)?.name || 'Session';
+  store.update(s => {
+    const id = uid();
+    s.sessions[id] = { id, day:dayK, dayKey:today(), sets:{}, done:true, quick:true };
+  });
+  haptic(20);
+  toast(`${name} ✓`);
+  render();
+}
+
+/** Undo a tick made today, in case of a mis-tap. */
+function undoToday(dayK){
+  store.update(s => {
+    const match = Object.values(s.sessions)
+      .filter(x => x.done && x.day === dayK && x.dayKey === today())
+      .sort((a,b) => (a.id > b.id ? -1 : 1))[0];
+    if (match) delete s.sessions[match.id];
+  });
+  haptic();
+  toast('Undone');
+  render();
+}
+
+const doneToday = dayK => Object.values(store.get().sessions)
+  .some(s => s.done && s.day === dayK && s.dayKey === today());
 
 async function askAdvice(){
   openSheet(`
@@ -429,14 +538,14 @@ Respond with ONLY this JSON:
 function openSettings(){
   const s = store.get();
   openSheet(`
-    <h2>Program</h2>
-    <p class="sub">Blocks rotate automatically every 6 weeks. You can also switch now.</p>
-    <label class="label">Current block</label>
+    <h2>Phases</h2>
+    <p class="sub">Six weeks each, then it advances on its own and loops back to Phase 1 after the last one. Switch manually any time.</p>
+    <label class="label">Current phase</label>
     <div class="stack" style="gap:8px">
       ${BLOCKS.map((b,i) => `
         <button class="card tight" data-act="setblock" data-i="${i}"
                 style="text-align:left;box-shadow:none;background:${i===s.blockIndex?'var(--accent-tint)':'var(--surface-2)'}">
-          <div class="spread"><b>${esc(b.name)}</b>${i===s.blockIndex?'<span class="badge accent">Current</span>':''}</div>
+          <div class="spread"><b>Phase ${b.phase} · ${esc(b.name)}</b>${i===s.blockIndex?'<span class="badge accent">Current</span>':''}</div>
           <div class="tiny muted" style="margin-top:4px">${esc(b.focus)}</div>
         </button>`).join('')}
     </div>
@@ -464,10 +573,9 @@ function bind(){
     abandon: () => { store.update(s => { s.activeId = null; }); render(); },
     togglewu: () => { const e = document.getElementById('wu-body'); if (e) e.hidden = !e.hidden; },
     addset: d => addSet(d.k, d.n),
-    rmset: d => {
-      store.update(s => { s.sessions[s.activeId].sets[d.k].splice(+d.i, 1); });
-      render();
-    },
+    editset: d => editSet(d.k, +d.i, d.n),
+    tick: d => quickComplete(d.d),
+    undo: d => undoToday(d.d),
     finish: finishSession,
     advice: askAdvice,
     settings: openSettings,
