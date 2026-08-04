@@ -87,31 +87,94 @@ async function callClaude({ prompt, images, maxTokens }){
   return (data.content||[]).filter(b => b.type === 'text').map(b => b.text).join('\n');
 }
 
-/* ---------------- Tier 2: Gemini ---------------- */
-async function callGemini({ prompt, images, maxTokens, key, model }){
-  const parts = [
-    ...(images||[]).map(im => ({ inline_data:{ mime_type:im.media, data:im.b64 } })),
-    { text: prompt },
-  ];
-  const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${encodeURIComponent(key)}`;
-  const res = await fetch(url, {
+/* ---------------- Tier 2: Gemini ----------------
+   Do NOT validate the key by prefix. Google has issued at least two
+   shapes of Gemini API key — the older "AIzaSy…" and the current
+   "AQ.Ab8…" that AI Studio hands out today — and will presumably issue
+   more. A prefix check here just locks the user out of their own valid
+   key, which is exactly what happened.
+
+   Auth: the current quickstart uses the x-goog-api-key header, which
+   accepts both shapes. The ?key= query parameter is the older style and
+   still works, so it's kept as a fallback; Bearer covers OAuth tokens. */
+
+const AUTH_MODES = ['header', 'query', 'bearer'];
+
+function geminiRequest({ parts, maxTokens, model, key, mode }){
+  const base = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`;
+  const headers = { 'Content-Type':'application/json' };
+  let url = base;
+  if (mode === 'header')      headers['x-goog-api-key'] = key;
+  else if (mode === 'bearer') headers['Authorization'] = `Bearer ${key}`;
+  else                        url = `${base}?key=${encodeURIComponent(key)}`;
+  return fetch(url, {
     method:'POST',
-    headers:{ 'Content-Type':'application/json' },
+    headers,
     body: JSON.stringify({
       contents:[{ parts }],
       generationConfig:{ maxOutputTokens:maxTokens, temperature:0.4, responseMimeType:'application/json' },
     }),
   });
-  const data = await res.json().catch(() => null);
-  if (!res.ok || data?.error){
-    const m = data?.error?.message || `HTTP ${res.status}`;
-    if (/API key not valid/i.test(m)) throw new Error('That Gemini key was rejected. Check it in Settings.');
-    if (res.status === 429) throw new Error('Gemini free-tier limit hit. Try again in a minute.');
-    throw new Error(m.slice(0,120));
+}
+
+function geminiError(status, data){
+  const m = data?.error?.message || `HTTP ${status}`;
+  if (status === 429) return new Error('Gemini free-tier limit reached. Try again in a minute.');
+  if (/API key not valid|API_KEY_INVALID/i.test(m))
+    return new Error('Google rejected that key. Copy it again from AI Studio — it may have been truncated.');
+  if (status === 401 || status === 403)
+    return new Error('Google refused that key. Check it has not been deleted in AI Studio.');
+  if (status >= 500) return new Error('Google had a server error. Try again shortly.');
+  return new Error(m.slice(0, 140));
+}
+
+async function callGemini({ prompt, images, maxTokens, key, model }){
+  const parts = [
+    ...(images||[]).map(im => ({ inline_data:{ mime_type:im.media, data:im.b64 } })),
+    { text: prompt },
+  ];
+  let lastErr = null;
+
+  for (const mode of AUTH_MODES){
+    let res, data;
+    try{
+      res = await geminiRequest({ parts, maxTokens, model, key, mode });
+      data = await res.json().catch(() => null);
+    }catch{
+      throw new Error('Could not reach Google. Check your connection.');
+    }
+
+    if (res.ok && !data?.error){
+      const text = data?.candidates?.[0]?.content?.parts?.map(p => p.text).filter(Boolean).join('\n');
+      if (text) return text;
+      // 200 with no candidates means the prompt was blocked — a different
+      // auth mode will not change that, so stop here.
+      throw new Error(data?.promptFeedback?.blockReason
+        ? `Google blocked that request (${data.promptFeedback.blockReason}).`
+        : 'Google returned an empty response.');
+    }
+
+    lastErr = geminiError(res.status, data);
+    // Only an auth rejection is worth retrying with a different mode.
+    if (res.status !== 401 && res.status !== 403) throw lastErr;
   }
-  const text = data?.candidates?.[0]?.content?.parts?.map(p => p.text).filter(Boolean).join('\n');
-  if (!text) throw new Error('empty response');
-  return text;
+  throw lastErr || new Error('Gemini request failed.');
+}
+
+/** Cheap round-trip so the user finds out now, not mid-task. */
+export async function testKey(key){
+  await initAI();
+  const model = settings.get().model;
+  try{
+    const txt = await callGemini({
+      prompt:'Reply with only this JSON: {"ok":true}',
+      images:[], maxTokens:64, key:(key||'').trim(), model,
+    });
+    extractJSON(txt);
+    return { ok:true, message:'Working — AI features are on.' };
+  }catch(e){
+    return { ok:false, message:e.message };
+  }
 }
 
 /* ---------------- public entry point ----------------

@@ -2,7 +2,7 @@
    main.js — app shell: registry, router, tab bar, home dashboard.
    ============================================================ */
 
-import { initAI, aiStatus, setKey, aiSettings } from './core/ai.js';
+import { initAI, aiStatus, setKey, aiSettings, testKey } from './core/ai.js';
 import { exportAll, importAll, Slice, today } from './core/store.js';
 import { esc, $, toast, openSheet, closeSheet, sheetVal, bindActions, haptic } from './core/ui.js';
 
@@ -282,26 +282,52 @@ function openAISetup(){
 
     <label class="label" style="margin-top:18px">Your key</label>
     <input class="input" id="gk" type="password" autocomplete="off" spellcheck="false"
-           placeholder="AIza…" value="${esc(s.geminiKey||'')}">
+           placeholder="Paste your key" value="${esc(s.geminiKey||'')}">
     <div class="tiny muted" style="margin-top:8px">
-      Stored only in this browser. It is sent to Google when you use an AI feature, and nowhere else.
+      Paste whatever AI Studio gives you — keys start with <b>AQ.</b> or <b>AIza</b> depending on
+      when they were made, and both work. Hit Test if you want to be sure.
+    </div>
+    <div class="tiny muted" style="margin-top:6px">
+      Stored only in this browser. Sent to Google when you use an AI feature, and nowhere else.
     </div>
 
-    <button class="btn btn-primary block" style="margin-top:16px" data-act="save">Save key</button>
+    <button class="btn btn-plain block" style="margin-top:14px" data-act="test" id="test-btn">Test it</button>
+    <div id="test-out"></div>
+
+    <button class="btn btn-primary block" style="margin-top:10px" data-act="save">Save key</button>
     ${s.geminiKey ? `<button class="btn btn-ghost block" data-act="clear">Remove key</button>` : ''}
     <button class="btn btn-ghost block" data-act="close">Cancel</button>
   `);
 
+  const showResult = r => {
+    const out = document.getElementById('test-out');
+    if (out) out.innerHTML = `
+      <div class="card tight" style="box-shadow:none;margin-top:10px;
+           background:${r.ok ? 'var(--good-tint)' : 'var(--bad-tint)'};border-color:transparent">
+        <div class="tiny" style="color:${r.ok ? 'var(--good)' : 'var(--bad)'};line-height:1.55">
+          ${r.ok ? '✓ ' : ''}${esc(r.message)}
+        </div>
+      </div>`;
+  };
+
   bindActions(document.querySelector('.sheet'), {
+    test: async () => {
+      const k = sheetVal('gk').trim();
+      if (!k){ toast('Paste a key first'); return; }
+      const btn = document.getElementById('test-btn');
+      btn.disabled = true;
+      btn.innerHTML = `<span class="spin dark"></span> Checking…`;
+      showResult(await testKey(k));
+      btn.disabled = false;
+      btn.textContent = 'Test it';
+    },
+    // Never block on format — Google is the authority on whether a
+    // credential works, not a regex here.
     save: () => {
       const k = sheetVal('gk').trim();
-      if (k && !/^AIza[\w-]{20,}$/.test(k)){
-        toast("That doesn't look like a Gemini key — it should start with AIza");
-        return;
-      }
       setKey(k);
       closeSheet();
-      toast(k ? 'AI is on ✓' : 'Key removed');
+      toast(k ? 'Key saved ✓' : 'Key removed');
       rerender();
     },
     clear: () => { setKey(''); closeSheet(); toast('Key removed'); rerender(); },
