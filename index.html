@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="auto">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no">
+<meta name="description" content="Alex HQ — macros, training, money, mates, nicotine and Spanish in one place.">
+<meta name="theme-color" content="#F4F5FA">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Alex HQ">
+<title>Alex HQ</title>
+<link rel="manifest" href="./manifest.webmanifest">
+<link rel="apple-touch-icon" href="./assets/icon-180.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@600;700;800&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="./assets/css/tokens.css">
+<link rel="stylesheet" href="./assets/css/app.css">
+</head>
+<body>
+  <div id="app">
+    <main id="view" class="shell"></main>
+  </div>
+
+  <nav class="tabbar" id="tabbar" aria-label="Sections">
+    <div class="tabbar-inner" id="tabbar-inner"></div>
+  </nav>
+
+  <!-- shared file inputs, reused by any tool that wants a photo -->
+  <input type="file" id="file-cam" accept="image/*" capture="environment" hidden>
+  <input type="file" id="file-lib" accept="image/*" multiple hidden>
+
+  <script type="module" src="./assets/js/main.js"></script>
+</body>
+</html>
