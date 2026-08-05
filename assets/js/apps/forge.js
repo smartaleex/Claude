@@ -1,6 +1,9 @@
 /* ============================================================
-   Forge — training. 4-day split, 3 supersets a session, 6-week blocks.
-   Logs sets, tracks the block clock, and reads bodyweight from Fuel.
+   Forge — The Swimmer Build.
+
+   Renders Alex's own program: 4 days, 3 supersets each, with the
+   superset rationales, per-exercise coaching notes, rest values and
+   optional extra-time blocks carried over from the original artifact.
    ============================================================ */
 
 import { Slice, today, dayKey, keyToDate, daysBetween, uid, fmtDayShort } from '../core/store.js';
@@ -9,36 +12,39 @@ import {
   esc, num, round, toast, openSheet, closeSheet, sheetVal, sheetNum,
   bindActions, empty, stat, haptic,
 } from '../core/ui.js';
-import { BLOCKS, WARMUPS, EXTRAS, PHYSIQUE, PHASE_METRICS, weeklyVolume, sessionMinutes } from '../data/workouts.js';
+import {
+  PHASES, WARMUPS, PROGRESSION, TAG_STYLE, PHYSIQUE,
+  weeklyVolume, sessionMinutes, totalExercises,
+} from '../data/workouts.js';
 
 const store = new Slice('forge', {
-  blockIndex: 0,
+  blockIndex: 1,          // Phase 2 was current in the original artifact
   blockStart: today(),
-  sessions: {},     // sessionId -> { day, dayKey, sets:{ exKey:[{w}] }, done }
-  lastByEx: {},     // exercise name -> { w } for prefilling
+  sessions: {},           // id -> { day, dayKey, sets:{ exKey:[{w}] }, done }
+  lastByEx: {},           // exercise name -> { w }
   activeId: null,
 });
 
-/* A set is just a tick. Weight is optional metadata on top of it —
-   in the gym you want one tap, not a form. Reps live in the program
-   (3 × 10-12), so re-entering them per set was noise. */
+/* A set is just a tick; weight is optional metadata on top. In the gym
+   you want one tap, not a form. Reps live in the program, not the log. */
 const setWeight = s => (s && typeof s === 'object') ? s.w : null;
 const fmtSet = s => {
   const w = setWeight(s);
-  return w === null || w === undefined || w === '' ? '✓' : `${w}kg`;
+  return (w === null || w === undefined || w === '') ? '✓' : `${w}kg`;
 };
 
 let tab = 'plan';
 let root = null;
 
-const block = () => BLOCKS[store.get().blockIndex % BLOCKS.length];
+const phase = () => PHASES[store.get().blockIndex % PHASES.length];
 const weekInBlock = () => Math.floor(daysBetween(store.get().blockStart, today()) / 7) + 1;
+const dayOf = k => phase().days.find(d => d.key === k);
 
-/* Rotate the block after 6 weeks — you asked for a 6-week interchange. */
+/* Phases run 6-8 weeks. Roll at 8 and loop back round to Phase 1. */
 function checkBlockRollover(){
-  if (weekInBlock() > 6){
+  if (weekInBlock() > 8){
     store.update(s => {
-      s.blockIndex = (s.blockIndex + 1) % BLOCKS.length;
+      s.blockIndex = (s.blockIndex + 1) % PHASES.length;
       s.blockStart = today();
     });
     return true;
@@ -46,13 +52,12 @@ function checkBlockRollover(){
   return false;
 }
 
-/** Which day is next: the one least recently trained. */
+/** Next up = the day least recently trained. */
 function nextDay(){
-  const sess = Object.values(store.get().sessions).filter(s => s.done);
-  const b = block();
-  let best = b.days[0], bestTime = Infinity;
-  for (const d of b.days){
-    const last = sess.filter(s => s.day === d.key).map(s => s.dayKey).sort().at(-1);
+  const done = Object.values(store.get().sessions).filter(s => s.done);
+  let best = phase().days[0], bestTime = Infinity;
+  for (const d of phase().days){
+    const last = done.filter(s => s.day === d.key).map(s => s.dayKey).sort().at(-1);
     const t = last ? keyToDate(last).getTime() : 0;
     if (t < bestTime){ bestTime = t; best = d; }
   }
@@ -60,6 +65,8 @@ function nextDay(){
 }
 
 const doneCount = () => Object.values(store.get().sessions).filter(s => s.done).length;
+const doneToday = k => Object.values(store.get().sessions)
+  .some(s => s.done && s.day === k && s.dayKey === today());
 
 function thisWeekCount(){
   const monday = new Date();
@@ -68,21 +75,19 @@ function thisWeekCount(){
   return Object.values(store.get().sessions).filter(s => s.done && s.dayKey >= mk).length;
 }
 
-/* ---------------- summary ---------------- */
+/* ---------------- summary (HQ tile) ---------------- */
+const SHORT = { d1:'Back/Bi', d2:'Chest/Tri', d3:'Legs', d4:'Delts/Arms' };
+
 export async function summary(){
   await store.load();
   checkBlockRollover();
-  const b = block();
-  const d = nextDay();
-  const w = thisWeekCount();
+  const p = phase(), d = nextDay();
   return {
-    headline: doneToday(d.key) ? 'Done for today ✓' : d.name,
-    detail: `Phase ${b.phase} · ${b.name} · week ${Math.min(weekInBlock(),6)} of 6`,
-    badge: `${w}/4 this week`,
-    // Rendered as a chip row on the HQ tile so today's session can be
-    // switched without opening Forge — plans change on the way to the gym.
-    chips: b.days.map(day => ({
-      label: SHORT[day.key] || day.name,
+    headline: doneToday(d.key) ? 'Done for today ✓' : d.title,
+    detail: `Phase ${p.phase} · ${p.name} · week ${Math.min(weekInBlock(),8)} of 8`,
+    badge: `${thisWeekCount()}/4 this week`,
+    chips: p.days.map(day => ({
+      label: SHORT[day.key] || day.title,
       act: 'forge-day',
       data: { d: day.key },
       on: doneToday(day.key),
@@ -90,14 +95,10 @@ export async function summary(){
   };
 }
 
-/** Short labels for the HQ chip row. */
-const SHORT = { d1:'Delts/Lats', d2:'Push', d3:'Legs', d4:'Back/Arms' };
-
-/** Called from the HQ tile. Only creates the session — rendering is left
-    to mount(), since Forge has no root element until it's navigated to. */
-export async function startFromHome(dayK){
+/** From the HQ tile — creates only; mount() does the rendering. */
+export async function startFromHome(k){
   await store.load();
-  newSession(dayK);
+  newSession(k);
 }
 
 /* ---------------- mount ---------------- */
@@ -110,13 +111,14 @@ export async function mount(el){
 
 function render(){
   const active = store.get().activeId ? store.get().sessions[store.get().activeId] : null;
+  const p = phase();
   root.innerHTML = `
   <header class="in">
     <div class="spread">
       <div>
-        <div class="eyebrow">Training · Forge</div>
+        <div class="eyebrow">The Swimmer Build</div>
         <h1 class="page-h1">${tab==='plan' ? 'The plan' : tab==='goal' ? 'The goal' : 'History'}</h1>
-        <div class="page-sub">Phase ${block().phase} · ${esc(block().name)} · week ${Math.min(weekInBlock(),6)} of 6</div>
+        <div class="page-sub">Phase ${p.phase} · ${esc(p.name)} · week ${Math.min(weekInBlock(),8)} of 8</div>
       </div>
       <button class="chip" data-act="settings">⚙</button>
     </div>
@@ -137,61 +139,49 @@ function render(){
 
 /* ---------------- plan ---------------- */
 function planHTML(){
-  const b = block();
+  const p = phase();
   const next = nextDay();
   const wk = thisWeekCount();
 
   return `
   <div class="hero in">
     <div class="eyebrow" style="color:rgba(255,255,255,.75)">Up next</div>
-    <div style="font-family:'Sora',sans-serif;font-weight:800;font-size:29px;letter-spacing:-.03em;margin-top:6px">${esc(next.name)}</div>
-    <div class="hero-cap">3 supersets · 6 exercises · about ${sessionMinutes(next, b.phase)} minutes</div>
+    <div style="font-family:'Sora',sans-serif;font-weight:800;font-size:28px;letter-spacing:-.03em;margin-top:6px">${esc(next.title)}</div>
+    <div class="hero-cap">${esc(next.subtitle)} · ~${sessionMinutes(next)} min</div>
     <div class="bar"><i style="width:${wk/4*100}%"></i></div>
     <div class="hero-cap" style="margin-top:8px">${wk} of 4 sessions done this week</div>
   </div>
 
   <button class="btn btn-primary block in in-2" style="margin-top:14px" data-act="start" data-d="${next.key}">
-    Start ${esc(next.name)} →
+    Start ${esc(next.title)} →
   </button>
 
   <div class="card in in-2" style="margin-top:14px;background:var(--accent-tint);border-color:transparent">
-    <div class="spread">
-      <div class="grow">
-        <div class="card-title">Phase ${b.phase} · ${esc(b.name)}</div>
-        <div class="card-note" style="margin-top:4px">${esc(b.focus)}</div>
-      </div>
+    <div class="spread" style="align-items:baseline">
+      <div class="card-title">Phase ${p.phase} · ${esc(p.name)}</div>
+      <span class="tiny muted">${esc(p.weeks)}</span>
     </div>
-    <div class="grid3" style="gap:8px;margin-top:14px">
-      ${[['Rest',PHASE_METRICS[b.phase].rest],['Tempo',PHASE_METRICS[b.phase].tempo],['RPE',PHASE_METRICS[b.phase].rpe]]
-        .map(([l,v]) => `<div style="background:rgba(255,255,255,.55);border-radius:12px;padding:9px 10px">
-          <div class="tiny muted" style="font-size:10px;letter-spacing:.08em;text-transform:uppercase">${l}</div>
-          <b class="mono" style="font-size:14px">${esc(v)}</b></div>`).join('')}
-    </div>
-    <div class="tiny muted" style="margin-top:10px;line-height:1.55">${esc(PHASE_METRICS[b.phase].why)}</div>
-    <div class="tiny muted" style="margin-top:8px">
-      Week ${Math.min(weekInBlock(),6)} of 6 — then it rolls to
-      Phase ${(b.phase % BLOCKS.length) + 1}, and cycles back round after Phase ${BLOCKS.length}.
-    </div>
+    <div class="card-note" style="margin-top:6px;line-height:1.6">${esc(p.note)}</div>
   </div>
 
   <div class="sec">Pick today's session</div>
   <div class="stack" style="gap:9px">
-    ${b.days.map(d => {
+    ${p.days.map(d => {
       const last = Object.values(store.get().sessions)
         .filter(s => s.done && s.day === d.key).map(s => s.dayKey).sort().at(-1);
       const isDone = doneToday(d.key);
-      return `<div class="rowcard" style="${isDone?'opacity:.72':''}">
+      return `<div class="rowcard" style="${isDone?'opacity:.72':''};border-left:3px solid ${d.color}">
         <button data-act="${isDone?'undo':'tick'}" data-d="${d.key}" aria-label="Mark done"
           style="width:30px;height:30px;border-radius:99px;flex:none;display:grid;place-items:center;
                  font-size:14px;font-weight:800;
-                 background:${isDone?'var(--good)':'var(--bg-sunk)'};
-                 color:${isDone?'#fff':'var(--faint)'}">${isDone?'✓':''}</button>
+                 background:${isDone?'var(--good)':'var(--bg-sunk)'};color:${isDone?'#fff':'var(--faint)'}">${isDone?'✓':''}</button>
         <button class="grow" data-act="start" data-d="${d.key}" style="text-align:left">
           <div class="spread" style="align-items:baseline">
-            <b style="${isDone?'text-decoration:line-through':''}">${esc(d.name)}</b>
-            <span class="badge ${d.tag==='Priority'?'accent':'neutral'}">${esc(d.tag)}</span>
+            <b style="${isDone?'text-decoration:line-through':''}">${esc(d.title)}</b>
+            <span class="tiny" style="color:${d.color};font-weight:700">${d.label}</span>
           </div>
-          <span class="sub">~${sessionMinutes(d, b.phase)} min · ${isDone ? 'done today' : last ? 'last ' + esc(fmtDayShort(last)) : 'not done yet'}</span>
+          <span class="sub">${esc(d.subtitle)}</span>
+          <span class="sub" style="font-size:12px">${d.supersets.length} supersets · ${totalExercises(d)} exercises · ~${sessionMinutes(d)} min</span>
         </button>
         <span class="caret">›</span>
       </div>`;
@@ -201,42 +191,47 @@ function planHTML(){
     Tap the circle to tick a session off, or the name to open it and log sets.
   </div>
 
-  <div class="sec">Optional extras</div>
+  <div class="sec">How to progress</div>
   <div class="card in">
-    <div class="card-note" style="margin-bottom:12px">
-      Add any of these when you've got a spare five minutes. The face pulls and dead hangs matter more than they look.
-    </div>
-    ${EXTRAS.map(e => `
-      <div style="padding:11px 0;border-bottom:1px solid var(--line-soft)">
-        <div class="spread"><b style="font-size:14.5px">${esc(e.n)}</b><span class="tiny muted mono">${esc(e.d)}</span></div>
-        <div class="tiny muted" style="margin-top:3px">${esc(e.why)}</div>
+    ${PROGRESSION.map((x,i) => `
+      <div style="padding:10px 0;${i<PROGRESSION.length-1?'border-bottom:1px solid var(--line-soft)':''}">
+        <b style="font-size:14.5px">${esc(x.label)}</b>
+        <div class="tiny muted" style="margin-top:3px;line-height:1.55">${esc(x.text)}</div>
       </div>`).join('')}
+  </div>
+
+  <div class="tiny muted center" style="margin:22px 0 8px">
+    Not medical advice · consult a physio for shoulder-specific guidance
   </div>`;
 }
 
 /* ---------------- live session ---------------- */
 function sessionHTML(sess){
-  const b = block();
-  const day = b.days.find(d => d.key === sess.day);
-  const wu = WARMUPS[day.warmup];
-  const totalSets = day.supersets.reduce((n,ss) => n + ss.a.s + ss.b.s, 0);
+  const d = dayOf(sess.day) || phase().days[0];
+  const wu = WARMUPS[d.warmup];
+  const totalSets = d.supersets.reduce((n,ss) =>
+    n + ss.exercises.reduce((m,ex) => m + (parseInt(ex.sets,10)||1), 0), 0);
   const doneSets = Object.values(sess.sets).reduce((n,arr) => n + arr.length, 0);
 
   return `
-  <div class="card in" style="background:var(--accent-tint);border-color:transparent">
+  <div class="card in" style="background:${d.tint};border-color:${d.line}">
     <div class="spread">
       <div class="grow">
-        <div class="card-title">${esc(day.name)}</div>
-        <div class="card-note" style="margin-top:3px">${doneSets} of ${totalSets} sets logged</div>
+        <div class="spread" style="align-items:baseline">
+          <div class="card-title" style="color:${d.color}">${esc(d.title)}</div>
+          <span class="tiny" style="color:${d.color};font-weight:800">${d.label}</span>
+        </div>
+        <div class="card-note" style="margin-top:3px">${esc(d.subtitle)}</div>
+        <div class="tiny muted" style="margin-top:6px">${doneSets} of ${totalSets} sets logged</div>
       </div>
       <button class="btn btn-sm btn-plain" data-act="abandon">Exit</button>
     </div>
     <div class="bar" style="background:rgba(0,0,0,.08);margin-top:14px">
-      <i style="width:${doneSets/totalSets*100}%;background:var(--accent-1)"></i>
+      <i style="width:${totalSets ? doneSets/totalSets*100 : 0}%;background:${d.color}"></i>
     </div>
   </div>
 
-  <div class="card in in-2" style="margin-top:14px">
+  ${wu ? `<div class="card in in-2" style="margin-top:14px">
     <div class="spread" data-act="togglewu">
       <div class="grow">
         <div class="card-title">⚡ ${esc(wu.name)}</div>
@@ -249,42 +244,69 @@ function sessionHTML(sess){
         <b style="font-size:14.5px">${esc(i.n)}</b>
         <div class="tiny muted" style="margin-top:2px">${esc(i.d)}</div></div>`).join('')}
     </div>
-  </div>
+  </div>` : ''}
 
-  ${day.note ? `<div class="tiny muted" style="margin:16px 2px 0;line-height:1.6">${esc(day.note)}</div>` : ''}
-
-  ${day.supersets.map((ss,i) => `
-    <div class="sec">Superset ${String.fromCharCode(65+i)} · minimal rest between the pair, 90s after</div>
+  ${d.supersets.map((ss,i) => `
+    <div class="sec">${esc(ss.label)}</div>
     <div class="card in" style="padding:0;overflow:hidden">
-      ${[ss.a, ss.b].map((ex,j) => exerciseHTML(ex, `${i}-${j}`, sess, j===0)).join('')}
+      <div style="padding:13px 16px;background:${d.color}0C;border-bottom:1px solid var(--line-soft)">
+        <div class="tiny" style="line-height:1.55;color:var(--ink-2)">
+          <b style="color:${d.color}">Why this pairing: </b>${esc(ss.rationale)}
+        </div>
+      </div>
+      ${ss.exercises.map((ex,j) =>
+        exerciseHTML(ex, `${i}-${j}`, sess, d, j < ss.exercises.length-1)).join('')}
     </div>`).join('')}
+
+  ${d.extra ? `
+    <div class="sec">${esc(d.extra.label)} · optional</div>
+    <div class="card in" style="border:1.5px dashed ${d.color}55;background:transparent">
+      ${d.extra.exercises.map((ex,i) => `
+        <div class="spread" style="align-items:flex-start;padding:9px 0;${i>0?`border-top:1px solid ${d.color}22`:''}">
+          <div class="grow">
+            <b style="font-size:14px">${esc(ex.name)}</b>
+            <div class="tiny muted" style="margin-top:2px;line-height:1.5">${esc(ex.note)}</div>
+          </div>
+          <span class="tiny mono nowrap" style="color:${d.color};font-weight:700">${esc(ex.sets)} × ${esc(ex.reps)}</span>
+        </div>`).join('')}
+    </div>` : ''}
 
   <button class="btn btn-primary block" style="margin:20px 0 8px" data-act="finish">Finish session ✓</button>`;
 }
 
-function exerciseHTML(ex, key, sess, first){
+function exerciseHTML(ex, key, sess, d, hasNext){
   const logged = sess.sets[key] || [];
-  const prev = store.get().lastByEx[ex.n];
-  const doneAll = logged.length >= ex.s;
+  const target = parseInt(ex.sets, 10) || 1;
+  const prev = store.get().lastByEx[ex.name];
+  const doneAll = logged.length >= target;
+  const ts = TAG_STYLE[ex.tag] || TAG_STYLE.Isolation;
+  const straightInto = ex.rest === '0s';
+
   return `
-  <div style="padding:16px;${first ? 'border-bottom:1px solid var(--line-soft)' : ''}">
-    <div class="spread" style="align-items:flex-start">
+  <div style="padding:15px 16px;${hasNext ? 'border-bottom:1px solid var(--line-soft)' : ''}">
+    <div class="spread" style="align-items:flex-start;gap:10px">
       <div class="grow">
-        <b style="font-size:15px;${doneAll?'opacity:.55':''}">${esc(ex.n)}</b>
-        <div class="tiny muted mono" style="margin-top:2px">
-          ${logged.length}/${ex.s} × ${esc(ex.r)}${prev?.w != null ? ` · last ${prev.w}kg` : ''}
+        <span class="badge" style="background:${ts.bg};color:${ts.fg}">${esc(ex.tag)}</span>
+        <div style="font-weight:700;font-size:15px;margin-top:6px;${doneAll?'opacity:.55':''}">${esc(ex.name)}</div>
+        <div class="tiny muted mono" style="margin-top:3px">
+          ${logged.length}/${esc(ex.sets)} sets · ${esc(ex.reps)} reps ·
+          ${straightInto ? `<span style="color:${d.color};font-weight:700">→ straight into next</span>` : `${esc(ex.rest)} rest`}
+          ${prev?.w != null ? ` · last ${prev.w}kg` : ''}
         </div>
       </div>
-      <button class="btn ${doneAll?'btn-plain':'btn-soft'} btn-sm" data-act="addset" data-k="${key}" data-n="${esc(ex.n)}">
+      <button class="btn ${doneAll?'btn-plain':'btn-soft'} btn-sm nowrap" data-act="addset" data-k="${key}" data-n="${esc(ex.name)}">
         ${doneAll ? '+ Extra' : '+ Set'}
       </button>
     </div>
-    ${ex.note ? `<div class="tiny" style="margin-top:8px;color:var(--accent-1);background:var(--accent-tint);padding:9px 11px;border-radius:11px;line-height:1.5">${esc(ex.note)}</div>` : ''}
+
+    ${ex.notes ? `<div class="tiny" style="margin-top:9px;color:var(--ink-2);background:var(--surface-2);
+        padding:9px 11px;border-radius:11px;line-height:1.55">${esc(ex.notes)}</div>` : ''}
+
     ${logged.length ? `<div class="chips" style="margin-top:10px">
-      ${logged.map((s,i) => `<button class="chip on" style="font-size:12.5px;padding:7px 13px"
-          data-act="editset" data-k="${key}" data-i="${i}" data-n="${esc(ex.n)}">${fmtSet(s)}</button>`).join('')}
-    </div>
-    <div class="tiny muted" style="margin-top:6px">Tap a set to add weight or remove it.</div>` : ''}
+        ${logged.map((s,i) => `<button class="chip on" style="font-size:12.5px;padding:7px 13px"
+            data-act="editset" data-k="${key}" data-i="${i}" data-n="${esc(ex.name)}">${fmtSet(s)}</button>`).join('')}
+      </div>
+      <div class="tiny muted" style="margin-top:6px">Tap a set to add weight or remove it.</div>` : ''}
   </div>`;
 }
 
@@ -307,7 +329,7 @@ function goalHTML(){
   <div class="hero in">
     <div class="eyebrow" style="color:rgba(255,255,255,.75)">Swimmer build</div>
     <div class="spread" style="align-items:flex-end;margin-top:6px">
-      <div><div class="hero-num" style="font-size:46px">${round(cur,1)}<span style="font-size:22px">kg</span></div>
+      <div><div class="hero-num" style="font-size:44px">${round(cur,1)}<span style="font-size:22px">kg</span></div>
         <div class="hero-cap">from ${PHYSIQUE.start} → ${PHYSIQUE.goal}kg</div></div>
       <div class="hero-side" style="font-size:28px">${Math.round(prog)}%</div>
     </div>
@@ -319,13 +341,13 @@ function goalHTML(){
     <p class="card-note" style="margin-top:8px">${esc(PHYSIQUE.note)}</p>
     <div class="hr"></div>
     ${[
-      ['Side & rear delts','Shoulder width is the whole illusion. Trained on 3 of 4 days for a reason.'],
+      ['Side & rear delts','Shoulder width is the whole illusion. Phase 3 doubles their frequency for exactly this reason.'],
       ['Lat width','Wide grips and straight-arm work. Width makes the waist look smaller without losing a kilo.'],
-      ['Upper chest','15-30° incline only. A high chest reads swimmer; a low one reads gym.'],
-      ['Posture','Lower traps and rear delts. Rounded shoulders hide everything you build.'],
-    ].map(([t,d]) => `<div style="padding:10px 0">
+      ['Upper chest','Incline only. A high chest reads swimmer; a low one reads gym.'],
+      ['Posture','Face pulls, chest-supported rows, wall slides. Rounded shoulders hide everything you build.'],
+    ].map(([t,x]) => `<div style="padding:10px 0">
       <b style="font-size:14.5px">${t}</b>
-      <div class="tiny muted" style="margin-top:2px;line-height:1.55">${d}</div></div>`).join('')}
+      <div class="tiny muted" style="margin-top:2px;line-height:1.55">${x}</div></div>`).join('')}
   </div>
 
   ${rate !== null ? `
@@ -350,26 +372,24 @@ function goalHTML(){
   <button class="btn btn-plain block in" style="margin-top:14px" data-act="advice">✨ Ask about form or a swap</button>`;
 }
 
-/* Weekly sets per muscle for the current phase. This is the honesty
-   check on the program: if delts and lats aren't at the top, it isn't
-   actually building the shape in the reference photos, whatever the
-   session names say. */
+/* Weekly sets per muscle for the current phase — the honesty check that
+   the program targets the goal rather than just looking busy. */
 function volumeHTML(){
-  const b = block();
-  const vol = weeklyVolume(b);
+  const p = phase();
+  const vol = weeklyVolume(p);
   const max = vol[0]?.[1] || 1;
   const PRIORITY = ['Side delts','Rear delts & traps','Lats','Upper back'];
 
   const delts = vol.filter(v => v[0].includes('delts')).reduce((n,v) => n+v[1], 0);
   const back  = vol.filter(v => ['Lats','Upper back'].includes(v[0])).reduce((n,v) => n+v[1], 0);
   const chest = vol.find(v => v[0] === 'Chest')?.[1] || 0;
+  const side  = vol.find(v => v[0] === 'Side delts')?.[1] || 0;
 
   return `
   <div class="card in" style="margin-top:14px">
-    <div class="card-title">Weekly volume · Phase ${b.phase}</div>
+    <div class="card-title">Weekly volume · Phase ${p.phase}</div>
     <div class="card-note" style="margin:4px 0 14px">
-      Sets per muscle across the four days. Shoulders and back should sit above chest —
-      that ratio is what builds the V rather than the barrel.
+      Sets per muscle across the four days. For a V-taper, delts and back want to sit above chest.
     </div>
     ${vol.map(([m,n]) => {
       const pri = PRIORITY.includes(m);
@@ -379,8 +399,7 @@ function volumeHTML(){
           <span class="tiny mono" style="${pri?'font-weight:700;color:var(--accent-1)':'color:var(--muted)'}">${n}</span>
         </div>
         <div class="meter-track" style="background:var(--bg-sunk);height:7px">
-          <div class="meter-fill" style="width:${n/max*100}%;height:7px;
-               background:${pri?'var(--accent-1)':'var(--line)'}"></div>
+          <div class="meter-fill" style="width:${n/max*100}%;height:7px;background:${pri?'var(--accent-1)':'var(--line)'}"></div>
         </div>
       </div>`;
     }).join('')}
@@ -390,10 +409,10 @@ function volumeHTML(){
       <div><div class="tiny muted">Back</div><b class="mono" style="font-size:16px;color:var(--accent-1)">${back}</b></div>
       <div><div class="tiny muted">Chest</div><b class="mono" style="font-size:16px">${chest}</b></div>
     </div>
-    <div class="tiny muted" style="margin-top:10px">
-      ${delts + back > chest * 2
-        ? `Weighted ${Math.round((delts+back)/chest*10)/10}:1 toward shoulders and back. That's the right shape for this goal.`
-        : 'Chest is taking a bigger share than it should for a V-taper goal.'}
+    <div class="tiny muted" style="margin-top:10px;line-height:1.55">
+      ${side < 6
+        ? `Side delts are on ${side} sets a week here — low for a width goal. Phase 3 lifts that to 11 by training them twice a week.`
+        : `Side delts on ${side} sets a week, chest down to ${chest}. That's the ratio that builds the V.`}
     </div>
   </div>`;
 }
@@ -404,6 +423,7 @@ function historyHTML(){
     .sort((a,b) => b.dayKey.localeCompare(a.dayKey));
   if (!sess.length) return empty('🏋️', 'No sessions logged yet.<br>Finish one and it will show up here.');
 
+  const allDays = PHASES.flatMap(p => p.days);
   return `
   <div class="grid2 in" style="margin-bottom:14px">
     ${stat(num(doneCount()), 'Sessions all time')}
@@ -411,44 +431,35 @@ function historyHTML(){
   </div>
   <div class="stack" style="gap:9px">
     ${sess.slice(0,40).map(s => {
-      const day = BLOCKS.flatMap(b => b.days).find(d => d.key === s.day);
+      const d = allDays.find(x => x.key === s.day);
       const nSets = Object.values(s.sets || {}).reduce((n,a) => n + a.length, 0);
-      // Only sets that carry a weight contribute to volume; a ticked set
-      // still counts as training, it just isn't measurable.
       const weighted = Object.values(s.sets || {}).flat().filter(x => setWeight(x) != null);
       const vol = weighted.reduce((n,x) => n + setWeight(x), 0);
       const detail = s.quick || !nSets
         ? 'Ticked off'
         : `${nSets} set${nSets>1?'s':''}${weighted.length ? ` · ${num(vol)}kg total` : ''}`;
-      return `<div class="rowcard">
-        <div class="grow"><b>${esc(day?.name || s.day)}</b>
+      return `<div class="rowcard" style="border-left:3px solid ${d?.color || 'var(--line)'}">
+        <div class="grow"><b>${esc(d?.title || s.day)}</b>
           <span class="sub">${esc(fmtDayShort(s.dayKey))} · ${detail}</span></div>
       </div>`;
     }).join('')}
   </div>`;
 }
 
-/* ---------------- actions ---------------- */
-/** Create and make active. No rendering, so it's safe to call before mount. */
-function newSession(dayKey_){
+/* ---------------- session actions ---------------- */
+function newSession(k){
   const id = uid();
   store.update(s => {
-    s.sessions[id] = { id, day:dayKey_, dayKey:today(), sets:{}, done:false };
+    s.sessions[id] = { id, day:k, dayKey:today(), sets:{}, done:false };
     s.activeId = id;
   });
   tab = 'plan';
   return id;
 }
 
-function startSession(dayKey_){
-  newSession(dayKey_);
-  haptic();
-  render();
-}
+function startSession(k){ newSession(k); haptic(); render(); }
 
-/* One tap logs the set. Weight carries over from last time if you've
-   logged it before, otherwise the set is just a tick — you can add the
-   number later, or never. Nothing here should slow you down mid-set. */
+/* One tap logs the set, carrying last session's weight if known. */
 function addSet(key, exName){
   const prev = store.get().lastByEx[exName];
   store.update(s => {
@@ -493,9 +504,8 @@ function editSet(key, i, exName){
   });
 }
 
-/* Finishing never requires logged sets. Plenty of sessions get done
-   without anyone touching their phone, and refusing to record those
-   would make the history lie about how much training actually happened. */
+/* Finishing never requires logged sets — plenty of sessions happen
+   without touching the phone, and refusing those makes history lie. */
 function finishSession(){
   store.update(st => {
     const sess = st.sessions[st.activeId];
@@ -507,24 +517,21 @@ function finishSession(){
   render();
 }
 
-/** Mark a day complete straight from the plan, without opening it. */
-function quickComplete(dayK){
-  const b = block();
-  const name = b.days.find(d => d.key === dayK)?.name || 'Session';
+function quickComplete(k){
+  const name = dayOf(k)?.title || 'Session';
   store.update(s => {
     const id = uid();
-    s.sessions[id] = { id, day:dayK, dayKey:today(), sets:{}, done:true, quick:true };
+    s.sessions[id] = { id, day:k, dayKey:today(), sets:{}, done:true, quick:true };
   });
   haptic(20);
   toast(`${name} ✓`);
   render();
 }
 
-/** Undo a tick made today, in case of a mis-tap. */
-function undoToday(dayK){
+function undoToday(k){
   store.update(s => {
     const match = Object.values(s.sessions)
-      .filter(x => x.done && x.day === dayK && x.dayKey === today())
+      .filter(x => x.done && x.day === k && x.dayKey === today())
       .sort((a,b) => (a.id > b.id ? -1 : 1))[0];
     if (match) delete s.sessions[match.id];
   });
@@ -533,9 +540,7 @@ function undoToday(dayK){
   render();
 }
 
-const doneToday = dayK => Object.values(store.get().sessions)
-  .some(s => s.done && s.day === dayK && s.dayKey === today());
-
+/* ---------------- AI advice ---------------- */
 async function askAdvice(){
   openSheet(`
     <h2>Ask about training</h2>
@@ -552,13 +557,16 @@ async function askAdvice(){
       if (!q){ toast('Type a question'); return; }
       const btn = document.getElementById('ask-btn');
       btn.disabled = true; btn.innerHTML = `<span class="spin"></span> Thinking…`;
+      const p = phase();
       try{
         const res = await ask({
-          prompt: `You are a strength coach. Your client: 185cm, ~75kg, already lean with visible abs, chasing a swimmer physique (wide delts, wide lats, high upper chest). He is lean bulking, trains 4 days a week, 35-45 minutes, three supersets per session, fasted in the morning.
+          prompt: `You are a strength coach. Your client: 185cm, ~75kg, already lean with visible abs, chasing a swimmer physique (wide delts, wide lats, high upper chest). Lean bulking, 4 days a week, 3 supersets a session, ~40 minutes, fasted in the morning, at Anytime Fitness Jannali.
 
-Critical constraints you must respect in any advice:
-- Weak/unstable shoulder AND generalised hypermobility. Passive structures won't protect his joints, so avoid deep-stretch overhead loading, behind-the-neck work, deep barbell benching and deep dips. Prefer neutral grips, controlled ROM, dumbbells and cables.
-- Distal triceps/elbow pain when pressing. He warms up with high-rep light pushdowns. Avoid hard lockouts.
+He is on Phase ${p.phase} (${p.name}): ${p.focus}
+
+Critical constraints you must respect:
+- Weak/unstable shoulder AND generalised hypermobility. Passive structures won't protect his joints: avoid deep-stretch overhead loading, behind-the-neck work, deep barbell benching and deep dips. Prefer neutral grips, controlled ROM, dumbbells, cables and machines.
+- Distal triceps/elbow pain when pressing. He warms up with high-rep light pushdowns. Avoid hard lockouts and overhead triceps positions.
 - Knees cave inward under load.
 He cares about how he looks, not what he lifts.
 
@@ -569,9 +577,9 @@ Respond with ONLY this JSON:
           offline: () => ({
             answer: 'AI is off right now, so here are the standing rules: if a movement hurts the shoulder, move to a neutral grip and cut the range before you cut the weight. If the elbow is the problem, add a second round of light pushdowns before pressing and stop short of lockout. Anything that loads a deep stretch overhead is the wrong exercise for your joints, no matter how good it is for everyone else.',
             swaps: [
-              { instead:'Barbell overhead press', use:'Half-kneeling landmine press', why:'Keeps the arc in front of your body where the shoulder is stable.' },
-              { instead:'Deep barbell bench',     use:'Incline dumbbell press to a controlled depth', why:'Stops the shoulder reaching the end range that bothers it.' },
-              { instead:'Dips',                   use:'Weighted push-up', why:'Same triceps and chest work without the bottom position that irritates both joints.' },
+              { instead:'Barbell overhead press', use:'Machine shoulder press', why:'Fixed path, no stabilising demand on an unstable shoulder.' },
+              { instead:'Deep barbell bench',     use:'Incline machine press', why:'Stops the shoulder reaching the end range that bothers it.' },
+              { instead:'Overhead triceps extension', use:'Cross-body cable pushdown', why:'Long head without the overhead position that flares the elbow.' },
             ],
           }),
         });
@@ -592,27 +600,28 @@ Respond with ONLY this JSON:
   });
 }
 
+/* ---------------- settings ---------------- */
 function openSettings(){
   const s = store.get();
   openSheet(`
     <h2>Phases</h2>
-    <p class="sub">Six weeks each, then it advances on its own and loops back to Phase 1 after the last one. Switch manually any time.</p>
-    <label class="label">Current phase</label>
+    <p class="sub">6–8 weeks each, then it advances on its own and loops back to Phase 1. Switch manually any time.</p>
     <div class="stack" style="gap:8px">
-      ${BLOCKS.map((b,i) => `
+      ${PHASES.map((p,i) => `
         <button class="card tight" data-act="setblock" data-i="${i}"
                 style="text-align:left;box-shadow:none;background:${i===s.blockIndex?'var(--accent-tint)':'var(--surface-2)'}">
-          <div class="spread"><b>Phase ${b.phase} · ${esc(b.name)}</b>${i===s.blockIndex?'<span class="badge accent">Current</span>':''}</div>
-          <div class="tiny muted" style="margin-top:4px">${esc(b.focus)}</div>
+          <div class="spread"><b>Phase ${p.phase} · ${esc(p.name)}</b>
+            ${i===s.blockIndex?'<span class="badge accent">Current</span>':`<span class="tiny muted">${esc(p.weeks)}</span>`}</div>
+          <div class="tiny muted" style="margin-top:4px">${esc(p.focus)}</div>
         </button>`).join('')}
     </div>
-    <button class="btn btn-plain block" style="margin-top:16px" data-act="restart">Restart the 6-week clock</button>
+    <button class="btn btn-plain block" style="margin-top:16px" data-act="restart">Restart the phase clock</button>
     <button class="btn btn-ghost block" data-act="close">Close</button>
   `);
   bindActions(document.querySelector('.sheet'), {
     setblock: d => {
       store.update(st => { st.blockIndex = +d.i; st.blockStart = today(); });
-      closeSheet(); toast('Block switched'); render();
+      closeSheet(); toast('Phase switched'); render();
     },
     restart: () => {
       store.update(st => { st.blockStart = today(); });
