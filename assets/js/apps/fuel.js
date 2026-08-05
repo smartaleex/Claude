@@ -11,12 +11,16 @@ import {
 } from '../core/ui.js';
 import { offlineMatch, offlineSuggest, looksBranded } from '../data/foods.js';
 
-/* At 185cm / 75kg and already lean, the job is a controlled surplus.
-   Maintenance works out around 2,650, so ~2,930 kcal and ~2.1g/kg protein
-   adds size without adding fat. Both numbers are recomputed from the
-   profile below, so they follow bodyweight up as the bulk progresses. */
+/* Targets carried over verbatim from the original Fuel artifact
+   (fuelv2.html): 2800 kcal, 150p / 340c / 90f. Kept as the default so the
+   app matches what he has actually been tracking against.
+
+   Note these sit slightly below the calculated lean-bulk figure of
+   ~2930 (maintenance ~2655 + 275). That gap is deliberate — the artifact
+   numbers are the source of truth, and Trends offers the calculated
+   target as a suggestion rather than silently overriding them. */
 const store = new Slice('fuel', {
-  targets: { kcal:2930, p:160, c:345, f:95 },
+  targets: { kcal:2800, p:150, c:340, f:90 },
   profile: { kg:75, cm:185, age:28, activity:1.5 },
   days: {},
   weights: {},   // dayKey -> kg
@@ -639,8 +643,8 @@ function openTargets(){
       persistProfile();
       store.update(s => {
         s.targets = {
-          kcal: sheetNum('t-k', 2930), p: sheetNum('t-p', 160),
-          c: sheetNum('t-c', 345), f: sheetNum('t-f', 95),
+          kcal: sheetNum('t-k', 2800), p: sheetNum('t-p', 150),
+          c: sheetNum('t-c', 340), f: sheetNum('t-f', 90),
         };
       });
       closeSheet(); toast('Saved'); render();

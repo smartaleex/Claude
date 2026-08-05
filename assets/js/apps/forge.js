@@ -9,7 +9,7 @@ import {
   esc, num, round, toast, openSheet, closeSheet, sheetVal, sheetNum,
   bindActions, empty, stat, haptic,
 } from '../core/ui.js';
-import { BLOCKS, WARMUPS, EXTRAS, PHYSIQUE } from '../data/workouts.js';
+import { BLOCKS, WARMUPS, EXTRAS, PHYSIQUE, PHASE_METRICS, weeklyVolume, sessionMinutes } from '../data/workouts.js';
 
 const store = new Slice('forge', {
   blockIndex: 0,
@@ -145,7 +145,7 @@ function planHTML(){
   <div class="hero in">
     <div class="eyebrow" style="color:rgba(255,255,255,.75)">Up next</div>
     <div style="font-family:'Sora',sans-serif;font-weight:800;font-size:29px;letter-spacing:-.03em;margin-top:6px">${esc(next.name)}</div>
-    <div class="hero-cap">3 supersets · 6 exercises · about 40 minutes</div>
+    <div class="hero-cap">3 supersets · 6 exercises · about ${sessionMinutes(next, b.phase)} minutes</div>
     <div class="bar"><i style="width:${wk/4*100}%"></i></div>
     <div class="hero-cap" style="margin-top:8px">${wk} of 4 sessions done this week</div>
   </div>
@@ -161,7 +161,14 @@ function planHTML(){
         <div class="card-note" style="margin-top:4px">${esc(b.focus)}</div>
       </div>
     </div>
-    <div class="tiny muted" style="margin-top:10px">
+    <div class="grid3" style="gap:8px;margin-top:14px">
+      ${[['Rest',PHASE_METRICS[b.phase].rest],['Tempo',PHASE_METRICS[b.phase].tempo],['RPE',PHASE_METRICS[b.phase].rpe]]
+        .map(([l,v]) => `<div style="background:rgba(255,255,255,.55);border-radius:12px;padding:9px 10px">
+          <div class="tiny muted" style="font-size:10px;letter-spacing:.08em;text-transform:uppercase">${l}</div>
+          <b class="mono" style="font-size:14px">${esc(v)}</b></div>`).join('')}
+    </div>
+    <div class="tiny muted" style="margin-top:10px;line-height:1.55">${esc(PHASE_METRICS[b.phase].why)}</div>
+    <div class="tiny muted" style="margin-top:8px">
       Week ${Math.min(weekInBlock(),6)} of 6 — then it rolls to
       Phase ${(b.phase % BLOCKS.length) + 1}, and cycles back round after Phase ${BLOCKS.length}.
     </div>
@@ -184,7 +191,7 @@ function planHTML(){
             <b style="${isDone?'text-decoration:line-through':''}">${esc(d.name)}</b>
             <span class="badge ${d.tag==='Priority'?'accent':'neutral'}">${esc(d.tag)}</span>
           </div>
-          <span class="sub">${isDone ? 'Done today' : last ? 'Last done ' + esc(fmtDayShort(last)) : 'Not done yet'}</span>
+          <span class="sub">~${sessionMinutes(d, b.phase)} min · ${isDone ? 'done today' : last ? 'last ' + esc(fmtDayShort(last)) : 'not done yet'}</span>
         </button>
         <span class="caret">›</span>
       </div>`;
@@ -338,7 +345,57 @@ function goalHTML(){
     <div class="card-note">Log your bodyweight in Fuel → Trends a couple of times and this will show whether you're gaining at the right speed.</div>
   </div>`}
 
+  ${volumeHTML()}
+
   <button class="btn btn-plain block in" style="margin-top:14px" data-act="advice">✨ Ask about form or a swap</button>`;
+}
+
+/* Weekly sets per muscle for the current phase. This is the honesty
+   check on the program: if delts and lats aren't at the top, it isn't
+   actually building the shape in the reference photos, whatever the
+   session names say. */
+function volumeHTML(){
+  const b = block();
+  const vol = weeklyVolume(b);
+  const max = vol[0]?.[1] || 1;
+  const PRIORITY = ['Side delts','Rear delts & traps','Lats','Upper back'];
+
+  const delts = vol.filter(v => v[0].includes('delts')).reduce((n,v) => n+v[1], 0);
+  const back  = vol.filter(v => ['Lats','Upper back'].includes(v[0])).reduce((n,v) => n+v[1], 0);
+  const chest = vol.find(v => v[0] === 'Chest')?.[1] || 0;
+
+  return `
+  <div class="card in" style="margin-top:14px">
+    <div class="card-title">Weekly volume · Phase ${b.phase}</div>
+    <div class="card-note" style="margin:4px 0 14px">
+      Sets per muscle across the four days. Shoulders and back should sit above chest —
+      that ratio is what builds the V rather than the barrel.
+    </div>
+    ${vol.map(([m,n]) => {
+      const pri = PRIORITY.includes(m);
+      return `<div style="margin-bottom:9px">
+        <div class="spread" style="margin-bottom:4px">
+          <span style="font-size:13.5px;${pri?'font-weight:700':'color:var(--muted)'}">${esc(m)}</span>
+          <span class="tiny mono" style="${pri?'font-weight:700;color:var(--accent-1)':'color:var(--muted)'}">${n}</span>
+        </div>
+        <div class="meter-track" style="background:var(--bg-sunk);height:7px">
+          <div class="meter-fill" style="width:${n/max*100}%;height:7px;
+               background:${pri?'var(--accent-1)':'var(--line)'}"></div>
+        </div>
+      </div>`;
+    }).join('')}
+    <div class="hr"></div>
+    <div class="grid3" style="gap:8px">
+      <div><div class="tiny muted">Delts</div><b class="mono" style="font-size:16px;color:var(--accent-1)">${delts}</b></div>
+      <div><div class="tiny muted">Back</div><b class="mono" style="font-size:16px;color:var(--accent-1)">${back}</b></div>
+      <div><div class="tiny muted">Chest</div><b class="mono" style="font-size:16px">${chest}</b></div>
+    </div>
+    <div class="tiny muted" style="margin-top:10px">
+      ${delts + back > chest * 2
+        ? `Weighted ${Math.round((delts+back)/chest*10)/10}:1 toward shoulders and back. That's the right shape for this goal.`
+        : 'Chest is taking a bigger share than it should for a V-taper goal.'}
+    </div>
+  </div>`;
 }
 
 /* ---------------- history ---------------- */

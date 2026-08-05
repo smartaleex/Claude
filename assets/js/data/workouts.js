@@ -247,6 +247,73 @@ export const BLOCKS = [
   },
 ];
 
+/* ---------------- phase metrics ----------------
+   Sets and reps alone don't define a phase — what separates them is how
+   heavy, how fast, and how long you rest. Same exercises at 45s rest and
+   RPE 9 is a different stimulus to 120s rest and RPE 8. */
+export const PHASE_METRICS = {
+  1: {
+    rest:'60-75s',  tempo:'2-1-2',  rpe:'7-8',  load:'Moderate',
+    why:'Enough rest to keep form honest, enough volume to build the base. Leave 2-3 reps in the tank.',
+  },
+  2: {
+    rest:'90-120s', tempo:'3-1-1',  rpe:'8-9',  load:'Heavy',
+    why:'Longer rests so you can actually add load. Slow eccentric protects hypermobile joints under heavier weight.',
+  },
+  3: {
+    rest:'45-60s',  tempo:'2-0-2',  rpe:'8-9',  load:'Light',
+    why:'Short rests, high reps, constant tension. Hardest on the lungs, easiest on the joints.',
+  },
+};
+
+/* ---------------- muscle classification ----------------
+   Keyword matching rather than tagging all 72 exercises by hand — it
+   stays correct when exercises get swapped, and being one set out on a
+   weekly total changes nothing. Order matters: the first match wins, so
+   specific patterns sit above general ones. */
+const MUSCLE_RULES = [
+  // Specific first. "Incline dumbbell curl" must reach Biceps before the
+  // Chest rule sees "incline", and "Seated leg curl" must reach Hamstrings
+  // before the Biceps rule sees "curl".
+  [/lateral raise|lateral|21s/i,                              'Side delts'],
+  [/rear|reverse pec|reverse fly|face pull|y-raise|pull-apart/i, 'Rear delts & traps'],
+  [/leg curl|romanian|rdl|deadlift/i,                         'Hamstrings'],
+  [/squat|leg press|hack|lunge|leg extension/i,               'Quads'],
+  [/calf/i,                                                   'Calves'],
+  [/crunch|plank|leg raise|knee raise|woodchop|ab wheel/i,    'Core'],
+  [/curl|preacher|hammer/i,                                   'Biceps'],
+  [/pushdown|triceps|tricep|close-grip|overhead.*extension/i, 'Triceps'],
+  [/pulldown|pull-up|pullup|straight-arm/i,                   'Lats'],
+  [/row/i,                                                    'Upper back'],
+  [/landmine press|shoulder press|overhead press/i,           'Front delts'],
+  [/incline|chest press|pec-deck|fly|push-up|dip|bench/i,     'Chest'],
+];
+
+export function muscleOf(name){
+  for (const [re, m] of MUSCLE_RULES) if (re.test(name)) return m;
+  return 'Other';
+}
+
+/** Weekly sets per muscle for a phase — the check that the program
+    actually biases what the goal needs. */
+export function weeklyVolume(block){
+  const out = {};
+  block.days.forEach(d => d.supersets.forEach(ss => [ss.a, ss.b].forEach(ex => {
+    const m = muscleOf(ex.n);
+    out[m] = (out[m] || 0) + ex.s;
+  })));
+  return Object.entries(out).sort((a,b) => b[1] - a[1]);
+}
+
+/** Rough session length: sets x (work + rest), supersets run paired. */
+export function sessionMinutes(day, phase){
+  const sets = day.supersets.reduce((n,ss) => n + ss.a.s + ss.b.s, 0);
+  const restSec = { 1:68, 2:105, 3:52 }[phase] || 70;
+  // Paired sets share their rest, so only half the rests are actually taken.
+  const mins = (sets * 40 + (sets/2) * restSec) / 60;
+  return Math.round(mins + 6);   // + warm-up
+}
+
 /* ---------------- optional extras ---------------- */
 export const EXTRAS = [
   { n:'Dead hang', d:'30-60s', why:'Decompresses the shoulder and stretches the lats. Do it after every pulling day.' },
