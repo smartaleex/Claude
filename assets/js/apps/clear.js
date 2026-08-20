@@ -17,9 +17,10 @@ import {
 } from '../core/ui.js';
 
 const store = new Slice('clear', {
-  logs: [],                      // { id, t, mg, tag }
+  logs: [],                      // { id, t, mg, tag, newTin }
   strengths: [6, 9, 11, 17],
   defaultMg: 9,
+  tinSize: 20,                   // pouches in a tin
   added17: false,                // see ensureStrengths()
   baseBudget: 60,                // mg/day at plan start
   weeklyDrop: 0.10,              // 10% down each week
@@ -78,6 +79,60 @@ function streakUnder(){
 }
 
 const weeksIn = () => Math.floor(daysBetween(store.get().planStart, today()) / 7) + 1;
+
+/* ---------------- tin tracking ----------------
+   Only the pouch that OPENED a tin is flagged. Everything logged after
+   it belongs to that tin until the next flag — so it's one tap per tin
+   rather than a decision on every pouch. */
+const sortedLogs = () => [...store.get().logs].sort((a,b) => a.t - b.t);
+
+/** The tin currently in use: when it was opened and how far through it. */
+function currentTin(){
+  const logs = sortedLogs();
+  const size = store.get().tinSize || 20;
+  let openedAt = null, count = 0;
+  for (const l of logs){
+    if (l.newTin){ openedAt = l.t; count = 0; }
+    if (openedAt !== null) count++;
+  }
+  if (openedAt === null) return null;
+  return {
+    openedAt, used: count, size,
+    left: Math.max(0, size - count),
+    pct: Math.min(100, count / size * 100),
+    days: Math.max(1, daysBetween(dayKey(openedAt), today()) + 1),
+  };
+}
+
+/** Completed tins — each run of pouches between two "new tin" flags. */
+function finishedTins(){
+  const logs = sortedLogs();
+  const out = [];
+  let openedAt = null, count = 0;
+  for (const l of logs){
+    if (l.newTin){
+      if (openedAt !== null) out.push({ openedAt, closedAt:l.t, count });
+      openedAt = l.t; count = 0;
+    }
+    if (openedAt !== null) count++;
+  }
+  return out;   // the still-open tin is deliberately excluded
+}
+
+function tinStats(){
+  const done = finishedTins();
+  const opened = store.get().logs.filter(l => l.newTin).length;
+  if (!done.length) return { opened, avgPouches:null, avgDays:null, perWeek:null };
+  const avgPouches = Math.round(done.reduce((n,t) => n + t.count, 0) / done.length);
+  const avgDays = done.reduce((n,t) =>
+    n + Math.max(1, daysBetween(dayKey(t.openedAt), dayKey(t.closedAt))), 0) / done.length;
+  return {
+    opened,
+    avgPouches,
+    avgDays: Math.round(avgDays * 10) / 10,
+    perWeek: avgDays > 0 ? Math.round(7 / avgDays * 10) / 10 : null,
+  };
+}
 
 /* Projected date the budget reaches zero (or the floor). */
 function quitDate(){
@@ -166,6 +221,8 @@ function todayHTML(){
     </div>
   </div>
 
+  ${tinCardHTML()}
+
   <div class="sec">Log one</div>
   <div class="chips in">
     ${s.strengths.map(mg => `<button class="chip" data-act="log" data-mg="${mg}"
@@ -176,14 +233,48 @@ function todayHTML(){
   <div class="sec">Today's log</div>
   ${!ls.length ? empty('🌱','Nothing yet today.<br>Every hour you delay the first one makes the rest easier.') :
     `<div class="stack" style="gap:8px">${ls.map(l => `
-      <div class="rowcard">
+      <div class="rowcard" ${l.newTin ? 'style="border-left:3px solid var(--accent-1)"' : ''}>
         <div class="grow">
           <b>${l.mg}mg</b>
-          <span class="sub">${esc(fmtTime(l.t))}${l.tag ? ' · ' + esc(l.tag) : ''}</span>
+          <span class="sub">${esc(fmtTime(l.t))}${l.tag ? ' · ' + esc(l.tag) : ''}${l.newTin ? ' · opened a tin' : ''}</span>
         </div>
+        <button class="btn btn-sm ${l.newTin ? 'btn-soft' : 'btn-plain'}" data-act="tin" data-id="${l.id}"
+                aria-label="Mark as first from a new tin" title="First from a new tin">📦</button>
         <button class="btn btn-sm btn-plain" data-act="tag" data-id="${l.id}">${l.tag ? 'Retag' : 'Tag'}</button>
         <button class="btn btn-sm" style="color:var(--faint);padding:6px 8px" data-act="rm" data-id="${l.id}">✕</button>
       </div>`).join('')}</div>`}`;
+}
+
+/* Current tin progress. Only appears once a tin has been marked, so it
+   stays out of the way until the feature is actually being used. */
+function tinCardHTML(){
+  const t = currentTin();
+  if (!t){
+    return `
+    <div class="card in in-2" style="margin-top:14px">
+      <div class="card-title">📦 Track your tins</div>
+      <div class="card-note" style="margin-top:5px;line-height:1.55">
+        Tap 📦 on the first pouch out of a fresh tin. Everything after it counts toward that tin,
+        so you only mark it once and the app works out the rest.
+      </div>
+    </div>`;
+  }
+  const nearlyOut = t.left <= 2;
+  return `
+  <div class="card in in-2" style="margin-top:14px${nearlyOut ? ';background:var(--accent-tint);border-color:transparent' : ''}">
+    <div class="spread" style="align-items:baseline">
+      <div class="card-title">📦 Current tin</div>
+      <span class="tiny mono" style="color:var(--accent-1);font-weight:700">${t.used} / ${t.size}</span>
+    </div>
+    <div class="meter-track" style="background:var(--bg-sunk);margin-top:10px">
+      <div class="meter-fill" style="width:${t.pct}%;background:var(--accent-1)"></div>
+    </div>
+    <div class="tiny muted" style="margin-top:8px">
+      ${t.left > 0
+        ? `${t.left} left · opened ${t.days === 1 ? 'today' : t.days + ' days ago'}`
+        : `Should be empty — tap 📦 on the next pouch to start a new tin.`}
+    </div>
+  </div>`;
 }
 
 /* ---------------- progress ---------------- */
@@ -227,6 +318,8 @@ function trendHTML(){
     </div>
   </div>` : ''}
 
+  ${tinStatsHTML()}
+
   ${topTags.length ? `
   <div class="card in" style="margin-top:14px">
     <div class="card-title">When you reach for one</div>
@@ -244,6 +337,40 @@ function trendHTML(){
       </div>`;
     }).join('')}
   </div>` : ''}`;
+}
+
+/* Physical pack consumption — the number that makes the taper concrete.
+   "Half a tin a week" lands harder than "38mg a day". */
+function tinStatsHTML(){
+  const st = tinStats();
+  const cur = currentTin();
+  if (!st.opened){
+    return `<div class="card in in-3" style="margin-top:14px">
+      <div class="card-title">📦 Tins</div>
+      <div class="card-note" style="margin-top:5px">
+        Mark the first pouch from a fresh tin with 📦 and this fills in — tins used, how long each lasts,
+        and how that's trending as the taper bites.
+      </div>
+    </div>`;
+  }
+  return `
+  <div class="card in in-3" style="margin-top:14px">
+    <div class="card-title">📦 Tins</div>
+    <div class="card-note" style="margin:4px 0 14px">Physical packs, not just milligrams.</div>
+    <div class="grid2" style="gap:10px">
+      ${stat(num(st.opened), 'Tins opened')}
+      ${stat(st.avgDays !== null ? st.avgDays + '<small> days</small>' : '—', 'Each tin lasts', 'var(--accent-1)')}
+      ${stat(st.avgPouches !== null ? num(st.avgPouches) : '—', 'Pouches per tin')}
+      ${stat(st.perWeek !== null ? st.perWeek + '<small>/wk</small>' : '—', 'Tins per week')}
+    </div>
+    ${cur ? `<div class="tiny muted" style="margin-top:12px">
+      Current tin: ${cur.used} of ${cur.size} used, opened ${cur.days === 1 ? 'today' : cur.days + ' days ago'}.
+    </div>` : ''}
+    ${st.avgDays !== null ? `<div class="tiny" style="margin-top:8px;color:var(--accent-1);line-height:1.55">
+      At this rate that's about ${Math.round(52 / (st.avgDays / 7))} tins a year. Every day you stretch a tin
+      is one fewer you buy.
+    </div>` : ''}
+  </div>`;
 }
 
 function drawTrend(){
@@ -378,6 +505,10 @@ function openPlan(){
     <label class="label" style="margin-top:16px">Plan started</label>
     <input class="input" type="date" id="p-start" value="${s.planStart}" max="${today()}">
 
+    <label class="label" style="margin-top:16px">Pouches per tin</label>
+    <input class="input" type="number" inputmode="numeric" id="p-tin" value="${s.tinSize}">
+    <div class="tiny muted" style="margin-top:6px">Most ZYN tins are 20. Used to work out how much of the current tin is left.</div>
+
     <button class="btn btn-primary block" style="margin-top:18px" data-act="save">Save plan</button>
     <button class="btn btn-ghost block" data-act="close">Cancel</button>
   `);
@@ -393,6 +524,7 @@ function openPlan(){
         st.baseBudget = sheetNum('p-base', 60);
         st.weeklyDrop = drop;
         st.planStart = sheetVal('p-start') || today();
+        st.tinSize = Math.max(1, sheetNum('p-tin', 20));
       });
       closeSheet(); toast('Plan saved'); render();
     },
@@ -407,6 +539,16 @@ function bind(){
     log: d => logPouch(+d.mg),
     custom: openCustom,
     tag: d => openTag(d.id),
+    tin: d => {
+      let on = false;
+      store.update(s => {
+        const l = s.logs.find(x => x.id === d.id);
+        if (l){ l.newTin = !l.newTin; on = !!l.newTin; }
+      });
+      haptic();
+      toast(on ? 'Marked as a fresh tin 📦' : 'Tin marker removed');
+      render();
+    },
     rm: d => {
       store.update(s => { s.logs = s.logs.filter(l => l.id !== d.id); });
       render();

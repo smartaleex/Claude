@@ -30,9 +30,22 @@ const store = new Slice('ledger', {
 let tab = 'now';
 let root = null;
 
-/* ---------------- money maths ---------------- */
+/* ---------------- money maths ----------------
+   Weekly to monthly is 52/12 (4.333), NOT x4. A year has 52 weeks, not
+   48, so $400/week is $1,733/month rather than $1,600 — budget the
+   naive figure and you're $1,600 short by December, because four months
+   a year contain five pay weeks. Same reasoning for fortnightly. */
 const PER_MONTH = { week: 52/12, fortnight: 26/12, month: 1, year: 1/12 };
 const toMonthly = (amt, freq) => amt * (PER_MONTH[freq] ?? 1);
+
+/** Human-readable working, so the conversion doesn't look like a bug. */
+const conversionNote = (amt, freq) => {
+  if (freq === 'month') return '';
+  if (freq === 'week')      return `${money(amt)} × 52 ÷ 12`;
+  if (freq === 'fortnight') return `${money(amt)} × 26 ÷ 12`;
+  if (freq === 'year')      return `${money(amt)} ÷ 12`;
+  return '';
+};
 
 const monthlyIncome = () => toMonthly(store.get().income.amount, store.get().income.freq);
 const monthlyFixed = () => store.get().recurring.reduce((n,r) => n + toMonthly(r.amount, r.freq), 0);
@@ -242,6 +255,7 @@ function fixedHTML(){
   const rs = store.get().recurring;
   const groups = { need:'Needs', want:'Wants', save:'Savings' };
   const total = monthlyFixed();
+  const hasWeekly = rs.some(r => r.freq === 'week' || r.freq === 'fortnight');
 
   return `
   <div class="card in">
@@ -250,6 +264,11 @@ function fixedHTML(){
         <div style="font-family:'Sora',sans-serif;font-weight:800;font-size:30px;margin-top:2px">${money(total)}</div></div>
       <button class="btn btn-soft btn-sm" data-act="addfixed">+ Add</button>
     </div>
+    ${hasWeekly ? `<div class="tiny muted" style="margin-top:12px;padding-top:12px;border-top:1px solid var(--line-soft);line-height:1.55">
+      Weekly costs are converted at <b>× 52 ÷ 12</b>, not × 4. A year is 52 weeks, so four months
+      carry a fifth payment — ${money(400)}/week is ${money(toMonthly(400,'week'))}/month, not ${money(1600)}.
+      Budgeting the round number leaves you ${money(1600)} short by December.
+    </div>` : ''}
   </div>
 
   ${!rs.length ? empty('📋','Nothing fixed yet.<br>Add rent, subscriptions, insurance — anything that leaves without you deciding.') :
@@ -258,12 +277,15 @@ function fixedHTML(){
       if (!items.length) return '';
       const sub = items.reduce((n,r) => n + toMonthly(r.amount, r.freq), 0);
       return `<div class="sec">${label} · ${money(sub)}/mo</div>
-      <div class="stack" style="gap:8px">${items.map(r => `
-        <div class="rowcard">
+      <div class="stack" style="gap:8px">${items.map(r => {
+        const note = conversionNote(r.amount, r.freq);
+        return `<div class="rowcard">
           <div class="grow"><b>${esc(r.name)}</b>
-            <span class="sub">${money(r.amount)} / ${esc(r.freq)} · ${money(toMonthly(r.amount,r.freq))} a month</span></div>
+            <span class="sub">${money(r.amount)} / ${esc(r.freq)} → <b>${money(toMonthly(r.amount,r.freq))}</b> a month</span>
+            ${note ? `<span class="sub" style="font-size:11.5px;opacity:.75">${note}</span>` : ''}</div>
           <button class="btn btn-sm" style="color:var(--faint);padding:6px 8px" data-act="rmfixed" data-id="${r.id}">✕</button>
-        </div>`).join('')}</div>`;
+        </div>`;
+      }).join('')}</div>`;
     }).join('')}`;
 }
 
