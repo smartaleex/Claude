@@ -10,17 +10,17 @@
    walking the pouches down without white-knuckling it.
    ============================================================ */
 
-import { Slice, today, dayKey, keyToDate, daysBetween, lastNDays, uid, fmtTime, fmtDayShort } from '../core/store.js';
+import { Slice, today, dayKey, keyToDate, daysBetween, shiftDay, lastNDays, uid, fmtTime, fmtDayShort } from '../core/store.js';
 import {
   esc, num, round, toast, openSheet, closeSheet, sheetVal, sheetNum,
   bindActions, empty, stat, haptic, barChart,
 } from '../core/ui.js';
 
 const store = new Slice('clear', {
-  logs: [],                      // { id, t, mg, tag, newTin }
+  logs: [],                      // { id, t, mg, tag, reused }
   strengths: [6, 9, 11, 17],
   defaultMg: 9,
-  tinSize: 20,                   // pouches in a tin
+  packetSize: 20,                // pouches in a packet
   added17: false,                // see ensureStrengths()
   baseBudget: 60,                // mg/day at plan start
   weeklyDrop: 0.10,              // 10% down each week
@@ -47,6 +47,21 @@ function ensureStrengths(){
   });
 }
 
+/* The first version of pack tracking assumed one packet in use at a
+   time and counted whole tins. That was the wrong model — several
+   packets live in different places at once — so it became per-pouch
+   fresh/reused instead. Carry the old setting across and drop the
+   now-meaningless tin markers. */
+function migratePackets(){
+  const s = store.get();
+  if (s.packetSize !== undefined && !s.logs.some(l => 'newTin' in l)) return;
+  store.update(st => {
+    if (st.packetSize === undefined) st.packetSize = st.tinSize ?? 20;
+    delete st.tinSize;
+    st.logs.forEach(l => { delete l.newTin; });
+  });
+}
+
 /* ---------------- taper maths ---------------- */
 function budgetFor(day){
   const s = store.get();
@@ -62,7 +77,9 @@ const lastLog = () => [...store.get().logs].sort((a,b) => a.t - b.t).at(-1);
 function gapText(){
   const l = lastLog();
   if (!l) return null;
-  const mins = Math.floor((Date.now() - l.t) / 60000);
+  // Clamp: a clock change or an edited entry can put the last log
+  // slightly ahead of now, and "-107m ago" reads as a bug.
+  const mins = Math.max(0, Math.floor((Date.now() - l.t) / 60000));
   if (mins < 60) return `${mins}m`;
   return `${Math.floor(mins/60)}h ${mins%60}m`;
 }
@@ -80,59 +97,44 @@ function streakUnder(){
 
 const weeksIn = () => Math.floor(daysBetween(store.get().planStart, today()) / 7) + 1;
 
-/* ---------------- tin tracking ----------------
-   Only the pouch that OPENED a tin is flagged. Everything logged after
-   it belongs to that tin until the next flag — so it's one tap per tin
-   rather than a decision on every pouch. */
-const sortedLogs = () => [...store.get().logs].sort((a,b) => a.t - b.t);
+/* ---------------- pouch consumption ----------------
+   A log entry is a SESSION, not necessarily a new pouch. Taking one out
+   and putting it back for later is one pouch across two sessions, so
+   only entries marked fresh count as physical consumption.
 
-/** The tin currently in use: when it was opened and how far through it. */
-function currentTin(){
-  const logs = sortedLogs();
-  const size = store.get().tinSize || 20;
-  let openedAt = null, count = 0;
-  for (const l of logs){
-    if (l.newTin){ openedAt = l.t; count = 0; }
-    if (openedAt !== null) count++;
-  }
-  if (openedAt === null) return null;
+   Packets aren't tracked individually — several are open in different
+   places at once, so a sequential "current packet" would be fiction.
+   Packets are derived from pouches instead, which is honest and needs
+   no extra input. */
+
+const isFresh = l => !l.reused;
+
+/** Sessions and pouches over the last n days, plus the derived rates. */
+function useStats(n = 30){
+  const cutoff = keyToDate(shiftDay(today(), -(n-1))).getTime();
+  const logs = store.get().logs.filter(l => l.t >= cutoff);
+  const sessions = logs.length;
+  const pouches = logs.filter(isFresh).length;
+  const reused = sessions - pouches;
+
+  const activeDays = new Set(logs.map(l => dayKey(l.t))).size;
+  const size = store.get().packetSize || 20;
+
   return {
-    openedAt, used: count, size,
-    left: Math.max(0, size - count),
-    pct: Math.min(100, count / size * 100),
-    days: Math.max(1, daysBetween(dayKey(openedAt), today()) + 1),
+    sessions, pouches, reused, activeDays, size,
+    perSession: pouches ? Math.round(sessions / pouches * 100) / 100 : null,
+    reusePct:   sessions ? Math.round(reused / sessions * 100) : 0,
+    perDay:     activeDays ? Math.round(pouches / activeDays * 10) / 10 : null,
+    packetsPerWeek: activeDays
+      ? Math.round((pouches / activeDays) * 7 / size * 100) / 100
+      : null,
+    packetDays: (activeDays && pouches)
+      ? Math.round(size / (pouches / activeDays) * 10) / 10
+      : null,
   };
 }
 
-/** Completed tins — each run of pouches between two "new tin" flags. */
-function finishedTins(){
-  const logs = sortedLogs();
-  const out = [];
-  let openedAt = null, count = 0;
-  for (const l of logs){
-    if (l.newTin){
-      if (openedAt !== null) out.push({ openedAt, closedAt:l.t, count });
-      openedAt = l.t; count = 0;
-    }
-    if (openedAt !== null) count++;
-  }
-  return out;   // the still-open tin is deliberately excluded
-}
-
-function tinStats(){
-  const done = finishedTins();
-  const opened = store.get().logs.filter(l => l.newTin).length;
-  if (!done.length) return { opened, avgPouches:null, avgDays:null, perWeek:null };
-  const avgPouches = Math.round(done.reduce((n,t) => n + t.count, 0) / done.length);
-  const avgDays = done.reduce((n,t) =>
-    n + Math.max(1, daysBetween(dayKey(t.openedAt), dayKey(t.closedAt))), 0) / done.length;
-  return {
-    opened,
-    avgPouches,
-    avgDays: Math.round(avgDays * 10) / 10,
-    perWeek: avgDays > 0 ? Math.round(7 / avgDays * 10) / 10 : null,
-  };
-}
+const todayPouches = () => logsOn(today()).filter(isFresh).length;
 
 /* Projected date the budget reaches zero (or the floor). */
 function quitDate(){
@@ -150,11 +152,12 @@ function quitDate(){
 export async function summary(){
   await store.load();
   ensureStrengths();
+  migratePackets();
   const t = today();
   const used = mgOn(t), b = budgetFor(t);
   return {
     headline: `${num(used)} / ${num(b)} mg`,
-    detail: `${logsOn(t).length} pouches today · week ${weeksIn()} of the taper`,
+    detail: `${todayPouches()} pouch${todayPouches()===1?'':'es'} today · week ${weeksIn()} of the taper`,
     badge: used > b ? 'Over' : `${num(Math.max(0,b-used))} left`,
   };
 }
@@ -164,6 +167,7 @@ export async function mount(el){
   root = el;
   await store.load();
   ensureStrengths();
+  migratePackets();
   render();
   clearInterval(tickTimer);
   // The "since last pouch" clock is the most motivating number here,
@@ -219,9 +223,11 @@ function todayHTML(){
       ${used > b ? `${num(used-b)}mg over — tomorrow resets` : `${num(b-used)}mg left`}
       · last one <b id="clear-gap">${gapText() || '—'}</b> ago
     </div>
+    ${ls.length ? `<div class="hero-cap" style="margin-top:4px;opacity:.8">
+      ${todayPouches()} fresh pouch${todayPouches()===1?'':'es'}${ls.length - todayPouches() > 0
+        ? ` · ${ls.length - todayPouches()} reused` : ''}
+    </div>` : ''}
   </div>
-
-  ${tinCardHTML()}
 
   <div class="sec">Log one</div>
   <div class="chips in">
@@ -233,48 +239,20 @@ function todayHTML(){
   <div class="sec">Today's log</div>
   ${!ls.length ? empty('🌱','Nothing yet today.<br>Every hour you delay the first one makes the rest easier.') :
     `<div class="stack" style="gap:8px">${ls.map(l => `
-      <div class="rowcard" ${l.newTin ? 'style="border-left:3px solid var(--accent-1)"' : ''}>
+      <div class="rowcard" ${l.reused ? 'style="opacity:.82"' : ''}>
         <div class="grow">
           <b>${l.mg}mg</b>
-          <span class="sub">${esc(fmtTime(l.t))}${l.tag ? ' · ' + esc(l.tag) : ''}${l.newTin ? ' · opened a tin' : ''}</span>
+          <span class="sub">${esc(fmtTime(l.t))} · ${l.reused ? '♻️ same pouch again' : 'fresh pouch'}${l.tag ? ' · ' + esc(l.tag) : ''}</span>
         </div>
-        <button class="btn btn-sm ${l.newTin ? 'btn-soft' : 'btn-plain'}" data-act="tin" data-id="${l.id}"
-                aria-label="Mark as first from a new tin" title="First from a new tin">📦</button>
+        <button class="btn btn-sm ${l.reused ? 'btn-soft' : 'btn-plain'}" data-act="reuse" data-id="${l.id}"
+                title="${l.reused ? 'Mark as a fresh pouch' : 'Mark as reusing an earlier pouch'}">♻️</button>
         <button class="btn btn-sm btn-plain" data-act="tag" data-id="${l.id}">${l.tag ? 'Retag' : 'Tag'}</button>
         <button class="btn btn-sm" style="color:var(--faint);padding:6px 8px" data-act="rm" data-id="${l.id}">✕</button>
-      </div>`).join('')}</div>`}`;
-}
-
-/* Current tin progress. Only appears once a tin has been marked, so it
-   stays out of the way until the feature is actually being used. */
-function tinCardHTML(){
-  const t = currentTin();
-  if (!t){
-    return `
-    <div class="card in in-2" style="margin-top:14px">
-      <div class="card-title">📦 Track your tins</div>
-      <div class="card-note" style="margin-top:5px;line-height:1.55">
-        Tap 📦 on the first pouch out of a fresh tin. Everything after it counts toward that tin,
-        so you only mark it once and the app works out the rest.
-      </div>
-    </div>`;
-  }
-  const nearlyOut = t.left <= 2;
-  return `
-  <div class="card in in-2" style="margin-top:14px${nearlyOut ? ';background:var(--accent-tint);border-color:transparent' : ''}">
-    <div class="spread" style="align-items:baseline">
-      <div class="card-title">📦 Current tin</div>
-      <span class="tiny mono" style="color:var(--accent-1);font-weight:700">${t.used} / ${t.size}</span>
-    </div>
-    <div class="meter-track" style="background:var(--bg-sunk);margin-top:10px">
-      <div class="meter-fill" style="width:${t.pct}%;background:var(--accent-1)"></div>
-    </div>
-    <div class="tiny muted" style="margin-top:8px">
-      ${t.left > 0
-        ? `${t.left} left · opened ${t.days === 1 ? 'today' : t.days + ' days ago'}`
-        : `Should be empty — tap 📦 on the next pouch to start a new tin.`}
-    </div>
-  </div>`;
+      </div>`).join('')}
+    <div class="tiny muted" style="margin-top:4px">
+      Tap ♻️ when you're picking a pouch back up rather than opening a new one — only fresh ones
+      count toward how many you actually get through.
+    </div></div>`}`;
 }
 
 /* ---------------- progress ---------------- */
@@ -339,36 +317,38 @@ function trendHTML(){
   </div>` : ''}`;
 }
 
-/* Physical pack consumption — the number that makes the taper concrete.
-   "Half a tin a week" lands harder than "38mg a day". */
+/* What you actually get through, as opposed to how often you reach for
+   one. "Two packets a week" is a more concrete lever than "38mg a day". */
 function tinStatsHTML(){
-  const st = tinStats();
-  const cur = currentTin();
-  if (!st.opened){
+  const st = useStats(30);
+  if (!st.sessions){
     return `<div class="card in in-3" style="margin-top:14px">
-      <div class="card-title">📦 Tins</div>
+      <div class="card-title">📦 Pouches used</div>
       <div class="card-note" style="margin-top:5px">
-        Mark the first pouch from a fresh tin with 📦 and this fills in — tins used, how long each lasts,
-        and how that's trending as the taper bites.
+        Log a few and this fills in — pouches actually used, how often you reuse one, and how many
+        packets a week that works out to.
       </div>
     </div>`;
   }
   return `
   <div class="card in in-3" style="margin-top:14px">
-    <div class="card-title">📦 Tins</div>
-    <div class="card-note" style="margin:4px 0 14px">Physical packs, not just milligrams.</div>
+    <div class="card-title">📦 Pouches used</div>
+    <div class="card-note" style="margin:4px 0 14px">Last 30 days. Only fresh pouches count — reuses aren't new ones.</div>
     <div class="grid2" style="gap:10px">
-      ${stat(num(st.opened), 'Tins opened')}
-      ${stat(st.avgDays !== null ? st.avgDays + '<small> days</small>' : '—', 'Each tin lasts', 'var(--accent-1)')}
-      ${stat(st.avgPouches !== null ? num(st.avgPouches) : '—', 'Pouches per tin')}
-      ${stat(st.perWeek !== null ? st.perWeek + '<small>/wk</small>' : '—', 'Tins per week')}
+      ${stat(num(st.pouches), 'Pouches used', 'var(--accent-1)')}
+      ${stat(num(st.sessions), 'Times used')}
+      ${stat(st.perDay !== null ? st.perDay : '—', 'Pouches per day')}
+      ${stat(st.packetsPerWeek !== null ? st.packetsPerWeek + '<small>/wk</small>' : '—', 'Packets per week')}
     </div>
-    ${cur ? `<div class="tiny muted" style="margin-top:12px">
-      Current tin: ${cur.used} of ${cur.size} used, opened ${cur.days === 1 ? 'today' : cur.days + ' days ago'}.
-    </div>` : ''}
-    ${st.avgDays !== null ? `<div class="tiny" style="margin-top:8px;color:var(--accent-1);line-height:1.55">
-      At this rate that's about ${Math.round(52 / (st.avgDays / 7))} tins a year. Every day you stretch a tin
-      is one fewer you buy.
+    ${st.reused ? `<div class="tiny" style="margin-top:12px;color:var(--accent-1);line-height:1.55">
+      You reused a pouch ${st.reused} time${st.reused===1?'':'s'} — ${st.reusePct}% of the time,
+      about ${st.perSession} sessions per pouch. That's ${st.reused} pouch${st.reused===1?'':'es'} you didn't open.
+    </div>` : `<div class="tiny muted" style="margin-top:12px;line-height:1.55">
+      No reuses logged yet. Tap ♻️ on a log entry when you pick an earlier pouch back up.
+    </div>`}
+    ${st.packetDays !== null ? `<div class="tiny muted" style="margin-top:8px;line-height:1.55">
+      A ${st.size}-pouch packet lasts you about ${st.packetDays} days — roughly
+      ${Math.round(st.packetsPerWeek * 52)} packets a year at this rate.
     </div>` : ''}
   </div>`;
 }
@@ -505,9 +485,9 @@ function openPlan(){
     <label class="label" style="margin-top:16px">Plan started</label>
     <input class="input" type="date" id="p-start" value="${s.planStart}" max="${today()}">
 
-    <label class="label" style="margin-top:16px">Pouches per tin</label>
-    <input class="input" type="number" inputmode="numeric" id="p-tin" value="${s.tinSize}">
-    <div class="tiny muted" style="margin-top:6px">Most ZYN tins are 20. Used to work out how much of the current tin is left.</div>
+    <label class="label" style="margin-top:16px">Pouches per packet</label>
+    <input class="input" type="number" inputmode="numeric" id="p-tin" value="${s.packetSize}">
+    <div class="tiny muted" style="margin-top:6px">Most ZYN packets hold 20. Only used to convert pouches into packets per week.</div>
 
     <button class="btn btn-primary block" style="margin-top:18px" data-act="save">Save plan</button>
     <button class="btn btn-ghost block" data-act="close">Cancel</button>
@@ -524,7 +504,7 @@ function openPlan(){
         st.baseBudget = sheetNum('p-base', 60);
         st.weeklyDrop = drop;
         st.planStart = sheetVal('p-start') || today();
-        st.tinSize = Math.max(1, sheetNum('p-tin', 20));
+        st.packetSize = Math.max(1, sheetNum('p-tin', 20));
       });
       closeSheet(); toast('Plan saved'); render();
     },
@@ -539,14 +519,14 @@ function bind(){
     log: d => logPouch(+d.mg),
     custom: openCustom,
     tag: d => openTag(d.id),
-    tin: d => {
+    reuse: d => {
       let on = false;
       store.update(s => {
         const l = s.logs.find(x => x.id === d.id);
-        if (l){ l.newTin = !l.newTin; on = !!l.newTin; }
+        if (l){ l.reused = !l.reused; on = !!l.reused; }
       });
       haptic();
-      toast(on ? 'Marked as a fresh tin 📦' : 'Tin marker removed');
+      toast(on ? 'Marked as reusing a pouch ♻️' : 'Marked as a fresh pouch');
       render();
     },
     rm: d => {
