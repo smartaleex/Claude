@@ -1,0 +1,2052 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="MacroTrack">
+<meta name="theme-color" content="#7c3aed">
+<title>MacroTrack</title>
+<style>
+:root{
+  --p:#7c3aed;--p2:#4f46e5;--p-light:#ede9fe;
+  --protein:#f97316;--carbs:#22c55e;--fat:#a855f7;
+  --text:#111827;--text2:#6b7280;--text3:#9ca3af;
+  --bg:#f5f5f7;--card:#fff;--border:#e5e7eb;
+  --st:env(safe-area-inset-top,0px);--sb:env(safe-area-inset-bottom,0px);
+  --sl:env(safe-area-inset-left,0px);--sr:env(safe-area-inset-right,0px);
+}
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{height:100%;background:#000}
+body{
+  font-family:-apple-system,BlinkMacSystemFont,'SF Pro Text','Segoe UI',sans-serif;
+  background:var(--bg);color:var(--text);-webkit-font-smoothing:antialiased;
+  max-width:430px;margin:0 auto;position:relative;
+}
+.app{display:flex;flex-direction:column;height:100dvh;height:100vh}
+.screens{flex:1;overflow:hidden;position:relative}
+.screen{
+  position:absolute;inset:0;overflow-y:auto;overflow-x:hidden;
+  -webkit-overflow-scrolling:touch;display:none;
+  padding-bottom:calc(80px + var(--sb));
+}
+.screen.active{display:block}
+
+/* NAV */
+.nav{
+  flex-shrink:0;display:flex;align-items:stretch;
+  background:#fff;border-top:1px solid #e5e7eb;
+  padding-bottom:var(--sb);position:relative;z-index:100;
+}
+.nav-btn{
+  flex:1;display:flex;flex-direction:column;align-items:center;
+  justify-content:center;gap:3px;padding:10px 0 8px;
+  border:none;background:none;color:var(--text3);
+  font-size:10px;font-weight:600;letter-spacing:.4px;
+  cursor:pointer;font-family:inherit;text-transform:uppercase;
+}
+.nav-btn svg{width:22px;height:22px;stroke-width:1.8}
+.nav-btn.active{color:var(--p)}
+.nav-center{
+  flex:1;display:flex;align-items:center;justify-content:center;
+  padding-bottom:2px;
+}
+.fab{
+  width:56px;height:56px;border-radius:50%;
+  background:linear-gradient(135deg,var(--p2),var(--p));
+  display:flex;align-items:center;justify-content:center;
+  box-shadow:0 4px 16px rgba(124,58,237,.4);
+  margin-top:-20px;border:none;cursor:pointer;color:#fff;
+}
+.fab svg{width:28px;height:28px;stroke-width:2}
+
+/* DASHBOARD */
+.dash-header{
+  background:linear-gradient(145deg,#4338ca 0%,#6d28d9 55%,#7c3aed 100%);
+  color:#fff;
+  padding:calc(var(--st) + 20px) 20px 32px;
+}
+.dash-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px}
+.dash-title{font-size:18px;font-weight:700;letter-spacing:-.3px}
+.dash-subtitle{font-size:12px;opacity:.7;margin-top:2px}
+.btn-targets{
+  background:rgba(255,255,255,.18);border:none;color:#fff;
+  border-radius:20px;padding:7px 14px;font-size:12px;font-weight:600;
+  cursor:pointer;font-family:inherit;backdrop-filter:blur(8px);
+}
+
+/* CALORIE CARD */
+.cal-card{
+  background:rgba(255,255,255,.12);backdrop-filter:blur(12px);
+  border:1px solid rgba(255,255,255,.2);border-radius:20px;
+  padding:22px;margin-top:18px;
+}
+.cal-top{display:flex;justify-content:space-between;align-items:flex-start}
+.cal-nums{}
+.cal-consumed{font-size:44px;font-weight:800;line-height:1;letter-spacing:-2px}
+.cal-unit{font-size:16px;font-weight:500;opacity:.7;margin-left:4px}
+.cal-of{font-size:13px;opacity:.6;margin-top:4px}
+.cal-pct{
+  font-size:32px;font-weight:800;letter-spacing:-1px;
+  background:rgba(255,255,255,.2);border-radius:14px;
+  padding:8px 16px;align-self:flex-start;
+}
+.cal-bar-wrap{margin-top:14px;background:rgba(255,255,255,.2);border-radius:99px;height:8px}
+.cal-bar-fill{height:8px;border-radius:99px;background:#fff;transition:width .4s ease;max-width:100%}
+.cal-remaining{font-size:12px;opacity:.65;margin-top:8px}
+
+/* MACRO BARS */
+.macro-bars{padding:20px 20px 4px;display:flex;flex-direction:column;gap:14px}
+.macro-row{display:flex;align-items:center;gap:12px}
+.macro-label{font-size:11px;font-weight:700;letter-spacing:.6px;text-transform:uppercase;width:58px;flex-shrink:0}
+.macro-label.protein{color:var(--protein)}
+.macro-label.carbs{color:var(--carbs)}
+.macro-label.fat{color:var(--fat)}
+.macro-bar-bg{flex:1;background:#e9e9ef;border-radius:99px;height:8px}
+.macro-bar-fill{height:8px;border-radius:99px;transition:width .4s ease;max-width:100%}
+.macro-bar-fill.protein{background:var(--protein)}
+.macro-bar-fill.carbs{background:var(--carbs)}
+.macro-bar-fill.fat{background:var(--fat)}
+.macro-vals{font-size:12px;font-weight:600;color:var(--text2);width:72px;text-align:right;flex-shrink:0}
+
+/* REMAINING PILLS */
+.remaining-pills{
+  display:flex;gap:8px;padding:0 20px 16px;flex-wrap:wrap;
+}
+.pill{
+  display:flex;align-items:center;gap:5px;
+  padding:6px 12px;border-radius:99px;font-size:11px;font-weight:700;
+  letter-spacing:.4px;text-transform:uppercase;
+}
+.pill.protein{background:#fff4ed;color:var(--protein)}
+.pill.carbs{background:#f0fdf4;color:var(--carbs)}
+.pill.fat{background:#faf5ff;color:var(--fat)}
+.pill svg{width:12px;height:12px;stroke-width:2.5}
+
+/* SUGGESTION BTN */
+.suggest-btn{
+  margin:4px 20px 20px;padding:16px;border-radius:16px;
+  background:linear-gradient(135deg,var(--p2),var(--p));
+  color:#fff;border:none;width:calc(100% - 40px);
+  font-size:14px;font-weight:700;cursor:pointer;
+  font-family:inherit;display:flex;align-items:center;justify-content:center;gap:8px;
+  box-shadow:0 4px 20px rgba(124,58,237,.3);
+}
+
+/* LOG TOGGLE */
+.log-toggle{
+  display:flex;margin:0 20px 16px;
+  background:#e9e9ef;border-radius:12px;padding:3px;
+}
+.log-toggle button{
+  flex:1;padding:9px;border:none;border-radius:9px;
+  font-size:12px;font-weight:700;cursor:pointer;
+  font-family:inherit;transition:all .2s;
+  background:none;color:var(--text2);
+}
+.log-toggle button.active{background:#fff;color:var(--text);box-shadow:0 1px 4px rgba(0,0,0,.1)}
+
+/* FOOD LOG */
+.meal-section{margin:0 20px 20px}
+.meal-section-title{
+  font-size:11px;font-weight:700;letter-spacing:.8px;
+  text-transform:uppercase;color:var(--text3);margin-bottom:8px;
+}
+.food-item{
+  background:var(--card);border-radius:14px;
+  padding:14px 16px;margin-bottom:8px;
+  display:flex;justify-content:space-between;align-items:center;
+  box-shadow:0 1px 4px rgba(0,0,0,.06);
+}
+.food-item-left{}
+.food-item-name{font-size:14px;font-weight:600;margin-bottom:2px}
+.food-item-sub{font-size:12px;color:var(--text2)}
+.food-item-right{text-align:right;flex-shrink:0;margin-left:12px}
+.food-item-kcal{font-size:15px;font-weight:700;color:var(--p)}
+.food-item-macros{font-size:11px;color:var(--text3);margin-top:2px}
+.food-item-delete{
+  background:none;border:none;color:#ef4444;padding:4px;
+  cursor:pointer;margin-left:8px;
+}
+.food-item-wrap{display:flex;align-items:center}
+.empty-log{
+  text-align:center;padding:40px 20px;color:var(--text3);
+}
+.empty-log svg{width:48px;height:48px;margin:0 auto 12px;display:block;opacity:.3}
+.empty-log p{font-size:14px;font-weight:500}
+
+/* ADD FOOD PANEL */
+.add-panel{padding:0 20px 20px}
+.snap-label{
+  font-size:11px;font-weight:700;letter-spacing:.8px;
+  text-transform:uppercase;color:var(--text3);margin-bottom:12px;display:block;
+}
+.photo-row{display:flex;gap:10px;margin-bottom:14px}
+.photo-btn{
+  flex:1;border:2px dashed var(--border);background:var(--card);
+  border-radius:14px;padding:16px;display:flex;flex-direction:column;
+  align-items:center;gap:8px;cursor:pointer;
+  font-size:12px;font-weight:600;color:var(--text2);
+  font-family:inherit;transition:border-color .2s;
+}
+.photo-btn:active{border-color:var(--p)}
+.photo-btn svg{width:24px;height:24px;stroke-width:1.8;color:var(--p)}
+.photo-preview-wrap{position:relative;border-radius:14px;overflow:hidden;margin-bottom:14px}
+.photo-preview-wrap img{width:100%;max-height:200px;object-fit:cover;display:block;border-radius:14px}
+.photo-clear{
+  position:absolute;top:8px;right:8px;width:28px;height:28px;
+  border-radius:50%;background:rgba(0,0,0,.5);border:none;color:#fff;
+  display:flex;align-items:center;justify-content:center;cursor:pointer;
+}
+.photo-clear svg{width:16px;height:16px}
+textarea.desc-input{
+  width:100%;border:1.5px solid var(--border);border-radius:14px;
+  padding:14px;font-size:15px;font-family:inherit;color:var(--text);
+  background:var(--card);resize:none;height:90px;margin-bottom:14px;
+  outline:none;transition:border-color .2s;
+}
+textarea.desc-input:focus{border-color:var(--p)}
+textarea.desc-input::placeholder{color:var(--text3)}
+.meal-pills{display:flex;gap:6px;margin-bottom:16px;flex-wrap:wrap}
+.meal-pill{
+  padding:7px 14px;border-radius:99px;font-size:12px;font-weight:700;
+  border:1.5px solid var(--border);background:var(--card);color:var(--text2);
+  cursor:pointer;font-family:inherit;transition:all .2s;
+}
+.meal-pill.active{border-color:var(--p);background:var(--p-light);color:var(--p)}
+.analyse-btn{
+  width:100%;padding:17px;border-radius:16px;
+  background:#111;color:#fff;border:none;
+  font-size:16px;font-weight:800;cursor:pointer;
+  font-family:inherit;display:flex;align-items:center;justify-content:center;gap:8px;
+  letter-spacing:-.3px;
+}
+.analyse-btn:active{background:#333}
+.analyse-btn:disabled{background:#6b7280;cursor:not-allowed}
+
+/* RESULTS */
+.results-card{
+  background:var(--card);border-radius:16px;
+  border:1px solid var(--border);overflow:hidden;margin-bottom:12px;
+  box-shadow:0 2px 8px rgba(0,0,0,.06);
+}
+.result-item{
+  padding:14px 16px;display:flex;justify-content:space-between;align-items:center;
+  border-bottom:1px solid #f3f4f6;cursor:pointer;transition:background .15s;
+}
+.result-item:last-child{border-bottom:none}
+.result-item:active{background:#f9fafb}
+.result-item-check{
+  width:22px;height:22px;border-radius:6px;border:2px solid var(--border);
+  display:flex;align-items:center;justify-content:center;
+  flex-shrink:0;margin-right:12px;transition:all .15s;
+}
+.result-item-check.checked{background:var(--p);border-color:var(--p)}
+.result-item-check svg{width:13px;height:13px;color:#fff;display:none}
+.result-item-check.checked svg{display:block}
+.result-item-info{flex:1}
+.result-item-name{font-size:14px;font-weight:600}
+.result-item-sub{font-size:12px;color:var(--text2);margin-top:2px}
+.result-item-right{text-align:right;flex-shrink:0}
+.result-item-kcal{font-size:15px;font-weight:700;color:var(--p)}
+.result-item-qty{display:flex;align-items:center;gap:8px;margin-top:6px}
+.qty-btn{
+  width:28px;height:28px;border-radius:8px;border:1.5px solid var(--border);
+  background:#fff;cursor:pointer;display:flex;align-items:center;
+  justify-content:center;font-size:16px;font-weight:600;color:var(--text);
+}
+.qty-input{
+  width:50px;text-align:center;border:1.5px solid var(--border);
+  border-radius:8px;padding:4px;font-size:13px;font-weight:600;
+  font-family:inherit;outline:none;
+}
+.qty-unit{font-size:12px;color:var(--text2)}
+.log-sel-btn{
+  width:100%;padding:16px;border-radius:16px;
+  background:linear-gradient(135deg,var(--p2),var(--p));
+  color:#fff;border:none;font-size:16px;font-weight:800;
+  cursor:pointer;font-family:inherit;margin-top:4px;
+  box-shadow:0 4px 20px rgba(124,58,237,.3);
+}
+.no-results{
+  background:var(--card);border-radius:16px;padding:30px;
+  text-align:center;color:var(--text2);font-size:14px;
+}
+.confidence-badge{
+  display:inline-flex;align-items:center;gap:4px;
+  padding:2px 8px;border-radius:99px;font-size:10px;font-weight:700;
+  letter-spacing:.3px;text-transform:uppercase;margin-left:6px;
+}
+.conf-high{background:#dcfce7;color:#166534}
+.conf-med{background:#fef9c3;color:#854d0e}
+.conf-low{background:#fee2e2;color:#991b1b}
+
+/* HISTORY */
+.history-header{
+  background:linear-gradient(145deg,#4338ca,#7c3aed);
+  color:#fff;padding:calc(var(--st) + 20px) 20px 24px;
+}
+.history-title{font-size:22px;font-weight:800;letter-spacing:-.5px}
+.history-list{padding:16px 20px}
+.history-day{
+  background:var(--card);border-radius:16px;margin-bottom:12px;
+  box-shadow:0 1px 4px rgba(0,0,0,.06);overflow:hidden;
+}
+.history-day-header{
+  padding:14px 16px;display:flex;justify-content:space-between;
+  align-items:center;border-bottom:1px solid #f3f4f6;cursor:pointer;
+}
+.history-day-date{font-size:14px;font-weight:700}
+.history-day-kcal{font-size:14px;font-weight:700;color:var(--p)}
+.history-day-items{padding:8px 0}
+.history-food-row{
+  padding:10px 16px;display:flex;justify-content:space-between;
+  font-size:13px;border-bottom:1px solid #f9fafb;
+}
+.history-food-row:last-child{border-bottom:none}
+
+/* GOALS */
+.goals-header{
+  background:linear-gradient(145deg,#4338ca,#7c3aed);
+  color:#fff;padding:calc(var(--st) + 20px) 20px 24px;
+}
+.goals-title{font-size:22px;font-weight:800;letter-spacing:-.5px}
+.goals-body{padding:20px}
+.section-card{
+  background:var(--card);border-radius:16px;margin-bottom:16px;
+  overflow:hidden;box-shadow:0 1px 4px rgba(0,0,0,.06);
+}
+.section-header{
+  padding:14px 16px;border-bottom:1px solid #f3f4f6;
+  font-size:12px;font-weight:700;letter-spacing:.6px;
+  text-transform:uppercase;color:var(--text3);
+}
+.field-row{
+  display:flex;align-items:center;padding:14px 16px;
+  border-bottom:1px solid #f9fafb;gap:12px;
+}
+.field-row:last-child{border-bottom:none}
+.field-label{flex:1;font-size:14px;font-weight:600}
+.field-input{
+  width:88px;border:1.5px solid var(--border);border-radius:10px;
+  padding:8px 10px;font-size:15px;font-weight:700;text-align:right;
+  font-family:inherit;outline:none;color:var(--text);
+}
+.field-input:focus{border-color:var(--p)}
+.field-unit{font-size:13px;color:var(--text2);width:36px}
+.preset-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;padding:12px}
+.preset-btn{
+  padding:14px;border-radius:14px;border:1.5px solid var(--border);
+  background:#f9fafb;cursor:pointer;font-family:inherit;text-align:left;
+  transition:all .2s;
+}
+.preset-btn:active{border-color:var(--p);background:var(--p-light)}
+.preset-name{font-size:13px;font-weight:700;color:var(--text);margin-bottom:4px}
+.preset-kcal{font-size:12px;color:var(--p);font-weight:600}
+.preset-macros{font-size:11px;color:var(--text3);margin-top:2px}
+.save-goals-btn{
+  width:100%;padding:16px;border-radius:16px;
+  background:linear-gradient(135deg,var(--p2),var(--p));
+  color:#fff;border:none;font-size:16px;font-weight:800;
+  cursor:pointer;font-family:inherit;
+  box-shadow:0 4px 20px rgba(124,58,237,.3);
+}
+.api-row{
+  display:flex;align-items:center;gap:10px;padding:14px 16px;
+}
+.api-input{
+  flex:1;border:1.5px solid var(--border);border-radius:10px;
+  padding:10px 12px;font-size:14px;font-family:inherit;
+  outline:none;color:var(--text);
+}
+.api-input:focus{border-color:var(--p)}
+.api-save-btn{
+  padding:10px 16px;background:var(--p);color:#fff;
+  border:none;border-radius:10px;font-size:13px;font-weight:700;
+  cursor:pointer;font-family:inherit;white-space:nowrap;
+}
+
+/* GYM SCREEN */
+.gym-header{
+  background:linear-gradient(145deg,#0f172a 0%,#1e293b 60%,#0f172a 100%);
+  color:#fff;padding:calc(var(--st) + 20px) 20px 20px;
+}
+.gym-title{font-size:22px;font-weight:800;letter-spacing:-.5px}
+.gym-sub{font-size:11px;opacity:.55;margin-top:3px;text-transform:uppercase;letter-spacing:.7px}
+.phase-toggle{
+  display:flex;margin-top:16px;background:rgba(255,255,255,.1);
+  border-radius:12px;padding:3px;
+}
+.phase-btn{
+  flex:1;padding:9px 6px;border:none;border-radius:9px;
+  font-size:12px;font-weight:700;cursor:pointer;
+  font-family:inherit;transition:all .2s;
+  background:none;color:rgba(255,255,255,.5);
+  text-align:center;line-height:1.3;
+}
+.phase-btn.active{background:rgba(255,255,255,.15);color:#fff;box-shadow:0 1px 4px rgba(0,0,0,.3)}
+.cur-dot{display:inline-block;width:6px;height:6px;background:#4ade80;border-radius:50%;margin-left:4px;vertical-align:middle}
+.phase-callout{
+  margin:14px 20px 0;padding:13px 15px;
+  background:#f8fafc;border-left:3px solid var(--p);border-radius:0 12px 12px 0;
+  font-size:12px;color:var(--text2);line-height:1.5;
+}
+.phase-callout strong{color:var(--p);font-weight:700}
+.day-tabs{
+  display:flex;gap:8px;padding:16px 20px 4px;
+  overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none;
+}
+.day-tabs::-webkit-scrollbar{display:none}
+.day-tab{
+  flex-shrink:0;padding:8px 14px;border-radius:99px;
+  border:1.5px solid var(--border);background:var(--card);
+  color:var(--text2);font-size:12px;font-weight:700;
+  cursor:pointer;font-family:inherit;transition:all .2s;white-space:nowrap;
+}
+.day-tab.active{border-color:var(--p);background:var(--p-light);color:var(--p)}
+.gym-body{padding:8px 20px 20px}
+.day-subtitle{font-size:11px;font-weight:700;letter-spacing:.6px;
+  text-transform:uppercase;color:var(--text3);margin:8px 0 14px}
+.ss-card{
+  background:var(--card);border-radius:16px;
+  box-shadow:0 1px 4px rgba(0,0,0,.06);margin-bottom:12px;overflow:hidden;
+}
+.ss-header{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:11px 14px;border-bottom:1px solid #f3f4f6;cursor:pointer;
+}
+.ss-label{
+  font-size:10px;font-weight:800;letter-spacing:.5px;
+  text-transform:uppercase;padding:3px 9px;border-radius:99px;
+}
+.ss1-c{background:#eff6ff;color:#2563eb}
+.ss2-c{background:#fffbeb;color:#d97706}
+.ss3-c{background:#f0fdf4;color:#16a34a}
+.ss-chev{font-size:14px;color:var(--text3);transition:transform .2s;line-height:1}
+.ss-chev.open{transform:rotate(180deg)}
+.ss-why{
+  padding:10px 14px 12px;font-size:12px;color:var(--text2);
+  line-height:1.5;border-bottom:1px solid #f9fafb;background:#fafafa;
+}
+.ss-why b{color:var(--p)}
+.ex-row{
+  padding:12px 14px;display:flex;align-items:flex-start;gap:10px;
+  border-bottom:1px solid #f9fafb;
+}
+.ex-row:last-child{border-bottom:none}
+.type-badge{
+  font-size:9px;font-weight:800;letter-spacing:.4px;text-transform:uppercase;
+  padding:3px 7px;border-radius:6px;flex-shrink:0;margin-top:2px;white-space:nowrap;
+}
+.tb-compound{background:#eff6ff;color:#2563eb}
+.tb-isolation{background:#faf5ff;color:#9333ea}
+.tb-core{background:#f0fdf4;color:#16a34a}
+.tb-rehab{background:#fff7ed;color:#ea580c}
+.tb-superset{background:#eef2ff;color:#4f46e5}
+.ex-info{flex:1}
+.ex-name{font-size:14px;font-weight:700;color:var(--text);line-height:1.3}
+.ex-note{font-size:12px;color:var(--text2);margin-top:3px;line-height:1.4}
+.ex-meta{display:flex;align-items:center;gap:8px;margin-top:6px;flex-wrap:wrap}
+.ex-sets-badge{
+  font-size:12px;font-weight:700;color:var(--text);
+  background:#f3f4f6;padding:3px 9px;border-radius:6px;
+}
+.ex-rest-badge{font-size:11px;color:var(--text3)}
+.ex-arrow{color:var(--p);font-size:16px;font-weight:800;margin-top:1px;flex-shrink:0;line-height:1}
+.set-track{display:flex;flex-wrap:wrap;gap:5px;margin-top:8px}
+.set-chip{
+  display:flex;align-items:center;gap:4px;
+  padding:5px 9px;border-radius:8px;
+  border:1.5px solid var(--border);background:#fff;cursor:pointer;
+  transition:all .15s;position:relative;
+}
+.set-chip.done{background:#f0fdf4;border-color:#22c55e}
+.set-chip-n{font-size:10px;font-weight:800;color:var(--text3)}
+.set-chip.done .set-chip-n{color:#16a34a}
+.set-chip-w{
+  width:34px;font-size:11px;font-weight:700;border:none;background:transparent;
+  text-align:center;font-family:inherit;color:var(--text);outline:none;padding:0;
+}
+.set-chip-w::placeholder{color:var(--text3)}
+.set-chip-kg{font-size:10px;color:var(--text3)}
+.set-tick{width:12px;height:12px;stroke:#22c55e;stroke-width:3;fill:none;display:none;flex-shrink:0}
+.set-chip.done .set-tick{display:block}
+.extra-block{
+  border:1.5px dashed var(--border);border-radius:14px;
+  overflow:hidden;margin-bottom:14px;
+}
+.extra-hdr{
+  display:flex;align-items:center;gap:7px;padding:11px 14px;
+  font-size:10px;font-weight:800;letter-spacing:.7px;
+  text-transform:uppercase;color:var(--text3);cursor:pointer;
+  background:#fdfdfd;border-bottom:1px solid #f3f4f6;
+}
+.extra-items{padding:4px 0}
+.extra-row{
+  display:flex;justify-content:space-between;align-items:flex-start;
+  padding:9px 14px;border-bottom:1px dashed #f3f4f6;
+}
+.extra-row:last-child{border-bottom:none}
+.extra-lft{}
+.extra-name{font-size:13px;font-weight:600;color:var(--text)}
+.extra-note{font-size:11px;color:var(--text2);margin-top:2px}
+.extra-sets-lbl{font-size:12px;font-weight:700;color:var(--p);white-space:nowrap;margin-left:12px;flex-shrink:0}
+.how-card{
+  background:linear-gradient(135deg,#0f172a,#1e3a5f);
+  border-radius:16px;padding:18px;margin-bottom:8px;
+}
+.how-title{font-size:10px;font-weight:800;letter-spacing:.8px;text-transform:uppercase;
+  color:rgba(255,255,255,.45);margin-bottom:14px}
+.how-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.how-item-title{font-size:11px;font-weight:700;color:rgba(255,255,255,.9);margin-bottom:3px}
+.how-item-body{font-size:11px;color:rgba(255,255,255,.5);line-height:1.5}
+.workout-done-btn{
+  width:100%;padding:16px;border-radius:16px;
+  background:#22c55e;color:#fff;border:none;
+  font-size:16px;font-weight:800;cursor:pointer;
+  font-family:inherit;margin-bottom:12px;
+  box-shadow:0 4px 16px rgba(34,197,94,.25);
+}
+
+/* SUGGESTION MODAL */
+.modal-overlay{
+  position:fixed;inset:0;background:rgba(0,0,0,.5);
+  z-index:200;display:none;align-items:flex-end;
+  backdrop-filter:blur(4px);
+}
+.modal-overlay.open{display:flex}
+.modal-sheet{
+  background:var(--card);border-radius:24px 24px 0 0;
+  width:100%;max-height:80vh;overflow-y:auto;
+  padding:24px 20px calc(24px + var(--sb));
+  animation:slideUp .3s ease;
+}
+@keyframes slideUp{from{transform:translateY(100%)}to{transform:translateY(0)}}
+.modal-handle{
+  width:40px;height:4px;background:#e5e7eb;border-radius:99px;
+  margin:0 auto 20px;
+}
+.modal-title{font-size:20px;font-weight:800;margin-bottom:4px;letter-spacing:-.4px}
+.modal-sub{font-size:13px;color:var(--text2);margin-bottom:20px}
+.suggestion-item{
+  background:#f9fafb;border-radius:14px;padding:16px;margin-bottom:10px;
+}
+.suggestion-name{font-size:15px;font-weight:700;margin-bottom:6px}
+.suggestion-desc{font-size:13px;color:var(--text2);line-height:1.5}
+.suggestion-macros{
+  display:flex;gap:10px;margin-top:10px;flex-wrap:wrap;
+}
+.sug-macro{
+  padding:4px 10px;border-radius:99px;font-size:11px;font-weight:700;
+}
+.sug-macro.protein{background:#fff4ed;color:var(--protein)}
+.sug-macro.carbs{background:#f0fdf4;color:var(--carbs)}
+.sug-macro.fat{background:#faf5ff;color:var(--fat)}
+.sug-macro.kcal{background:#ede9fe;color:var(--p)}
+
+/* TOAST */
+.toast{
+  position:fixed;bottom:calc(90px + var(--sb));left:50%;
+  transform:translateX(-50%) translateY(20px);
+  background:#111;color:#fff;padding:12px 20px;
+  border-radius:99px;font-size:14px;font-weight:600;
+  opacity:0;transition:all .3s;z-index:300;white-space:nowrap;
+  pointer-events:none;
+}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+
+/* SPINNER */
+.spinner-wrap{display:flex;align-items:center;justify-content:center;padding:30px;gap:10px}
+.spinner{
+  width:20px;height:20px;border:2px solid var(--border);
+  border-top-color:var(--p);border-radius:50%;
+  animation:spin .7s linear infinite;
+}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* STREAK */
+.streak-badge{
+  display:inline-flex;align-items:center;gap:4px;
+  background:rgba(255,255,255,.15);border-radius:99px;
+  padding:5px 10px;font-size:12px;font-weight:700;color:#fff;
+}
+
+/* UTIL */
+.hidden{display:none!important}
+input[type=file]{display:none}
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="screens">
+
+    <!-- DASHBOARD -->
+    <div class="screen active" id="screen-dash">
+      <div class="dash-header">
+        <div class="dash-top">
+          <div>
+            <div class="dash-title" id="dash-goal-name">My Nutrition</div>
+            <div class="dash-subtitle" id="dash-date-label"></div>
+          </div>
+          <div style="display:flex;align-items:center;gap:8px">
+            <span class="streak-badge" id="streak-badge">🔥 0</span>
+            <button class="btn-targets" onclick="nav('goals')">Targets</button>
+          </div>
+        </div>
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+          <button onclick="shiftDay(-1)" style="width:34px;height:34px;border-radius:50%;border:none;background:rgba(255,255,255,.18);color:#fff;font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center">‹</button>
+          <div class="cal-card" style="flex:1;margin:0 10px">
+            <div class="cal-top">
+              <div class="cal-nums">
+                <div><span class="cal-consumed" id="cal-consumed">0</span><span class="cal-unit">kcal</span></div>
+                <div class="cal-of" id="cal-of">of 2000 kcal goal</div>
+              </div>
+              <div class="cal-pct" id="cal-pct">0%</div>
+            </div>
+            <div class="cal-bar-wrap" style="margin-top:12px">
+              <div class="cal-bar-fill" id="cal-bar" style="width:0%"></div>
+            </div>
+            <div class="cal-remaining" id="cal-remaining">2000 kcal to go</div>
+          </div>
+          <button id="next-day-btn" onclick="shiftDay(1)" style="width:34px;height:34px;border-radius:50%;border:none;background:rgba(255,255,255,.18);color:#fff;font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center">›</button>
+        </div>
+      </div>
+
+      <div class="macro-bars" id="macro-bars">
+        <div class="macro-row">
+          <span class="macro-label protein">Protein</span>
+          <div class="macro-bar-bg"><div class="macro-bar-fill protein" id="bar-protein" style="width:0%"></div></div>
+          <span class="macro-vals" id="val-protein">0 / 150g</span>
+        </div>
+        <div class="macro-row">
+          <span class="macro-label carbs">Carbs</span>
+          <div class="macro-bar-bg"><div class="macro-bar-fill carbs" id="bar-carbs" style="width:0%"></div></div>
+          <span class="macro-vals" id="val-carbs">0 / 200g</span>
+        </div>
+        <div class="macro-row">
+          <span class="macro-label fat">Fat</span>
+          <div class="macro-bar-bg"><div class="macro-bar-fill fat" id="bar-fat" style="width:0%"></div></div>
+          <span class="macro-vals" id="val-fat">0 / 65g</span>
+        </div>
+      </div>
+
+      <div class="remaining-pills" id="remaining-pills"></div>
+
+      <button class="suggest-btn" onclick="openSuggest()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" style="width:18px;height:18px;stroke-width:2"><path d="M12 2l2.4 7.4H22l-6.2 4.5 2.4 7.4L12 17l-6.2 4.3 2.4-7.4L2 9.4h7.6z"/></svg>
+        What can I eat to hit my goals?
+      </button>
+
+      <div class="log-toggle" id="log-toggle">
+        <button class="active" id="toggle-log" onclick="switchLogView('log')">Food Log (<span id="log-count">0</span>)</button>
+        <button id="toggle-add" onclick="switchLogView('add')">+ Add Food</button>
+      </div>
+
+      <!-- LOG VIEW -->
+      <div id="log-view">
+        <div id="log-sections"></div>
+      </div>
+
+      <!-- ADD VIEW -->
+      <div id="add-view" class="hidden add-panel">
+        <span class="snap-label">Snap the label or describe it</span>
+        <div class="photo-row">
+          <button class="photo-btn" onclick="triggerCamera()">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2z"/><circle cx="12" cy="13" r="4"/></svg>
+            Take Photo
+          </button>
+          <button class="photo-btn" onclick="triggerUpload()">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+            Add Photo
+          </button>
+        </div>
+        <div class="photo-preview-wrap hidden" id="photo-preview-wrap">
+          <img id="photo-preview" src="" alt="food photo">
+          <button class="photo-clear" onclick="clearPhoto()">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+          </button>
+        </div>
+        <textarea class="desc-input" id="desc-input" placeholder="Describe your food… e.g. &quot;Big Mac&quot;, &quot;2 cups oatmeal&quot;, &quot;Subway 6-inch turkey&quot;"></textarea>
+        <div class="meal-pills" id="meal-pills">
+          <button class="meal-pill active" data-meal="auto" onclick="selMealPill(this)">Auto</button>
+          <button class="meal-pill" data-meal="breakfast" onclick="selMealPill(this)">Breakfast</button>
+          <button class="meal-pill" data-meal="lunch" onclick="selMealPill(this)">Lunch</button>
+          <button class="meal-pill" data-meal="dinner" onclick="selMealPill(this)">Dinner</button>
+          <button class="meal-pill" data-meal="snack" onclick="selMealPill(this)">Snack</button>
+        </div>
+        <button class="analyse-btn" id="analyse-btn" onclick="analyse()">
+          Analyse &amp; Log →
+        </button>
+        <div id="results-area" style="margin-top:16px"></div>
+      </div>
+    </div>
+
+    <!-- HISTORY -->
+    <div class="screen" id="screen-history">
+      <div class="history-header">
+        <div class="history-title">History</div>
+      </div>
+      <div class="history-list" id="history-list"></div>
+    </div>
+
+    <!-- GOALS -->
+    <div class="screen" id="screen-goals">
+      <div class="goals-header">
+        <div class="goals-title">Targets</div>
+      </div>
+      <div class="goals-body">
+        <div class="section-card">
+          <div class="section-header">Daily Goal Name</div>
+          <div class="field-row">
+            <label class="field-label">Plan name</label>
+            <input class="field-input" id="goal-name" type="text" value="My Nutrition" style="width:160px;text-align:left">
+          </div>
+        </div>
+        <div class="section-card">
+          <div class="section-header">Calorie Target</div>
+          <div class="field-row">
+            <label class="field-label">Calories</label>
+            <input class="field-input" id="goal-kcal" type="number" value="2000">
+            <span class="field-unit">kcal</span>
+          </div>
+        </div>
+        <div class="section-card">
+          <div class="section-header">Macro Targets</div>
+          <div class="field-row">
+            <label class="field-label" style="color:var(--protein)">Protein</label>
+            <input class="field-input" id="goal-protein" type="number" value="150">
+            <span class="field-unit">g</span>
+          </div>
+          <div class="field-row">
+            <label class="field-label" style="color:var(--carbs)">Carbs</label>
+            <input class="field-input" id="goal-carbs" type="number" value="200">
+            <span class="field-unit">g</span>
+          </div>
+          <div class="field-row">
+            <label class="field-label" style="color:var(--fat)">Fat</label>
+            <input class="field-input" id="goal-fat" type="number" value="65">
+            <span class="field-unit">g</span>
+          </div>
+        </div>
+        <div class="section-card">
+          <div class="section-header">Quick Presets</div>
+          <div class="preset-grid" id="preset-grid"></div>
+        </div>
+        <div class="section-card">
+          <div class="section-header">Claude AI (optional — boosts accuracy)</div>
+          <div class="api-row">
+            <input class="api-input" id="api-key-input" type="password" placeholder="sk-ant-...">
+            <button class="api-save-btn" onclick="saveApiKey()">Save</button>
+          </div>
+        </div>
+        <button class="save-goals-btn" onclick="saveGoals()">Save Targets</button>
+      </div>
+    </div>
+
+    <!-- GYM -->
+    <div class="screen" id="screen-gym">
+      <div class="gym-header">
+        <div class="gym-title">The Swimmer Build</div>
+        <div class="gym-sub">Anytime Fitness Jannali · 4 days/week · Supersets</div>
+        <div class="phase-toggle">
+          <button class="phase-btn" id="phase-btn-1" onclick="selPhase(1)">Phase 1</button>
+          <button class="phase-btn active" id="phase-btn-2" onclick="selPhase(2)">Phase 2 · Current <span class="cur-dot"></span></button>
+        </div>
+      </div>
+      <div id="phase-callout"></div>
+      <div class="day-tabs" id="day-tabs"></div>
+      <div class="gym-body" id="gym-body"></div>
+    </div>
+
+  </div>
+
+  <!-- BOTTOM NAV -->
+  <nav class="nav">
+    <button class="nav-btn active" id="nav-dash" onclick="nav('dash')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/></svg>
+      Today
+    </button>
+    <button class="nav-btn" id="nav-history" onclick="nav('history')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+      History
+    </button>
+    <button class="nav-center" onclick="switchLogView('add');nav('dash')">
+      <div class="fab">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+      </div>
+    </button>
+    <button class="nav-btn" id="nav-goals" onclick="nav('goals')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg>
+      Goals
+    </button>
+    <button class="nav-btn" id="nav-gym" onclick="nav('gym')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M6.5 6.5h11M6.5 17.5h11M3 10h3.5M17.5 10H21M3 14h3.5M17.5 14H21"/><rect x="6" y="8" width="1.5" height="8" rx=".75"/><rect x="16.5" y="8" width="1.5" height="8" rx=".75"/></svg>
+      Gym
+    </button>
+  </nav>
+</div>
+
+<!-- SUGGESTION MODAL -->
+<div class="modal-overlay" id="suggest-modal" onclick="if(event.target===this)closeSuggest()">
+  <div class="modal-sheet">
+    <div class="modal-handle"></div>
+    <div class="modal-title">What can I eat?</div>
+    <div class="modal-sub" id="suggest-sub">Based on your remaining macros</div>
+    <div id="suggest-body"></div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+<input type="file" id="file-camera" accept="image/*" capture="environment" onchange="handlePhoto(this)">
+<input type="file" id="file-upload" accept="image/*" onchange="handlePhoto(this)">
+
+<script>
+// ── STATE ──────────────────────────────────────────────────────────────────
+let goals = {kcal:2000,protein:150,carbs:200,fat:65,name:'My Nutrition'};
+let log = {}; // {date: [{name,kcal,protein,carbs,fat,meal,qty,unit}]}
+let curDate = todayStr();
+let selMeal = 'auto';
+let currentPhoto = null; // base64
+let apiKey = '';
+let parsedItems = [];
+
+function todayStr(){return new Date().toISOString().slice(0,10)}
+function fmt(d){const o=new Date(d+'T12:00:00');return o.toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric'})}
+
+// ── FOOD DATABASE ────────────────────────────────────────────────────────
+const DB = [
+  // Basics
+  {n:'Chicken breast, grilled',k:165,p:31,c:0,f:3.6,s:100,u:'g',a:['chicken breast','grilled chicken','chicken']},
+  {n:'Chicken thigh, cooked',k:209,p:26,c:0,f:11,s:100,u:'g',a:['chicken thigh','dark chicken']},
+  {n:'Salmon, cooked',k:208,p:20,c:0,f:13,s:100,u:'g',a:['salmon','grilled salmon','baked salmon']},
+  {n:'Tuna, canned in water',k:116,p:25,c:0,f:1,s:100,u:'g',a:['tuna','canned tuna','tuna can']},
+  {n:'Egg, whole large',k:72,p:6,c:0.4,f:5,s:1,u:'egg',a:['egg','eggs','whole egg']},
+  {n:'Egg white',k:17,p:3.6,c:0.2,f:0.1,s:1,u:'egg',a:['egg white','egg whites']},
+  {n:'Ground beef 80/20',k:254,p:17,c:0,f:20,s:100,u:'g',a:['ground beef','beef mince','minced beef','burger patty']},
+  {n:'Ground beef 93/7',k:218,p:22,c:0,f:14,s:100,u:'g',a:['lean ground beef','lean beef mince']},
+  {n:'Steak, sirloin',k:207,p:26,c:0,f:10,s:100,u:'g',a:['steak','sirloin steak','beef steak']},
+  {n:'Pork tenderloin',k:143,p:26,c:0,f:3.5,s:100,u:'g',a:['pork tenderloin','pork loin','pork']},
+  {n:'Shrimp, cooked',k:99,p:24,c:0.2,f:0.3,s:100,u:'g',a:['shrimp','prawns','cooked shrimp']},
+  {n:'Turkey breast, deli',k:89,p:17,c:1,f:1.8,s:100,u:'g',a:['turkey breast','deli turkey','turkey slices']},
+  {n:'Tofu, firm',k:76,p:8,c:2,f:4.2,s:100,u:'g',a:['tofu','firm tofu']},
+  {n:'Greek yogurt, plain 0%',k:59,p:10,c:3.6,f:0.4,s:100,u:'g',a:['greek yogurt','plain greek yogurt','nonfat greek yogurt']},
+  {n:'Cottage cheese',k:98,p:11,c:3.4,f:4.3,s:100,u:'g',a:['cottage cheese']},
+  {n:'Whey protein shake',k:120,p:25,c:3,f:1.5,s:1,u:'scoop',a:['protein shake','whey protein','protein powder','protein']},
+  {n:'Milk, whole',k:61,p:3.2,c:4.8,f:3.3,s:100,u:'ml',a:['whole milk','milk']},
+  {n:'Milk, skim',k:34,p:3.4,c:4.8,f:0.1,s:100,u:'ml',a:['skim milk','skimmed milk','nonfat milk']},
+  {n:'Cheddar cheese',k:403,p:25,c:1.3,f:33,s:100,u:'g',a:['cheddar cheese','cheddar','cheese']},
+  {n:'Mozzarella cheese',k:280,p:28,c:2.2,f:17,s:100,u:'g',a:['mozzarella','mozzarella cheese']},
+  {n:'White rice, cooked',k:130,p:2.7,c:28,f:0.3,s:100,u:'g',a:['white rice','rice','cooked rice','steamed rice']},
+  {n:'Brown rice, cooked',k:112,p:2.6,c:24,f:0.9,s:100,u:'g',a:['brown rice']},
+  {n:'Oatmeal, cooked',k:68,p:2.4,c:12,f:1.4,s:100,u:'g',a:['oatmeal','porridge','oats','rolled oats']},
+  {n:'Pasta, cooked',k:131,p:5,c:25,f:1.1,s:100,u:'g',a:['pasta','spaghetti','noodles','penne','cooked pasta']},
+  {n:'Bread, whole wheat slice',k:69,p:3.6,c:12,f:1,s:1,u:'slice',a:['whole wheat bread','whole grain bread','bread slice','bread']},
+  {n:'Bread, white slice',k:79,p:2.7,c:15,f:1,s:1,u:'slice',a:['white bread','white bread slice']},
+  {n:'Tortilla, flour 10"',k:218,p:5.7,c:36,f:5.6,s:1,u:'tortilla',a:['flour tortilla','tortilla','wrap']},
+  {n:'Tortilla, corn',k:52,p:1.4,c:10.7,f:0.7,s:1,u:'tortilla',a:['corn tortilla']},
+  {n:'Potato, baked',k:93,p:2.5,c:21,f:0.1,s:100,u:'g',a:['baked potato','potato','jacket potato']},
+  {n:'Sweet potato, baked',k:90,p:2,c:21,f:0.1,s:100,u:'g',a:['sweet potato','baked sweet potato']},
+  {n:'Banana',k:89,p:1.1,c:23,f:0.3,s:1,u:'banana',a:['banana','bananas']},
+  {n:'Apple',k:52,p:0.3,c:14,f:0.2,s:1,u:'apple',a:['apple','apples']},
+  {n:'Orange',k:47,p:0.9,c:12,f:0.1,s:1,u:'orange',a:['orange','oranges']},
+  {n:'Blueberries',k:57,p:0.7,c:14,f:0.3,s:100,u:'g',a:['blueberries','blueberry']},
+  {n:'Strawberries',k:32,p:0.7,c:7.7,f:0.3,s:100,u:'g',a:['strawberries','strawberry']},
+  {n:'Avocado',k:160,p:2,c:9,f:15,s:1,u:'avocado',a:['avocado','half avocado','whole avocado']},
+  {n:'Almonds',k:579,p:21,c:22,f:50,s:100,u:'g',a:['almonds','almond']},
+  {n:'Peanut butter',k:588,p:25,c:20,f:50,s:100,u:'g',a:['peanut butter','peanut butter tablespoon']},
+  {n:'Olive oil',k:884,p:0,c:0,f:100,s:100,u:'g',a:['olive oil']},
+  {n:'Butter',k:717,p:0.9,c:0.1,f:81,s:100,u:'g',a:['butter']},
+  {n:'Broccoli',k:34,p:2.8,c:7,f:0.4,s:100,u:'g',a:['broccoli']},
+  {n:'Spinach',k:23,p:2.9,c:3.6,f:0.4,s:100,u:'g',a:['spinach']},
+  {n:'Salad, mixed greens',k:20,p:1.5,c:3.5,f:0.3,s:100,u:'g',a:['salad','mixed greens','lettuce','greens']},
+  {n:'Black beans',k:132,p:8.9,c:24,f:0.5,s:100,u:'g',a:['black beans','beans']},
+  {n:'Lentils, cooked',k:116,p:9,c:20,f:0.4,s:100,u:'g',a:['lentils','red lentils','green lentils']},
+  {n:'Hummus',k:166,p:7.9,c:14,f:9.6,s:100,u:'g',a:['hummus']},
+
+  // McDonald's
+  {n:"McDonald's Big Mac",k:550,p:25,c:45,f:30,s:1,u:'burger',a:['big mac','bigmac']},
+  {n:"McDonald's McDouble",k:400,p:22,c:34,f:19,s:1,u:'burger',a:['mcdouble','mc double']},
+  {n:"McDonald's Quarter Pounder w/ Cheese",k:520,p:30,c:42,f:26,s:1,u:'burger',a:['quarter pounder','quarter pounder with cheese']},
+  {n:"McDonald's Filet-O-Fish",k:390,p:15,c:38,f:19,s:1,u:'burger',a:['filet o fish','filet-o-fish','fish sandwich mcdonald']},
+  {n:"McDonald's McChicken",k:400,p:14,c:37,f:21,s:1,u:'burger',a:['mcchicken','mc chicken']},
+  {n:"McDonald's Crispy Chicken Sandwich",k:470,p:27,c:45,f:20,s:1,u:'sandwich',a:['crispy chicken sandwich mcdonalds','mcdonald crispy chicken']},
+  {n:"McDonald's Cheeseburger",k:300,p:15,c:33,f:12,s:1,u:'burger',a:["mcdonald's cheeseburger",'mcdonalds cheeseburger','cheeseburger mcdonalds']},
+  {n:"McDonald's Hamburger",k:250,p:13,c:31,f:9,s:1,u:'burger',a:['mcdonalds hamburger','hamburger mcdonalds']},
+  {n:"McDonald's 10-pc Chicken McNuggets",k:420,p:24,c:26,f:25,s:1,u:'order',a:['mcnuggets 10','chicken nuggets mcdonalds 10','10 piece nuggets','10 McNuggets']},
+  {n:"McDonald's 6-pc Chicken McNuggets",k:250,p:15,c:15,f:15,s:1,u:'order',a:['mcnuggets 6','chicken nuggets mcdonalds 6','6 piece nuggets','6 McNuggets','nuggets']},
+  {n:"McDonald's Medium Fries",k:320,p:4.6,c:43,f:15,s:1,u:'order',a:['mcdonalds fries','medium fries mcdonalds','fries mcdonald']},
+  {n:"McDonald's Large Fries",k:490,p:7,c:66,f:23,s:1,u:'order',a:['large fries mcdonalds']},
+  {n:"McDonald's Egg McMuffin",k:310,p:17,c:30,f:13,s:1,u:'sandwich',a:['egg mcmuffin','mcmuffin']},
+  {n:"McDonald's Sausage McMuffin w/ Egg",k:480,p:21,c:30,f:31,s:1,u:'sandwich',a:['sausage egg mcmuffin','sausage mcmuffin']},
+  {n:"McDonald's Sausage Burrito",k:310,p:13,c:26,f:17,s:1,u:'burrito',a:['mcdonald burrito','sausage burrito mcdonalds']},
+  {n:"McDonald's Hotcakes (3)",k:590,p:15,c:102,f:16,s:1,u:'order',a:['mcdonald hotcakes','mcdonalds pancakes','hotcakes']},
+  {n:"McDonald's Big Breakfast",k:760,p:28,c:56,f:48,s:1,u:'meal',a:['big breakfast mcdonald','mcdonalds big breakfast']},
+  {n:"McDonald's Vanilla McFlurry",k:510,p:12,c:80,f:17,s:1,u:'serving',a:['mcflurry','vanilla mcflurry','oreo mcflurry']},
+  {n:"McDonald's Chocolate Shake (medium)",k:530,p:13,c:87,f:14,s:1,u:'drink',a:['mcdonalds chocolate shake','chocolate shake mcdonald']},
+
+  // Burger King
+  {n:"Burger King Whopper",k:660,p:28,c:49,f:40,s:1,u:'burger',a:['whopper','bk whopper']},
+  {n:"Burger King Double Whopper",k:900,p:48,c:49,f:58,s:1,u:'burger',a:['double whopper']},
+  {n:"Burger King Impossible Whopper",k:630,p:25,c:58,f:34,s:1,u:'burger',a:['impossible whopper','plant-based whopper']},
+  {n:"Burger King Chicken Sandwich",k:660,p:25,c:52,f:40,s:1,u:'sandwich',a:['bk chicken sandwich','burger king chicken']},
+  {n:"Burger King Medium Fries",k:320,p:4,c:42,f:15,s:1,u:'order',a:['bk fries','burger king fries']},
+  {n:"Burger King Onion Rings (medium)",k:320,p:4,c:40,f:16,s:1,u:'order',a:['onion rings','bk onion rings']},
+
+  // Wendy's
+  {n:"Wendy's Dave's Single",k:590,p:30,c:40,f:34,s:1,u:'burger',a:["dave's single","wendy's single",'wendys burger']},
+  {n:"Wendy's Dave's Double",k:840,p:55,c:40,f:52,s:1,u:'burger',a:["dave's double",'wendys double']},
+  {n:"Wendy's Baconator",k:950,p:57,c:43,f:62,s:1,u:'burger',a:['baconator','wendys baconator']},
+  {n:"Wendy's Spicy Chicken Sandwich",k:510,p:33,c:56,f:17,s:1,u:'sandwich',a:['spicy chicken sandwich wendys','wendys spicy chicken']},
+  {n:"Wendy's Medium Fries",k:340,p:4,c:47,f:15,s:1,u:'order',a:["wendy's fries",'wendys fries']},
+  {n:"Wendy's Chili (small)",k:200,p:15,c:21,f:6,s:1,u:'bowl',a:["wendy's chili",'wendys chili']},
+  {n:"Wendy's Frosty (small)",k:340,p:9,c:58,f:8,s:1,u:'serving',a:['frosty','wendys frosty','chocolate frosty']},
+
+  // Chick-fil-A
+  {n:'Chick-fil-A Original Sandwich',k:440,p:28,c:40,f:19,s:1,u:'sandwich',a:['chick fil a sandwich','chick-fil-a sandwich','chickfila sandwich','original chick-fil-a']},
+  {n:'Chick-fil-A Spicy Deluxe Sandwich',k:550,p:36,c:41,f:25,s:1,u:'sandwich',a:['spicy deluxe','chick fil a spicy','chickfila spicy']},
+  {n:'Chick-fil-A Nuggets 8-count',k:260,p:26,c:11,f:12,s:1,u:'order',a:['chick fil a nuggets','chickfila nuggets','8 count nuggets']},
+  {n:'Chick-fil-A Waffle Fries (medium)',k:400,p:5,c:54,f:18,s:1,u:'order',a:['waffle fries','chick fil a fries','chickfila fries']},
+  {n:'Chick-fil-A Grilled Chicken Sandwich',k:320,p:30,c:27,f:6,s:1,u:'sandwich',a:['grilled chick fil a sandwich','chickfila grilled chicken']},
+  {n:'Chick-fil-A Grilled Chicken Club',k:430,p:38,c:30,f:14,s:1,u:'sandwich',a:['grilled chicken club']},
+
+  // Subway
+  {n:"Subway 6-inch Turkey Breast",k:280,p:18,c:46,f:3.5,s:1,u:'sub',a:['subway turkey','6 inch turkey','subway turkey breast','turkey sub']},
+  {n:"Subway Footlong Turkey Breast",k:560,p:36,c:92,f:7,s:1,u:'sub',a:['subway turkey footlong','footlong turkey','turkey footlong']},
+  {n:"Subway 6-inch Chicken Teriyaki",k:370,p:22,c:58,f:5,s:1,u:'sub',a:['subway teriyaki','chicken teriyaki subway','teriyaki sub']},
+  {n:"Subway 6-inch Italian BMT",k:450,p:22,c:47,f:20,s:1,u:'sub',a:['subway bmt','italian bmt','bmt subway']},
+  {n:"Subway Footlong Italian BMT",k:900,p:44,c:94,f:40,s:1,u:'sub',a:['footlong bmt','italian bmt footlong']},
+  {n:"Subway 6-inch Veggie Delite",k:230,p:9,c:44,f:2.5,s:1,u:'sub',a:['veggie sub','subway veggie','veggie delight sub']},
+  {n:"Subway 6-inch Tuna",k:480,p:22,c:46,f:23,s:1,u:'sub',a:['subway tuna','tuna sub']},
+  {n:"Subway Rotisserie Chicken Bowl",k:350,p:35,c:35,f:8,s:1,u:'bowl',a:['subway chicken bowl','rotisserie chicken bowl subway']},
+
+  // Chipotle
+  {n:"Chipotle Burrito (chicken, standard)",k:1060,p:56,c:133,f:32,s:1,u:'burrito',a:['chipotle burrito','chicken burrito chipotle','chipotle chicken burrito']},
+  {n:"Chipotle Bowl (chicken, standard)",k:800,p:54,c:91,f:22,s:1,u:'bowl',a:['chipotle bowl','chipotle chicken bowl','chicken bowl chipotle']},
+  {n:"Chipotle Burrito Bowl (steak)",k:820,p:50,c:91,f:24,s:1,u:'bowl',a:['chipotle steak bowl','steak bowl chipotle']},
+  {n:"Chipotle Tacos (chicken, 3)",k:455,p:33,c:43,f:16,s:1,u:'order',a:['chipotle tacos','chicken tacos chipotle']},
+  {n:"Chipotle Salad (chicken)",k:480,p:43,c:38,f:17,s:1,u:'salad',a:['chipotle salad','chicken salad chipotle']},
+  {n:"Chipotle Chips & Guacamole",k:770,p:10,c:91,f:42,s:1,u:'order',a:['chips and guac chipotle','chipotle guacamole chips']},
+  {n:"Chipotle Guacamole",k:230,p:2.5,c:13,f:21,s:1,u:'serving',a:['chipotle guac','chipotle guacamole']},
+
+  // Taco Bell
+  {n:"Taco Bell Crunchy Taco",k:170,p:8,c:13,f:9,s:1,u:'taco',a:['crunchy taco','taco bell taco','taco bell crunchy']},
+  {n:"Taco Bell Soft Taco (beef)",k:180,p:9,c:18,f:8,s:1,u:'taco',a:['soft taco','taco bell soft taco']},
+  {n:"Taco Bell Chalupa Supreme",k:370,p:14,c:38,f:19,s:1,u:'chalupa',a:['chalupa','taco bell chalupa']},
+  {n:"Taco Bell Crunchwrap Supreme",k:540,p:17,c:72,f:21,s:1,u:'wrap',a:['crunchwrap','crunchwrap supreme']},
+  {n:"Taco Bell Nachos BellGrande",k:760,p:22,c:83,f:39,s:1,u:'order',a:['nachos bellgrande','taco bell nachos']},
+  {n:"Taco Bell Bean Burrito",k:350,p:13,c:54,f:8,s:1,u:'burrito',a:['bean burrito taco bell']},
+  {n:"Taco Bell Beefy 5-Layer Burrito",k:490,p:18,c:65,f:18,s:1,u:'burrito',a:['5 layer burrito','beefy 5 layer']},
+
+  // Starbucks
+  {n:"Starbucks Caramel Macchiato (grande)",k:250,p:10,c:35,f:7,s:1,u:'drink',a:['caramel macchiato','starbucks caramel macchiato','caramel macchiato grande']},
+  {n:"Starbucks Latte (grande, 2%)",k:190,p:12,c:24,f:7,s:1,u:'drink',a:['starbucks latte','latte grande','cafe latte starbucks']},
+  {n:"Starbucks Vanilla Latte (grande)",k:250,p:12,c:38,f:6,s:1,u:'drink',a:['vanilla latte','starbucks vanilla latte']},
+  {n:"Starbucks Frappuccino Mocha (grande)",k:370,p:5,c:61,f:13,s:1,u:'drink',a:['mocha frappuccino','starbucks frappuccino','frappuccino']},
+  {n:"Starbucks Cold Brew (grande)",k:5,p:0,c:0,f:0,s:1,u:'drink',a:['cold brew','starbucks cold brew']},
+  {n:"Starbucks Egg White Bites",k:170,p:12,c:13,f:7,s:1,u:'serving',a:['egg white bites starbucks','egg bites']},
+  {n:"Starbucks Bacon Gouda Sandwich",k:370,p:17,c:36,f:17,s:1,u:'sandwich',a:['bacon gouda starbucks','starbucks breakfast sandwich']},
+  {n:"Starbucks Spinach Feta Wrap",k:290,p:20,c:34,f:8,s:1,u:'wrap',a:['spinach feta wrap starbucks','starbucks spinach wrap']},
+
+  // Pizza
+  {n:"Pizza, cheese (1 slice, 12-inch)",k:272,p:12,c:34,f:10,s:1,u:'slice',a:['cheese pizza slice','pizza','cheese pizza','slice pizza']},
+  {n:"Pizza, pepperoni (1 slice, 12-inch)",k:298,p:14,c:34,f:13,s:1,u:'slice',a:['pepperoni pizza','pepperoni slice','pizza pepperoni']},
+  {n:"Pizza Hut Personal Pan Pizza (cheese)",k:580,p:27,c:71,f:20,s:1,u:'pizza',a:['pizza hut personal pan','personal pan pizza']},
+  {n:"Domino's Medium Pepperoni Pizza (2 slices)",k:530,p:23,c:58,f:22,s:1,u:'2 slices',a:['dominos pizza','domino pepperoni','dominos pepperoni']},
+
+  // Panera
+  {n:"Panera Bread Broccoli Cheddar Soup (bowl)",k:360,p:15,c:36,f:18,s:1,u:'bowl',a:['broccoli cheddar soup','panera broccoli soup','panera soup']},
+  {n:"Panera Fuji Apple Chicken Salad",k:520,p:32,c:57,f:17,s:1,u:'salad',a:['panera fuji salad','fuji apple salad','panera salad']},
+  {n:"Panera Turkey Sandwich",k:480,p:30,c:68,f:9,s:1,u:'sandwich',a:['panera turkey sandwich','panera sandwich']},
+  {n:"Panera Bagel",k:290,p:11,c:56,f:1.5,s:1,u:'bagel',a:['panera bagel','bagel plain']},
+
+  // Korean / Asian
+  {n:"Korean BBQ Beef Bulgogi (100g)",k:215,p:21,c:8,f:11,s:100,u:'g',a:['bulgogi','beef bulgogi','korean bbq']},
+  {n:"Korean Bibimbap",k:490,p:25,c:72,f:12,s:1,u:'bowl',a:['bibimbap','korean bibimbap']},
+  {n:"Pad Thai (restaurant serving)",k:560,p:26,c:68,f:19,s:1,u:'plate',a:['pad thai','thai noodles']},
+  {n:"Fried Rice (restaurant)",k:430,p:11,c:72,f:12,s:1,u:'serving',a:['fried rice','chinese fried rice']},
+  {n:"Chicken Fried Rice",k:460,p:18,c:72,f:12,s:1,u:'serving',a:['chicken fried rice']},
+  {n:"Spring Rolls (2 pcs fried)",k:170,p:5,c:22,f:7,s:2,u:'rolls',a:['spring rolls','fried spring rolls']},
+  {n:"Sushi Roll, Salmon (8 pcs)",k:360,p:15,c:54,f:8,s:1,u:'roll',a:['salmon sushi roll','salmon roll sushi','sushi']},
+  {n:"Ramen, restaurant",k:580,p:26,c:72,f:20,s:1,u:'bowl',a:['ramen','ramen bowl']},
+  {n:"Miso Soup",k:40,p:2.5,c:5,f:1.5,s:1,u:'bowl',a:['miso soup']},
+  {n:"Chicken Tikka Masala (restaurant)",k:450,p:35,c:22,f:22,s:1,u:'serving',a:['chicken tikka masala','tikka masala']},
+  {n:"Butter Chicken (restaurant)",k:440,p:32,c:18,f:26,s:1,u:'serving',a:['butter chicken','murgh makhani']},
+  {n:"Naan bread",k:262,p:9,c:45,f:5,s:1,u:'piece',a:['naan','naan bread','garlic naan']},
+  {n:"Basmati Rice (cooked, 100g)",k:138,p:4,c:30,f:0.4,s:100,u:'g',a:['basmati rice','indian rice']},
+
+  // Sandwich / Deli
+  {n:"BLT Sandwich",k:360,p:18,c:34,f:17,s:1,u:'sandwich',a:['blt','blt sandwich']},
+  {n:"Club Sandwich",k:470,p:28,c:44,f:19,s:1,u:'sandwich',a:['club sandwich']},
+  {n:"Grilled Cheese Sandwich",k:390,p:16,c:36,f:20,s:1,u:'sandwich',a:['grilled cheese','grilled cheese sandwich']},
+  {n:"Tuna Salad Sandwich",k:380,p:22,c:32,f:16,s:1,u:'sandwich',a:['tuna salad sandwich','tuna sandwich']},
+  {n:"Turkey & Avocado Sandwich",k:420,p:28,c:36,f:14,s:1,u:'sandwich',a:['turkey avocado sandwich','turkey avo']},
+  {n:"Ham & Cheese Sandwich",k:352,p:23,c:36,f:10,s:1,u:'sandwich',a:['ham and cheese','ham cheese sandwich']},
+
+  // Breakfast foods
+  {n:"Pancakes (2 medium w/ syrup)",k:520,p:10,c:86,f:14,s:1,u:'serving',a:['pancakes','pancake with syrup','pancakes with syrup']},
+  {n:"French Toast (2 slices)",k:380,p:14,c:52,f:13,s:1,u:'serving',a:['french toast']},
+  {n:"Waffles (2 squares)",k:340,p:8,c:46,f:14,s:1,u:'serving',a:['waffles','waffle']},
+  {n:"Bacon (3 strips)",k:130,p:10,c:0,f:10,s:3,u:'strips',a:['bacon','bacon strips']},
+  {n:"Sausage link (2 links)",k:180,p:8,c:1,f:16,s:2,u:'links',a:['sausage links','breakfast sausage']},
+  {n:"Scrambled eggs (2 eggs, with butter)",k:200,p:13,c:1,f:15,s:1,u:'serving',a:['scrambled eggs','scrambled egg']},
+  {n:"Granola bar",k:190,p:4,c:29,f:7,s:1,u:'bar',a:['granola bar','nature valley']},
+  {n:"Bagel with cream cheese",k:390,p:12,c:57,f:14,s:1,u:'serving',a:['bagel cream cheese','bagel and cream cheese']},
+  {n:"Greek yogurt parfait",k:280,p:14,c:40,f:6,s:1,u:'serving',a:['yogurt parfait','greek yogurt parfait']},
+  {n:"Overnight oats",k:350,p:14,c:54,f:8,s:1,u:'serving',a:['overnight oats']},
+
+  // Snacks & Drinks
+  {n:"Latte, medium (whole milk)",k:190,p:10,c:18,f:8,s:1,u:'drink',a:['latte','cafe latte','coffee latte']},
+  {n:"Cappuccino",k:120,p:7,c:10,f:5,s:1,u:'drink',a:['cappuccino']},
+  {n:"Black coffee",k:5,p:0.3,c:0,f:0,s:1,u:'cup',a:['black coffee','coffee','americano']},
+  {n:"Orange juice",k:112,p:1.7,c:26,f:0.5,s:240,u:'ml',a:['orange juice','OJ','fresh orange juice']},
+  {n:"Protein bar (Quest Bar)",k:180,p:20,c:22,f:7,s:1,u:'bar',a:['quest bar','protein bar quest','quest protein bar']},
+  {n:"KIND bar",k:200,p:5,c:22,f:11,s:1,u:'bar',a:['kind bar','kind granola bar']},
+  {n:"Rice cakes (2 plain)",k:70,p:1.4,c:15,f:0.6,s:2,u:'cakes',a:['rice cakes','rice cake']},
+  {n:"Popcorn (microwave, 3 cups)",k:120,p:2,c:23,f:3.5,s:3,u:'cups',a:['popcorn','microwave popcorn']},
+  {n:"Chips, potato (1 oz / ~15 chips)",k:152,p:2,c:15,f:10,s:28,u:'g',a:['chips','potato chips','crisps','lays chips']},
+  {n:"Chocolate bar (Snickers)",k:250,p:4,c:33,f:12,s:1,u:'bar',a:['snickers','snickers bar']},
+  {n:"Apple with peanut butter",k:267,p:7,c:32,f:13,s:1,u:'serving',a:['apple peanut butter','apple and peanut butter']},
+  {n:"Dark chocolate (1 oz)",k:155,p:2,c:17,f:11,s:28,u:'g',a:['dark chocolate','chocolate']},
+  {n:"Beef jerky (1 oz)",k:116,p:9.4,c:3.1,f:7.3,s:28,u:'g',a:['beef jerky','jerky']},
+
+  // Salads
+  {n:"Caesar Salad (no croutons)",k:220,p:7,c:8,f:19,s:1,u:'salad',a:['caesar salad','caesar']},
+  {n:"Greek Salad",k:200,p:7,c:14,f:13,s:1,u:'salad',a:['greek salad']},
+  {n:"Cobb Salad",k:480,p:35,c:12,f:32,s:1,u:'salad',a:['cobb salad','cobb']},
+  {n:"Garden Salad (no dressing)",k:80,p:4,c:12,f:2,s:1,u:'salad',a:['garden salad','house salad']},
+
+  // Common restaurant portions
+  {n:"Chicken Wrap (grilled)",k:390,p:32,c:36,f:10,s:1,u:'wrap',a:['chicken wrap','grilled chicken wrap']},
+  {n:"Fish Tacos (2 tacos)",k:360,p:22,c:38,f:12,s:2,u:'tacos',a:['fish tacos','fish taco']},
+  {n:"Beef Tacos (2 tacos)",k:350,p:20,c:30,f:15,s:2,u:'tacos',a:['beef tacos','street tacos']},
+  {n:"Burrito Bowl (chicken, no sour cream)",k:620,p:47,c:75,f:14,s:1,u:'bowl',a:['burrito bowl chicken','chicken burrito bowl']},
+  {n:"Acai Bowl",k:420,p:9,c:72,f:12,s:1,u:'bowl',a:['acai bowl','açaí bowl']},
+  {n:"Smoothie, fruit (16 oz)",k:280,p:4,c:60,f:2,s:1,u:'drink',a:['fruit smoothie','smoothie','berry smoothie']},
+  {n:"Protein smoothie (16 oz)",k:320,p:30,c:38,f:5,s:1,u:'drink',a:['protein smoothie']},
+  {n:"Burrito (generic)",k:500,p:22,c:70,f:15,s:1,u:'burrito',a:['burrito']},
+  {n:"Sandwich (generic deli)",k:400,p:22,c:42,f:14,s:1,u:'sandwich',a:['sandwich','deli sandwich']},
+  {n:"Hot dog with bun",k:290,p:11,c:24,f:16,s:1,u:'hot dog',a:['hot dog','hotdog']},
+  {n:"Soup, chicken noodle (1 cup)",k:100,p:7,c:14,f:2.5,s:1,u:'cup',a:['chicken noodle soup','chicken soup']},
+  {n:"Mac and cheese (1 cup)",k:350,p:13,c:51,f:11,s:1,u:'cup',a:['mac and cheese','macaroni and cheese','mac cheese']},
+  {n:"Lasagna (1 serving)",k:450,p:22,c:46,f:19,s:1,u:'serving',a:['lasagna','lasagne']},
+];
+
+// ── NLP ENGINE ────────────────────────────────────────────────────────────
+const STOP = new Set(['a','an','the','with','and','of','in','on','or','for','my','i','some','to','about','g','oz','ml','cup','cups','tbsp','tsp','piece','pieces','serving','servings','large','small','medium','one','two','three','four','five','six']);
+
+function tokenize(s){
+  return s.toLowerCase()
+    .replace(/[^a-z0-9\s']/g,' ')
+    .split(/\s+/)
+    .filter(t=>t.length>1&&!STOP.has(t));
+}
+
+// parse "2 cups oatmeal" → {qty:2, unit:'cups', text:'oatmeal'}
+function parseQtyUnit(raw){
+  const m = raw.match(/^(\d+\.?\d*)\s*(g|kg|oz|lb|ml|l|cup|cups|tbsp|tsp|serving|servings|piece|pieces|slice|slices|scoop|scoops|bar|bars|strip|strips|link|links)?\s*(.*)/i);
+  if(m&&m[1]){
+    const qty = parseFloat(m[1]);
+    const unit = (m[2]||'').toLowerCase();
+    const text = m[3]||'';
+    return {qty, unit, text: text.trim()||raw};
+  }
+  return {qty:null, unit:null, text:raw};
+}
+
+function normUnit(u){
+  const map={g:'g',gram:'g',grams:'g',kg:'g',oz:'g',lb:'g',
+             ml:'ml',l:'ml',cup:'ml',cups:'ml',
+             tbsp:'tbsp',tsp:'tsp'};
+  return map[u]||u;
+}
+function convFactor(unit,dbUnit){
+  // returns factor to multiply db value (per dbSrv) to get actual calories
+  if(unit==='kg') return 1000/100;
+  if(unit==='oz') return 28.35/100;
+  if(unit==='lb') return 453.6/100;
+  if(unit==='cup'||unit==='cups') return 240/100;
+  if(unit==='tbsp') return 15/100;
+  if(unit==='tsp') return 5/100;
+  if(unit==='l') return 1000/100;
+  return 1;
+}
+
+function score(queryToks, item){
+  const nameToks = tokenize(item.n);
+  const aliasStr = item.a.join(' ');
+  const aliasToks = tokenize(aliasStr);
+  const allToks = [...new Set([...nameToks,...aliasToks])];
+
+  let hits=0, total=queryToks.length;
+  for(const q of queryToks){
+    if(allToks.some(t=>t===q||t.includes(q)||q.includes(t))) hits++;
+  }
+
+  // alias exact match bonus
+  const qStr = queryToks.join(' ');
+  let bonus = 0;
+  for(const alias of item.a){
+    const aliasNorm = alias.toLowerCase();
+    if(aliasNorm === qStr) bonus += 3;
+    else if(aliasNorm.includes(qStr)||qStr.includes(aliasNorm)) bonus += 1.5;
+  }
+
+  return total>0 ? (hits/total)*2 + bonus : 0;
+}
+
+function parseNLP(raw){
+  if(!raw||!raw.trim()) return [];
+  const {qty, unit, text} = parseQtyUnit(raw.trim());
+  const toks = tokenize(text||raw);
+  if(!toks.length) return [];
+
+  const scored = DB.map(item=>({item, sc:score(toks, item)}))
+    .filter(x=>x.sc>0)
+    .sort((a,b)=>b.sc-a.sc)
+    .slice(0,6);
+
+  return scored.map(({item,sc})=>{
+    let finalQty = qty||item.s;
+    let factor = 1;
+
+    if(qty&&unit){
+      if(unit==='g'&&item.u==='g') factor=qty/100;
+      else if(unit==='ml'&&item.u==='ml') factor=qty/100;
+      else factor = qty * convFactor(unit, item.u);
+      finalQty = qty;
+    } else if(!qty){
+      factor = item.s/100;
+      if(['burger','sandwich','wrap','sub','bowl','pizza','salad','burrito','order','taco','meal','bar','drink','egg','cup','serving','scoop','bagel','naan','roll','piece','hot dog'].includes(item.u)){
+        factor = 1;
+        finalQty = 1;
+      }
+    }
+
+    const confidence = sc>=2?'high':sc>=1?'medium':'low';
+    return {
+      name: item.n, kcal:Math.round(item.k*factor),
+      protein:Math.round(item.p*factor*10)/10,
+      carbs:Math.round(item.c*factor*10)/10,
+      fat:Math.round(item.f*factor*10)/10,
+      qty:finalQty, unit:item.u, baseItem:item, confidence,
+      selected:true
+    };
+  });
+}
+
+// ── PERSIST ───────────────────────────────────────────────────────────────
+function load(){
+  try{
+    const g=localStorage.getItem('mt_goals');
+    if(g) goals=JSON.parse(g);
+    const l=localStorage.getItem('mt_log');
+    if(l) log=JSON.parse(l);
+    apiKey=localStorage.getItem('mt_api')||'';
+  }catch(e){}
+}
+function save(){
+  localStorage.setItem('mt_goals',JSON.stringify(goals));
+  localStorage.setItem('mt_log',JSON.stringify(log));
+}
+
+// ── DATE ──────────────────────────────────────────────────────────────────
+function shiftDay(d){
+  const dt=new Date(curDate+'T12:00:00');
+  dt.setDate(dt.getDate()+d);
+  const next=dt.toISOString().slice(0,10);
+  if(next>todayStr()) return;
+  curDate=next;
+  renderDash();
+}
+
+// ── RENDER DASHBOARD ──────────────────────────────────────────────────────
+function renderDash(){
+  const entries = log[curDate]||[];
+  const tot = {kcal:0,protein:0,carbs:0,fat:0};
+  entries.forEach(e=>{tot.kcal+=e.kcal;tot.protein+=e.protein;tot.carbs+=e.carbs;tot.fat+=e.fat});
+
+  document.getElementById('dash-date-label').textContent = curDate===todayStr()?'Today — '+fmt(curDate):fmt(curDate);
+  document.getElementById('dash-goal-name').textContent = goals.name||'My Nutrition';
+  document.getElementById('next-day-btn').disabled = curDate>=todayStr();
+
+  const calPct = Math.min(100,Math.round((tot.kcal/goals.kcal)*100));
+  const calRem = Math.max(0,goals.kcal-tot.kcal);
+  document.getElementById('cal-consumed').textContent = tot.kcal;
+  document.getElementById('cal-of').textContent = `of ${goals.kcal} kcal goal`;
+  document.getElementById('cal-pct').textContent = calPct+'%';
+  document.getElementById('cal-bar').style.width = calPct+'%';
+  document.getElementById('cal-remaining').textContent = calRem>0?`${calRem} kcal to go`:`${Math.abs(goals.kcal-tot.kcal)} kcal over goal`;
+
+  const pp=Math.min(100,Math.round((tot.protein/goals.protein)*100));
+  const cp=Math.min(100,Math.round((tot.carbs/goals.carbs)*100));
+  const fp=Math.min(100,Math.round((tot.fat/goals.fat)*100));
+  document.getElementById('bar-protein').style.width=pp+'%';
+  document.getElementById('bar-carbs').style.width=cp+'%';
+  document.getElementById('bar-fat').style.width=fp+'%';
+  document.getElementById('val-protein').textContent=`${Math.round(tot.protein)} / ${goals.protein}g`;
+  document.getElementById('val-carbs').textContent=`${Math.round(tot.carbs)} / ${goals.carbs}g`;
+  document.getElementById('val-fat').textContent=`${Math.round(tot.fat)} / ${goals.fat}g`;
+
+  const pr=Math.max(0,goals.protein-tot.protein);
+  const cr=Math.max(0,goals.carbs-tot.carbs);
+  const fr=Math.max(0,goals.fat-tot.fat);
+  document.getElementById('remaining-pills').innerHTML=`
+    <span class="pill protein"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>${Math.round(pr)}g PROTEIN LEFT</span>
+    <span class="pill carbs"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>${Math.round(cr)}g CARBS LEFT</span>
+    <span class="pill fat"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>${Math.round(fr)}g FAT LEFT</span>
+  `;
+
+  // streak
+  let streak=0,d=new Date(todayStr()+'T12:00:00');
+  for(let i=0;i<365;i++){
+    const ds=d.toISOString().slice(0,10);
+    if(log[ds]&&log[ds].length>0){streak++;d.setDate(d.getDate()-1);}
+    else break;
+  }
+  document.getElementById('streak-badge').textContent='🔥 '+streak;
+
+  // log count
+  document.getElementById('log-count').textContent=entries.length;
+
+  // log sections
+  renderLogSections(entries);
+}
+
+function renderLogSections(entries){
+  const meals={breakfast:[],lunch:[],dinner:[],snack:[],other:[]};
+  entries.forEach(e=>{ const m=e.meal||'other'; (meals[m]||meals.other).push(e); });
+  const order=['breakfast','lunch','dinner','snack','other'];
+  let html='';
+  let any=false;
+  order.forEach(m=>{
+    if(!meals[m].length) return;
+    any=true;
+    html+=`<div class="meal-section"><div class="meal-section-title">${m.charAt(0).toUpperCase()+m.slice(1)}</div>`;
+    meals[m].forEach((e,i)=>{
+      const idx=entries.indexOf(e);
+      html+=`<div class="food-item">
+        <div class="food-item-left">
+          <div class="food-item-name">${e.name}</div>
+          <div class="food-item-sub">${e.qty||1} ${e.unit||'serving'}</div>
+        </div>
+        <div class="food-item-wrap">
+          <div class="food-item-right">
+            <div class="food-item-kcal">${e.kcal} kcal</div>
+            <div class="food-item-macros">P ${e.protein}g · C ${e.carbs}g · F ${e.fat}g</div>
+          </div>
+          <button class="food-item-delete" onclick="deleteEntry('${curDate}',${idx})">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:18px;height:18px"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/><path d="M10 11v6M14 11v6"/></svg>
+          </button>
+        </div>
+      </div>`;
+    });
+    html+='</div>';
+  });
+  if(!any){
+    html=`<div class="empty-log">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="10"/><path d="M8 12h8M12 8v8"/></svg>
+      <p>No food logged yet</p>
+    </div>`;
+  }
+  document.getElementById('log-sections').innerHTML=html;
+}
+
+function deleteEntry(date,idx){
+  if(!log[date]) return;
+  log[date].splice(idx,1);
+  save();renderDash();
+}
+
+// ── LOG TOGGLE ────────────────────────────────────────────────────────────
+function switchLogView(v){
+  const logView=document.getElementById('log-view');
+  const addView=document.getElementById('add-view');
+  const tl=document.getElementById('toggle-log');
+  const ta=document.getElementById('toggle-add');
+  if(v==='log'){
+    logView.classList.remove('hidden');
+    addView.classList.add('hidden');
+    tl.classList.add('active');ta.classList.remove('active');
+  } else {
+    logView.classList.add('hidden');
+    addView.classList.remove('hidden');
+    ta.classList.add('active');tl.classList.remove('active');
+    document.getElementById('results-area').innerHTML='';
+  }
+}
+
+// ── MEAL PILL ─────────────────────────────────────────────────────────────
+function selMealPill(el){
+  document.querySelectorAll('.meal-pill').forEach(p=>p.classList.remove('active'));
+  el.classList.add('active');
+  selMeal=el.dataset.meal;
+}
+
+// ── PHOTO ─────────────────────────────────────────────────────────────────
+function triggerCamera(){document.getElementById('file-camera').click()}
+function triggerUpload(){document.getElementById('file-upload').click()}
+function handlePhoto(inp){
+  const f=inp.files[0];
+  if(!f) return;
+  const reader=new FileReader();
+  reader.onload=e=>{
+    currentPhoto=e.target.result;
+    document.getElementById('photo-preview').src=currentPhoto;
+    document.getElementById('photo-preview-wrap').classList.remove('hidden');
+  };
+  reader.readAsDataURL(f);
+  inp.value='';
+}
+function clearPhoto(){
+  currentPhoto=null;
+  document.getElementById('photo-preview-wrap').classList.add('hidden');
+  document.getElementById('photo-preview').src='';
+}
+
+// ── ANALYSE ───────────────────────────────────────────────────────────────
+async function analyse(){
+  const desc = document.getElementById('desc-input').value.trim();
+  if(!desc&&!currentPhoto){ showToast('Add a description or photo first'); return; }
+
+  const btn=document.getElementById('analyse-btn');
+  btn.disabled=true; btn.textContent='Analysing…';
+  document.getElementById('results-area').innerHTML=`<div class="spinner-wrap"><div class="spinner"></div><span style="font-size:14px;color:var(--text2)">Identifying food…</span></div>`;
+
+  let results=[];
+
+  // Try Claude API if key available and have photo or want enhanced results
+  if(apiKey && (currentPhoto||desc)){
+    try{ results = await callClaude(desc, currentPhoto); }
+    catch(e){ results=[]; }
+  }
+
+  // Fall back to local NLP
+  if(!results.length){
+    const query = desc || 'food';
+    results = parseNLP(query);
+  }
+
+  // If photo but no good text, show helpful prompt
+  if(!results.length&&currentPhoto&&!desc){
+    document.getElementById('results-area').innerHTML=`<div class="no-results">📸 Photo received! Add a description to help identify the food.<br><br>e.g. "Big Mac", "salmon with rice", "protein bar"</div>`;
+    btn.disabled=false; btn.textContent='Analyse & Log →';
+    return;
+  }
+
+  parsedItems=results;
+  renderResults(results);
+  btn.disabled=false; btn.textContent='Analyse & Log →';
+}
+
+async function callClaude(desc, photo){
+  const SYSTEM=`You are a nutrition expert. When given food descriptions or images, return ONLY a JSON array of food items with this exact format:
+[{"name":"Food Name","kcal":number,"protein":number,"carbs":number,"fat":number,"qty":number,"unit":"serving"}]
+Be precise with portions. For restaurant foods use standard serving sizes. Return only the JSON, no other text.`;
+
+  const content=[];
+  if(photo){
+    const b64=photo.split(',')[1];
+    const mt=photo.match(/data:([^;]+)/)?.[1]||'image/jpeg';
+    content.push({type:'image',source:{type:'base64',media_type:mt,data:b64}});
+  }
+  content.push({type:'text',text:desc||(photo?'What food is in this image? Provide nutritional info.':'')});
+
+  const r=await fetch('https://api.anthropic.com/v1/messages',{
+    method:'POST',
+    headers:{'Content-Type':'application/json','x-api-key':apiKey,'anthropic-version':'2023-06-01','anthropic-dangerous-allow-browser':'true'},
+    body:JSON.stringify({model:'claude-haiku-4-5-20251001',max_tokens:1024,system:SYSTEM,messages:[{role:'user',content}]})
+  });
+  if(!r.ok) throw new Error('API error');
+  const d=await r.json();
+  const txt=d.content[0].text;
+  const match=txt.match(/\[[\s\S]*\]/);
+  if(!match) throw new Error('No JSON');
+  const items=JSON.parse(match[0]);
+  return items.map(it=>({...it,selected:true,confidence:'high',baseItem:null}));
+}
+
+// ── RESULTS ───────────────────────────────────────────────────────────────
+function renderResults(items){
+  if(!items.length){
+    document.getElementById('results-area').innerHTML=`<div class="no-results">No matches found. Try a different description.</div>`;
+    return;
+  }
+  let html=`<div class="results-card">`;
+  items.forEach((it,i)=>{
+    const confClass=it.confidence==='high'?'conf-high':it.confidence==='medium'?'conf-med':'conf-low';
+    const confLabel=it.confidence==='high'?'✓ Match':it.confidence==='medium'?'~ Close':'? Guess';
+    html+=`<div class="result-item" onclick="toggleResult(${i})">
+      <div class="result-item-check ${it.selected?'checked'}" id="chk-${i}">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>
+      </div>
+      <div class="result-item-info">
+        <div class="result-item-name">${it.name}<span class="confidence-badge ${confClass}">${confLabel}</span></div>
+        <div class="result-item-sub">P ${it.protein}g · C ${it.carbs}g · F ${it.fat}g</div>
+        <div class="result-item-qty" onclick="event.stopPropagation()">
+          <button class="qty-btn" onclick="adjQty(${i},-1)">−</button>
+          <input class="qty-input" id="qty-${i}" type="number" min="0.1" step="0.5" value="${it.qty||1}" onchange="updateQty(${i},this.value)">
+          <span class="qty-unit">${it.unit||'serving'}</span>
+          <button class="qty-btn" onclick="adjQty(${i},1)">+</button>
+        </div>
+      </div>
+      <div class="result-item-right">
+        <div class="result-item-kcal" id="kcal-${i}">${it.kcal}</div>
+        <div style="font-size:11px;color:var(--text3)">kcal</div>
+      </div>
+    </div>`;
+  });
+  html+=`</div><button class="log-sel-btn" onclick="logSelected()">Log Selected →</button>`;
+  document.getElementById('results-area').innerHTML=html;
+}
+
+function toggleResult(i){
+  parsedItems[i].selected=!parsedItems[i].selected;
+  const chk=document.getElementById('chk-'+i);
+  if(parsedItems[i].selected) chk.classList.add('checked'); else chk.classList.remove('checked');
+}
+
+function adjQty(i, delta){
+  const inp=document.getElementById('qty-'+i);
+  const cur=parseFloat(inp.value)||1;
+  const nv=Math.max(0.5,cur+delta);
+  inp.value=nv;
+  updateQty(i,nv);
+}
+
+function updateQty(i,v){
+  const item=parsedItems[i];
+  if(!item.baseItem) return;
+  const b=item.baseItem;
+  const ratio=parseFloat(v)/(item.baseItem.s||1);
+  item.qty=parseFloat(v);
+  const isCounted=['burger','sandwich','wrap','sub','bowl','pizza','salad','burrito','order','taco','meal','bar','drink','egg','cup','serving','scoop','bagel','naan','roll','piece','hot dog'].includes(b.u);
+  const factor=isCounted?parseFloat(v):(parseFloat(v)/100);
+  item.kcal=Math.round(b.k*factor);
+  item.protein=Math.round(b.p*factor*10)/10;
+  item.carbs=Math.round(b.c*factor*10)/10;
+  item.fat=Math.round(b.f*factor*10)/10;
+  document.getElementById('kcal-'+i).textContent=item.kcal;
+}
+
+function logSelected(){
+  const sel=parsedItems.filter(it=>it.selected);
+  if(!sel.length){ showToast('Select at least one food'); return; }
+  if(!log[curDate]) log[curDate]=[];
+  const meal=selMeal==='auto'?autoMeal():selMeal;
+  sel.forEach(it=>{
+    log[curDate].push({name:it.name,kcal:it.kcal,protein:it.protein,carbs:it.carbs,fat:it.fat,meal,qty:it.qty,unit:it.unit});
+  });
+  save();
+  document.getElementById('desc-input').value='';
+  clearPhoto();
+  parsedItems=[];
+  document.getElementById('results-area').innerHTML='';
+  switchLogView('log');
+  renderDash();
+  showToast(`Logged ${sel.length} item${sel.length>1?'s':''} ✓`);
+}
+
+function autoMeal(){
+  const h=new Date().getHours();
+  if(h<11) return 'breakfast';
+  if(h<15) return 'lunch';
+  if(h<20) return 'dinner';
+  return 'snack';
+}
+
+// ── SUGGESTION MODAL ──────────────────────────────────────────────────────
+function openSuggest(){
+  const entries=log[curDate]||[];
+  const tot={kcal:0,protein:0,carbs:0,fat:0};
+  entries.forEach(e=>{tot.kcal+=e.kcal;tot.protein+=e.protein;tot.carbs+=e.carbs;tot.fat+=e.fat});
+  const rem={kcal:goals.kcal-tot.kcal,protein:goals.protein-tot.protein,carbs:goals.carbs-tot.carbs,fat:goals.fat-tot.fat};
+
+  document.getElementById('suggest-sub').textContent=
+    `${Math.round(rem.kcal)} kcal · ${Math.round(rem.protein)}g protein · ${Math.round(rem.carbs)}g carbs · ${Math.round(rem.fat)}g fat remaining`;
+
+  const suggestions=getSuggestions(rem);
+  let html='';
+  suggestions.forEach(s=>{
+    html+=`<div class="suggestion-item">
+      <div class="suggestion-name">${s.name}</div>
+      <div class="suggestion-desc">${s.desc}</div>
+      <div class="suggestion-macros">
+        <span class="sug-macro kcal">${s.kcal} kcal</span>
+        <span class="sug-macro protein">${s.protein}g protein</span>
+        <span class="sug-macro carbs">${s.carbs}g carbs</span>
+        <span class="sug-macro fat">${s.fat}g fat</span>
+      </div>
+    </div>`;
+  });
+  if(!html) html='<div class="no-results">You\'ve hit your goals for today! 🎉</div>';
+  document.getElementById('suggest-body').innerHTML=html;
+  document.getElementById('suggest-modal').classList.add('open');
+}
+
+function getSuggestions(rem){
+  if(rem.kcal<=0) return [];
+  const out=[];
+  // Score foods by how well they fit remaining macros
+  const candidates=DB.filter(it=>{
+    const isCounted=['burger','sandwich','wrap','sub','bowl','pizza','salad','burrito','order','taco','meal','bar','drink','egg','cup','serving','scoop','bagel','naan','roll','piece','hot dog'].includes(it.u);
+    const k = isCounted?it.k:(it.k*it.s/100);
+    return k<=rem.kcal*1.3;
+  });
+
+  candidates.sort((a,b)=>{
+    const sc=(it)=>{
+      const isCounted=['burger','sandwich','wrap','sub','bowl','pizza','salad','burrito','order','taco','meal','bar','drink','egg','cup','serving','scoop','bagel','naan','roll','piece','hot dog'].includes(it.u);
+      const factor = isCounted?1:it.s/100;
+      const pk=it.p*factor, ck=it.c*factor, fk=it.f*factor, kk=it.k*factor;
+      const pfit=rem.protein>10?(1-Math.abs(pk-rem.protein*0.4)/rem.protein):0;
+      return pfit + (1-Math.abs(kk-rem.kcal*0.5)/rem.kcal);
+    };
+    return sc(b)-sc(a);
+  });
+
+  const seen=new Set();
+  for(const it of candidates){
+    if(out.length>=4) break;
+    const key=it.n.split(',')[0];
+    if(seen.has(key)) continue;
+    seen.add(key);
+    const isCounted=['burger','sandwich','wrap','sub','bowl','pizza','salad','burrito','order','taco','meal','bar','drink','egg','cup','serving','scoop','bagel','naan','roll','piece','hot dog'].includes(it.u);
+    const factor=isCounted?1:it.s/100;
+    out.push({
+      name:it.n,
+      desc:`One ${it.u} — fits well with your remaining macros`,
+      kcal:Math.round(it.k*factor),
+      protein:Math.round(it.p*factor),
+      carbs:Math.round(it.c*factor),
+      fat:Math.round(it.f*factor)
+    });
+  }
+  return out;
+}
+
+function closeSuggest(){document.getElementById('suggest-modal').classList.remove('open')}
+
+// ── NAVIGATION ────────────────────────────────────────────────────────────
+function nav(id){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('active'));
+  document.getElementById('screen-'+id).classList.add('active');
+  const nb=document.getElementById('nav-'+id);
+  if(nb) nb.classList.add('active');
+  if(id==='history') renderHistory();
+  if(id==='goals') loadGoalsForm();
+  if(id==='gym') renderGym();
+}
+
+function showProfile(){
+  nav('goals');
+}
+
+// ── HISTORY ───────────────────────────────────────────────────────────────
+function renderHistory(){
+  const days=Object.keys(log).sort((a,b)=>b.localeCompare(a));
+  if(!days.length){
+    document.getElementById('history-list').innerHTML='<div class="empty-log" style="padding-top:60px"><p>No history yet</p></div>';
+    return;
+  }
+  let html='';
+  days.forEach(d=>{
+    const entries=log[d]||[];
+    const tot=entries.reduce((a,e)=>({kcal:a.kcal+e.kcal}),{kcal:0});
+    html+=`<div class="history-day">
+      <div class="history-day-header" onclick="this.nextElementSibling.classList.toggle('hidden')">
+        <span class="history-day-date">${fmt(d)}</span>
+        <span class="history-day-kcal">${tot.kcal} kcal</span>
+      </div>
+      <div class="history-day-items hidden">`;
+    entries.forEach(e=>{
+      html+=`<div class="history-food-row">
+        <span>${e.name}</span>
+        <span style="color:var(--text2)">${e.kcal} kcal</span>
+      </div>`;
+    });
+    html+=`</div></div>`;
+  });
+  document.getElementById('history-list').innerHTML=html;
+}
+
+// ── GOALS ─────────────────────────────────────────────────────────────────
+const PRESETS=[
+  {name:'Lean Bulk',kcal:2800,protein:200,carbs:310,fat:80},
+  {name:'Cut',kcal:1700,protein:180,carbs:150,fat:55},
+  {name:'Maintenance',kcal:2200,protein:150,carbs:240,fat:70},
+  {name:'Keto',kcal:2000,protein:150,carbs:30,fat:150},
+];
+
+function loadGoalsForm(){
+  document.getElementById('goal-kcal').value=goals.kcal;
+  document.getElementById('goal-protein').value=goals.protein;
+  document.getElementById('goal-carbs').value=goals.carbs;
+  document.getElementById('goal-fat').value=goals.fat;
+  document.getElementById('goal-name').value=goals.name||'My Nutrition';
+  document.getElementById('api-key-input').value=apiKey;
+  let html='';
+  PRESETS.forEach(p=>{
+    html+=`<button class="preset-btn" onclick="applyPreset(${JSON.stringify(p).replace(/"/g,'&quot;')})">
+      <div class="preset-name">${p.name}</div>
+      <div class="preset-kcal">${p.kcal} kcal/day</div>
+      <div class="preset-macros">P ${p.protein}g · C ${p.carbs}g · F ${p.fat}g</div>
+    </button>`;
+  });
+  document.getElementById('preset-grid').innerHTML=html;
+}
+
+function applyPreset(p){
+  goals={...goals,...p};
+  loadGoalsForm();
+  showToast('Preset applied — tap Save Targets');
+}
+
+function saveGoals(){
+  goals.kcal=parseInt(document.getElementById('goal-kcal').value)||2000;
+  goals.protein=parseInt(document.getElementById('goal-protein').value)||150;
+  goals.carbs=parseInt(document.getElementById('goal-carbs').value)||200;
+  goals.fat=parseInt(document.getElementById('goal-fat').value)||65;
+  goals.name=document.getElementById('goal-name').value||'My Nutrition';
+  save();renderDash();
+  showToast('Targets saved ✓');
+}
+
+function saveApiKey(){
+  apiKey=document.getElementById('api-key-input').value.trim();
+  localStorage.setItem('mt_api',apiKey);
+  showToast(apiKey?'API key saved — AI features unlocked ✓':'API key cleared');
+}
+
+// ── TOAST ─────────────────────────────────────────────────────────────────
+let toastTimer;
+function showToast(msg){
+  const t=document.getElementById('toast');
+  t.textContent=msg;t.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer=setTimeout(()=>t.classList.remove('show'),2500);
+}
+
+// ── ICONS (touch icon via canvas) ─────────────────────────────────────────
+function genIcon(){
+  try{
+    const c=document.createElement('canvas');c.width=180;c.height=180;
+    const x=c.getContext('2d');
+    const g=x.createLinearGradient(0,0,180,180);
+    g.addColorStop(0,'#4338ca');g.addColorStop(1,'#7c3aed');
+    x.fillStyle=g;
+    const r=40;x.beginPath();x.moveTo(r,0);x.lineTo(180-r,0);x.quadraticCurveTo(180,0,180,r);
+    x.lineTo(180,180-r);x.quadraticCurveTo(180,180,180-r,180);
+    x.lineTo(r,180);x.quadraticCurveTo(0,180,0,180-r);
+    x.lineTo(0,r);x.quadraticCurveTo(0,0,r,0);x.closePath();x.fill();
+    x.fillStyle='#fff';x.font='bold 90px sans-serif';x.textAlign='center';x.textBaseline='middle';
+    x.fillText('M',90,92);
+    const l=document.createElement('link');l.rel='apple-touch-icon';l.href=c.toDataURL();
+    document.head.appendChild(l);
+  }catch(e){}
+}
+
+// ── GYM PROGRAM ──────────────────────────────────────────────────────────
+const PROGRAM = {
+  phases: [
+    {
+      id:1, label:'Phase 1', weeks:'Weeks 1–6', current:false,
+      desc:'The foundation block. 3 supersets per day, ~40 min core + optional. Keep here for reference or fall back any time.',
+      days:[
+        {
+          n:1, name:'Back + Biceps', sub:'Lat width priority',
+          supersets:[
+            {name:'SS1 — Pull-up + Pulldown Width Superset',
+             why:'Pull-ups hit the upper lat fibres that create WIDTH. Pulldown follows immediately while those fibres are lit up. Core of the swimmer V-taper.',
+             exercises:[
+               {type:'Compound',name:'Assisted pull-up (wide grip)',sets:4,reps:'8–10',rest:'→',note:'Wide grip, full dead hang at bottom, chin over bar at top. Reduce assist weight as you get stronger.'},
+               {type:'Compound',name:'Wide-grip lat pulldown',sets:4,reps:'10–12',rest:'90s',note:'Straight from pull-ups. Full stretch at top, drive elbows to hips. Lats pre-fatigued — that\'s the point.'}
+             ]},
+            {name:'SS2 — Unilateral + Isolation',
+             why:'Heavy compound then pure lat isolation — great finishing pump.',
+             exercises:[
+               {type:'Compound',name:'Single-arm DB row (knee on bench)',sets:3,reps:'10–12 each',rest:'→',note:'Controlled 3-second eccentric. Don\'t rotate your torso.'},
+               {type:'Isolation',name:'Straight-arm cable pulldown',sets:3,reps:'12–15',rest:'75s',note:'Slight bend in elbows, hinge at shoulder only. Pulls the lats OUT not just down.'}
+             ]},
+            {name:'SS3 — Biceps Finisher',
+             why:'EZ bar for peak, hammer for thickness underneath. Back is fully rested so no compromise.',
+             exercises:[
+               {type:'Isolation',name:'EZ-bar curl',sets:3,reps:'10–12',rest:'→',note:'Full ROM, no swinging. Straight into hammers.'},
+               {type:'Isolation',name:'Hammer curl',sets:3,reps:'12–15',rest:'60s',note:'Hits brachialis — pushes the bicep up. Key for thickness.'}
+             ]}
+          ],
+          extra:[{name:'Face pull',sets:'2 × 15–20',note:'Posture + rear delts. Never wasted.'},
+                 {name:'Dead hang',sets:'2 × 30–45s',note:'Decompresses spine, builds grip, stretches lats.'}],
+          extraMin:10
+        },
+        {
+          n:2, name:'Chest + Triceps', sub:'Chest priority — double compound',
+          supersets:[
+            {name:'SS1 — Upper + Mid Chest Double Press',
+             why:'Chest is the weakest area so it gets two compounds back to back while fresh.',
+             exercises:[
+               {type:'Compound',name:'Incline DB press (30–45°)',sets:4,reps:'8–10',rest:'→',note:'Upper chest priority. Control the eccentric. Straight into flat press.'},
+               {type:'Compound',name:'Flat DB press',sets:4,reps:'10–12',rest:'90s',note:'Full ROM — deep stretch at the bottom is where growth happens.'}
+             ]},
+            {name:'SS2 — Chest Isolation + Triceps',
+             why:'Crossover while chest is pumped for max stretch, then straight into triceps.',
+             exercises:[
+               {type:'Isolation',name:'High cable crossover (high to low)',sets:3,reps:'12–15',rest:'→',note:'Squeeze and hold 1 second at the bottom. Straight into pushdowns.'},
+               {type:'Isolation',name:'Rope tricep pushdown',sets:3,reps:'12–15',rest:'75s',note:'Flare the rope at the bottom. Key for arm width.'}
+             ]},
+            {name:'SS3 — Triceps Finisher',
+             why:'Two pushdown variations — different grips, different angles. Elbow-friendly.',
+             exercises:[
+               {type:'Isolation',name:'Straight bar cable pushdown',sets:3,reps:'12–15',rest:'→',note:'Elbows locked to sides, full extension. Straight into dips.'},
+               {type:'Compound',name:'Machine dips (or assisted)',sets:3,reps:'10–12',rest:'60s',note:'Upright hits triceps. Full range unless something feels off.'}
+             ]}
+          ],
+          extra:[{name:'Pec deck fly',sets:'2 × 15',note:'Extra chest volume — your priority muscle.'},
+                 {name:'Push-up dropset to failure',sets:'1 × max',note:'Flush the chest completely. Brutal but quick.'}],
+          extraMin:10
+        },
+        {
+          n:3, name:'Legs + Core', sub:'Foundation + injury prevention',
+          supersets:[
+            {name:'SS1 — Quad + Calf',
+             why:'Non-competing muscles. Zero performance cost, saves 10 minutes.',
+             exercises:[
+               {type:'Compound',name:'Leg press',sets:4,reps:'10–12',rest:'→',note:'Feet shoulder-width, mid-platform. Don\'t lock knees. Full ROM.'},
+               {type:'Isolation',name:'Seated calf raise',sets:4,reps:'15–20',rest:'90s',note:'Slow, full ROM, pause at the bottom stretch.'}
+             ]},
+            {name:'SS2 — Hamstring Complex',
+             why:'RDL stretches under load, leg curl contracts. Full hamstring function.',
+             exercises:[
+               {type:'Compound',name:'Romanian deadlift',sets:3,reps:'10',rest:'→',note:'Hip hinge, bar close to shins. Controlled all the way down.'},
+               {type:'Isolation',name:'Seated leg curl',sets:3,reps:'12–15',rest:'75s',note:'Squeeze hard at full contraction.'}
+             ]},
+            {name:'SS3 — Quad + Core',
+             why:'Leg extension flushes quads, core while legs rest.',
+             exercises:[
+               {type:'Isolation',name:'Leg extension',sets:3,reps:'12–15',rest:'→',note:'Pause at top. Drop the weight and feel it.'},
+               {type:'Core',name:'Cable crunch',sets:3,reps:'15',rest:'60s',note:'Initiate from abs not hip flexors. Add weight weekly.'}
+             ]}
+          ],
+          extra:[{name:'Walking lunges',sets:'2 × 12 each leg',note:'Great finisher, hits glutes and stability.'},
+                 {name:'Hanging knee raise',sets:'2 × 12–15',note:'Lower ab work — the hardest bit to build.'}],
+          extraMin:10
+        },
+        {
+          n:4, name:'Shoulders + Arms', sub:'Width & arms specialisation',
+          supersets:[
+            {name:'SS1 — Delt Width Complex',
+             why:'Lateral raises build the cap, rear delts make it 3D. The entire width formula.',
+             exercises:[
+               {type:'Isolation',name:'Cable lateral raise',sets:4,reps:'15',rest:'→',note:'Single arm, cable at ankle height. Constant tension. Don\'t rush.'},
+               {type:'Isolation',name:'Reverse pec deck',sets:4,reps:'15',rest:'75s',note:'Rear delts make shoulders look 3D. Don\'t neglect.'}
+             ]},
+            {name:'SS2 — Press + Pull',
+             why:'Press loads anterior delt, face pull hits rear delt and external rotators — active shoulder recovery between sets.',
+             exercises:[
+               {type:'Compound',name:'DB or barbell OHP',sets:3,reps:'8–10',rest:'→',note:'DB for freedom of movement, barbell if feeling strong. Don\'t hyperextend lower back.'},
+               {type:'Rehab',name:'Face pull',sets:3,reps:'15',rest:'75s',note:'Pull to forehead, elbows high. Non-negotiable for shoulder health.'}
+             ]},
+            {name:'SS3 — Arm Finisher',
+             why:'Biceps and triceps are direct antagonists — one rests while the other works.',
+             exercises:[
+               {type:'Superset',name:'Incline DB curl',sets:3,reps:'10–12',rest:'→',note:'Max bicep stretch from the incline. Straight into pushdowns.'},
+               {type:'Superset',name:'Cable pushdown (straight bar)',sets:3,reps:'12–15',rest:'60s',note:'Triceps are 2/3 of arm size. They matter more than biceps.'}
+             ]}
+          ],
+          extra:[{name:'DB shrugs',sets:'2 × 12–15',note:'Traps frame the shoulders from the front and back.'},
+                 {name:'Band pull-apart',sets:'2 × 20',note:'Posture work. Counters desk hunch.'}],
+          extraMin:10
+        }
+      ]
+    },
+    {
+      id:2, label:'Phase 2', weeks:'Weeks 7–14', current:true,
+      desc:'New exercise variations for fresh stimulus. Chest specialisation, delt caps (lateral raise partials), abs upgraded to a real training block 2×/week, and posture work throughout. Take one easy deload week before starting.',
+      days:[
+        {
+          n:1, name:'Back + Biceps', sub:'Thickness + width, posture built in',
+          supersets:[
+            {name:'SS1 — Chest-Supported Row + Close-Grip Pulldown',
+             why:'New angles vs Phase 1. Chest-supported row builds mid-back thickness without lower back fatigue. Close grip hits lats through a longer range.',
+             exercises:[
+               {type:'Compound',name:'Chest-supported machine row',sets:4,reps:'10–12',rest:'→',note:'Chest stays glued to the pad. Drive elbows back, squeeze shoulder blades together — this is your posture builder.'},
+               {type:'Compound',name:'Close/neutral-grip lat pulldown',sets:4,reps:'10–12',rest:'90s',note:'Neutral grip, bigger stretch at the top than wide grip. Lean back slightly, pull to upper chest.'}
+             ]},
+            {name:'SS2 — Cable Row + Rope Pullover',
+             why:'Single-arm cable row lets you work each side\'s full range. Rope straight-arm pullover replaces the bar version — deeper stretch.',
+             exercises:[
+               {type:'Compound',name:'Single-arm cable row (seated or standing)',sets:3,reps:'10–12 each',rest:'→',note:'Let the weight pull you into a stretch, then drive the elbow back. Full rotation of the shoulder blade.'},
+               {type:'Isolation',name:'Rope straight-arm pulldown',sets:3,reps:'12–15',rest:'75s',note:'Rope allows a deeper finish past your hips. Feel the lats the whole way.'}
+             ]},
+            {name:'SS3 — Biceps: Stretch + Peak',
+             why:'Incline curl gives maximum stretch under load. Preacher curl locks the upper arm for peak contraction — two ends of the range covered.',
+             exercises:[
+               {type:'Isolation',name:'Incline DB curl',sets:3,reps:'10–12',rest:'→',note:'Let arms hang fully back off the bench. Slow eccentric for max stretch.'},
+               {type:'Isolation',name:'Preacher curl (EZ bar or machine)',sets:3,reps:'12–15',rest:'60s',note:'Upper arm locked against the pad — pure bicep contraction, no cheating possible.'}
+             ]}
+          ],
+          extra:[{name:'Hanging knee raise',sets:'3 × 12–15',note:'Ab session #2 for the week starts here. Slow, no swinging.'},
+                 {name:'Dead hang',sets:'2 × 30–45s',note:'Lat stretch + grip + spine decompression.'}],
+          extraMin:12
+        },
+        {
+          n:2, name:'Chest + Triceps', sub:'Chest specialisation block',
+          supersets:[
+            {name:'SS1 — Machine Press + Deep-Stretch Fly',
+             why:'Machine incline press lets you push closer to failure safely than DBs — perfect for a specialisation block. Pec deck holds tension in the stretched position, which is the #1 growth driver.',
+             exercises:[
+               {type:'Compound',name:'Incline machine chest press',sets:4,reps:'8–10',rest:'→',note:'Go heavier than you would with DBs — the machine has your back. Last 2 reps should be a genuine fight.'},
+               {type:'Isolation',name:'Pec deck fly',sets:4,reps:'12–15',rest:'90s',note:'Let the arms travel back into a deep stretch. Pause there for a beat. That stretch is where chest grows.'}
+             ]},
+            {name:'SS2 — Weighted Dip + Low-to-High Fly',
+             why:'Dips with a forward lean are one of the best lower/outer chest builders. Low-to-high cable fills in the upper chest from a new angle — opposite direction to Phase 1.',
+             exercises:[
+               {type:'Compound',name:'Chest dips (lean forward, add weight if easy)',sets:3,reps:'8–12',rest:'→',note:'Lean torso forward, elbows slightly flared — that shifts it from triceps to chest. Add a dip belt when 12 gets easy.'},
+               {type:'Isolation',name:'Low-to-high cable fly',sets:3,reps:'12–15',rest:'75s',note:'Cables at the bottom, sweep up and in. Finishes the upper chest that the incline press started.'}
+             ]},
+            {name:'SS3 — Triceps: Bar + Cross-Body',
+             why:'Cross-body pushdown hits the long head from a side angle without any overhead position — full triceps coverage, zero elbow stress.',
+             exercises:[
+               {type:'Isolation',name:'Straight bar pushdown',sets:3,reps:'12–15',rest:'→',note:'Elbows locked to sides, full extension.'},
+               {type:'Isolation',name:'Cross-body cable pushdown',sets:3,reps:'12–15 each',rest:'60s',note:'Hits the long head from a side angle. Full tricep coverage, elbow-friendly.'}
+             ]}
+          ],
+          extra:[{name:'Incline DB fly',sets:'2 × 15',note:'Extra stretch under load — the growth trigger.'},
+                 {name:'Cable chest press (single arm)',sets:'2 × 12 each',note:'Unilateral — feel the pec working independently.'}],
+          extraMin:10
+        },
+        {
+          n:3, name:'Legs + Core', sub:'Unilateral strength + ab block',
+          supersets:[
+            {name:'SS1 — Split Squat + Calf',
+             why:'Bulgarian split squats replace leg press — unilateral work fixes imbalances, builds glutes, and demands core stability. Harder, better.',
+             exercises:[
+               {type:'Compound',name:'Bulgarian split squat (DBs)',sets:3,reps:'8–10 each',rest:'→',note:'Rear foot on a bench. Torso slightly forward for glutes, upright for quads. Start light — these are hard.'},
+               {type:'Isolation',name:'Standing calf raise',sets:3,reps:'12–15',rest:'90s',note:'Standing hits the gastrocnemius (the visible calf muscle) vs seated. Full stretch and squeeze.'}
+             ]},
+            {name:'SS2 — Hinge + Curl',
+             why:'Keep the RDL — it\'s too good to drop — but go heavier now. Lying leg curl swaps in for variety.',
+             exercises:[
+               {type:'Compound',name:'Romanian deadlift (heavier)',sets:3,reps:'8',rest:'→',note:'Drop to 8 reps, add weight vs Phase 1. Hinge pattern should feel dialled by now.'},
+               {type:'Isolation',name:'Lying leg curl',sets:3,reps:'12–15',rest:'75s',note:'Different knee angle to seated — new stimulus for the hamstrings.'}
+             ]},
+            {name:'SS3 — Ab Block (upgraded)',
+             why:'Abs are now a proper training block, not an afterthought. Weighted crunch builds thickness, Pallof press hits obliques and posture-supporting deep core.',
+             exercises:[
+               {type:'Core',name:'Weighted cable crunch',sets:3,reps:'10–12',rest:'→',note:'Initiate from abs not hip flexors. Add weight weekly.'},
+               {type:'Core',name:'Pallof press',sets:3,reps:'12 each side',rest:'60s',note:'Hits obliques and deep core — key for posture and lower back stability.'}
+             ]}
+          ],
+          extra:[{name:'Walking lunges',sets:'2 × 12 each leg',note:'Great finisher, hits glutes and stability.'},
+                 {name:'Hanging knee raise',sets:'2 × 12–15',note:'Lower ab work — the hardest bit to build.'}],
+          extraMin:10
+        },
+        {
+          n:4, name:'Shoulders + Arms', sub:'Cap building + posture work',
+          supersets:[
+            {name:'SS1 — Heavy Laterals + Rear Delt',
+             why:'DB lateral raises with partials after failure — the fastest-working delt cap protocol. Rear delts stay every week, they\'re what make shoulders look 3D and fix rounded posture.',
+             exercises:[
+               {type:'Isolation',name:'DB lateral raise + partials',sets:4,reps:'12 full + 8 partials',rest:'→',note:'12 full reps, then immediately 8 half-reps from the bottom. The burn is the point. Caps respond to this fast.'},
+               {type:'Isolation',name:'Rear delt cable fly (cross-over)',sets:4,reps:'15',rest:'75s',note:'Cables crossed at face height, pull apart. Constant tension beats the pec deck version.'}
+             ]},
+            {name:'SS2 — Press + Posture Pair',
+             why:'Machine press lets you push the anterior delts harder safely. Paired with face pulls — every heavy press is balanced by a posture pull. This pairing IS your posture fix.',
+             exercises:[
+               {type:'Compound',name:'Machine shoulder press',sets:3,reps:'8–10',rest:'→',note:'Machine = safe path for your shoulders while going heavy. Push close to failure.'},
+               {type:'Rehab',name:'Face pull (heavier)',sets:3,reps:'15',rest:'75s',note:'Add weight vs Phase 1. Pull to forehead, pause 1 second with elbows high. Best posture exercise that exists.'}
+             ]},
+            {name:'SS3 — Arms: New Angles',
+             why:'Overhead cable curl hits the bicep long head from a stretched position. Overhead rope extension hits the tricep long head — the biggest head. Both new angles vs Phase 1.',
+             exercises:[
+               {type:'Isolation',name:'Overhead cable curl',sets:3,reps:'12 each',rest:'→',note:'Cable behind head, curl from full stretch. Long head of the bicep — creates that peak.'},
+               {type:'Isolation',name:'Overhead rope tricep extension',sets:3,reps:'12–15',rest:'60s',note:'Long head stretch — the biggest part of the tricep. Key for arm size.'}
+             ]}
+          ],
+          extra:[{name:'Cable upright row (wide grip)',sets:'2 × 12–15',note:'Traps + side delts. Wide grip keeps it shoulder-safe.'},
+                 {name:'Band pull-apart + wall slide circuit',sets:'2 × 15 + 10',note:'Posture finisher. Do these even on lazy days.'}],
+          extraMin:12
+        }
+      ]
+    }
+  ]
+};
+
+// ── GYM STATE ─────────────────────────────────────────────────────────────
+let curGymPhase = 2;
+let curGymDay = 1;
+let gymLog = {}; // {key: {ss_ex: [{w:'',done:false}, ...]}}
+let gymOpenSS = {}; // which supersets are expanded
+let gymOpenExtra = {}; // which extra blocks are open
+
+function gymKey(phase,day){return `p${phase}_d${day}_${todayStr()}`}
+
+function loadGym(){
+  try{const g=localStorage.getItem('mt_gym_log');if(g)gymLog=JSON.parse(g);}catch(e){}
+}
+function saveGym(){localStorage.setItem('mt_gym_log',JSON.stringify(gymLog));}
+
+function selPhase(n){
+  curGymPhase=n;
+  curGymDay=1;
+  gymOpenSS={};gymOpenExtra={};
+  document.getElementById('phase-btn-1').classList.toggle('active',n===1);
+  document.getElementById('phase-btn-2').classList.toggle('active',n===2);
+  renderGym();
+}
+
+function selDay(n){
+  curGymDay=n;
+  gymOpenSS={};gymOpenExtra={};
+  renderGym();
+}
+
+function renderGym(){
+  const phase=PROGRAM.phases.find(p=>p.id===curGymPhase);
+  if(!phase) return;
+
+  // phase callout
+  document.getElementById('phase-callout').innerHTML=
+    `<div class="phase-callout"><strong>${phase.label} (${phase.weeks}):</strong> ${phase.desc}</div>`;
+
+  // day tabs
+  let tabsHtml='';
+  phase.days.forEach(d=>{
+    tabsHtml+=`<button class="day-tab${d.n===curGymDay?' active':''}" onclick="selDay(${d.n})">Day ${d.n} · ${d.name}</button>`;
+  });
+  document.getElementById('day-tabs').innerHTML=tabsHtml;
+
+  // content
+  const day=phase.days.find(d=>d.n===curGymDay);
+  if(!day){document.getElementById('gym-body').innerHTML='';return;}
+
+  const key=gymKey(curGymPhase,curGymDay);
+  if(!gymLog[key]) gymLog[key]={};
+
+  const ssColors=['ss1-c','ss2-c','ss3-c'];
+  let html=`<div class="day-subtitle">Day ${day.n} · ${day.sub} · ~40 min + optional</div>`;
+
+  day.supersets.forEach((ss,si)=>{
+    const ssId=`ss_${si}`;
+    const isOpen=gymOpenSS[ssId]!==false; // default open
+    html+=`<div class="ss-card">
+      <div class="ss-header" onclick="toggleSS('${ssId}')">
+        <span class="ss-label ${ssColors[si]||'ss1-c'}">${ss.name}</span>
+        <span class="ss-chev${isOpen?' open':''}">▼</span>
+      </div>`;
+    if(isOpen){
+      html+=`<div class="ss-why"><b>Why this pairing:</b> ${ss.why}</div>`;
+      ss.exercises.forEach((ex,ei)=>{
+        const exKey=`${si}_${ei}`;
+        if(!gymLog[key][exKey]){
+          gymLog[key][exKey]=Array.from({length:ex.sets},()=>({w:'',done:false}));
+        }
+        const sets=gymLog[key][exKey];
+        const tbClass='tb-'+ex.type.toLowerCase().replace('/','');
+        const isSuperset=ei<ss.exercises.length-1;
+        html+=`<div class="ex-row">
+          ${isSuperset?`<div class="ex-arrow">→</div>`:'<div style="width:16px;flex-shrink:0"></div>'}
+          <div class="ex-info">
+            <div class="ex-name">${ex.name}</div>
+            <div class="ex-note">${ex.note}</div>
+            <div class="ex-meta">
+              <span class="type-badge ${tbClass}">${ex.type}</span>
+              <span class="ex-sets-badge">${ex.sets} × ${ex.reps}</span>
+              <span class="ex-rest-badge">Rest ${ex.rest}</span>
+            </div>
+            <div class="set-track">`;
+        sets.forEach((s,setIdx)=>{
+          html+=`<div class="set-chip${s.done?' done':''}" onclick="toggleSet('${key}','${exKey}',${setIdx})">
+            <span class="set-chip-n">S${setIdx+1}</span>
+            <input class="set-chip-w" type="number" value="${s.w}" placeholder="kg"
+              onclick="event.stopPropagation()"
+              onchange="setWeight('${key}','${exKey}',${setIdx},this.value)" min="0" step="2.5">
+            <span class="set-chip-kg">kg</span>
+            <svg class="set-tick" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>
+          </div>`;
+        });
+        html+=`</div></div></div>`;
+      });
+    }
+    html+='</div>';
+  });
+
+  // extra time block
+  const extraId='extra';
+  const extraOpen=gymOpenExtra[extraId]!==false;
+  html+=`<div class="extra-block">
+    <div class="extra-hdr" onclick="toggleExtra('${extraId}')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
+      Extra time? (+${day.extraMin} min) — optional
+    </div>
+    <div class="extra-items"${extraOpen?'':' style="display:none"'}>`;
+  day.extra.forEach(e=>{
+    html+=`<div class="extra-row">
+      <div class="extra-lft">
+        <div class="extra-name">${e.name}</div>
+        <div class="extra-note">${e.note}</div>
+      </div>
+      <div class="extra-sets-lbl">${e.sets}</div>
+    </div>`;
+  });
+  html+=`</div></div>`;
+
+  // how to progress
+  html+=`<div class="how-card">
+    <div class="how-title">↗ How to Progress</div>
+    <div class="how-grid">
+      <div><div class="how-item-title">Progressive Overload</div><div class="how-item-body">Add 1 rep per session. Top of rep range on all sets → add the smallest weight increment.</div></div>
+      <div><div class="how-item-title">RPE Target</div><div class="how-item-body">RPE 8 on compounds (2 in the tank). RPE 9–9.5 on isolation. Second exercise in a superset will feel harder — that's the point.</div></div>
+      <div><div class="how-item-title">Phase 2 Timing</div><div class="how-item-body">Run for 6–8 weeks. Deload (50% volume) at the halfway mark. Then Phase 3 based on what's lagging.</div></div>
+      <div><div class="how-item-title">Supersets</div><div class="how-item-body">→ means straight into the next exercise. Rest at the end of the pair, not between.</div></div>
+    </div>
+  </div>`;
+
+  html+=`<button class="workout-done-btn" onclick="markWorkoutDone()">✓ Mark Workout Done</button>`;
+  html+=`<p style="font-size:10px;color:var(--text3);text-align:center;margin-bottom:8px">NOT MEDICAL ADVICE · CONSULT A PHYSIO FOR SHOULDER-SPECIFIC GUIDANCE</p>`;
+
+  document.getElementById('gym-body').innerHTML=html;
+  saveGym();
+}
+
+function toggleSS(id){
+  gymOpenSS[id]=gymOpenSS[id]===false?true:false;
+  renderGym();
+}
+function toggleExtra(id){
+  gymOpenExtra[id]=gymOpenExtra[id]===false?true:false;
+  renderGym();
+}
+function toggleSet(key,exKey,idx){
+  if(!gymLog[key]||!gymLog[key][exKey]) return;
+  gymLog[key][exKey][idx].done=!gymLog[key][exKey][idx].done;
+  saveGym();
+  const chips=document.querySelectorAll(`[onclick*="toggleSet('${key}','${exKey}',${idx})"]`);
+  chips.forEach(c=>{
+    const done=gymLog[key][exKey][idx].done;
+    c.classList.toggle('done',done);
+  });
+}
+function setWeight(key,exKey,idx,val){
+  if(!gymLog[key]||!gymLog[key][exKey]) return;
+  gymLog[key][exKey][idx].w=val;
+  saveGym();
+}
+function markWorkoutDone(){
+  showToast('Workout logged ✓ Great work!');
+  // mark all sets done for today
+  const key=gymKey(curGymPhase,curGymDay);
+  if(gymLog[key]){
+    Object.values(gymLog[key]).forEach(sets=>{sets.forEach(s=>s.done=true);});
+    saveGym();
+  }
+  renderGym();
+}
+
+// ── INIT ──────────────────────────────────────────────────────────────────
+load();loadGym();genIcon();renderDash();
+document.getElementById('dash-date-label').textContent='Today — '+fmt(curDate);
+</script>
+</body>
+</html>

@@ -1,0 +1,400 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Budget">
+  <title>Budget</title>
+  <link rel="apple-touch-icon" id="ati">
+  <style>
+    :root{
+      --p:#7c3aed;--p2:#4f46e5;--p-light:#ede9fe;
+      --income:#22c55e;--expense:#ef4444;
+      --text:#111827;--text2:#6b7280;--text3:#9ca3af;
+      --bg:#f5f5f7;--card:#fff;--border:#e5e7eb;
+      --st:env(safe-area-inset-top,0px);--sb:env(safe-area-inset-bottom,0px);
+    }
+    *{box-sizing:border-box;margin:0;padding:0}
+    body{
+      font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
+      background:var(--bg);color:var(--text);
+      min-height:100dvh;
+      padding-bottom:calc(var(--sb) + 80px);
+    }
+    .hdr{
+      background:var(--card);border-bottom:1px solid var(--border);
+      padding:calc(var(--st) + 16px) 20px 14px;
+      position:sticky;top:0;z-index:10;
+    }
+    .hdr h1{font-size:20px;font-weight:800}
+    .hdr .sub{font-size:13px;color:var(--text2);margin-top:3px}
+    .content{padding:16px;display:flex;flex-direction:column;gap:12px}
+    .card{background:var(--card);border-radius:16px;padding:16px;box-shadow:0 1px 3px rgba(0,0,0,.06)}
+    .card-title{font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.6px;margin-bottom:12px}
+    .screen{display:none}.screen.active{display:block}
+
+    /* Summary card */
+    .summary-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px}
+    .sum-box{padding:14px 12px;background:var(--bg);border-radius:12px;text-align:center}
+    .sum-val{font-size:22px;font-weight:800;line-height:1}
+    .sum-label{font-size:11px;color:var(--text2);margin-top:4px;font-weight:600;text-transform:uppercase;letter-spacing:.4px}
+    .sum-box.income .sum-val{color:var(--income)}
+    .sum-box.expense .sum-val{color:var(--expense)}
+
+    /* Balance bar */
+    .bal-section{padding-top:2px}
+    .bal-row{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px}
+    .bal-label{font-size:14px;font-weight:700}
+    .bal-val{font-size:22px;font-weight:800}
+    .bal-val.pos{color:var(--income)}
+    .bal-val.neg{color:var(--expense)}
+    .bal-track{height:10px;background:var(--bg);border-radius:99px;overflow:hidden}
+    .bal-fill{height:100%;border-radius:99px;transition:width .4s cubic-bezier(.4,0,.2,1)}
+    .bal-fill.pos{background:linear-gradient(90deg,#4ade80,#16a34a)}
+    .bal-fill.neg{background:linear-gradient(90deg,#fca5a5,#ef4444)}
+
+    /* Entry rows */
+    .entry-row{display:flex;align-items:center;padding:11px 0;border-bottom:1px solid var(--border)}
+    .entry-row:last-child{border-bottom:none}
+    .entry-dot{width:10px;height:10px;border-radius:50%;margin-right:10px;flex-shrink:0}
+    .entry-dot.income{background:var(--income)}
+    .entry-dot.expense{background:var(--expense)}
+    .entry-info{flex:1;min-width:0}
+    .entry-name{font-size:14px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    .entry-freq{font-size:12px;color:var(--text2);margin-top:1px}
+    .entry-amounts{text-align:right;flex-shrink:0;margin-left:8px}
+    .entry-monthly{font-size:14px;font-weight:700}
+    .entry-monthly.income{color:var(--income)}
+    .entry-monthly.expense{color:var(--expense)}
+    .entry-raw{font-size:11px;color:var(--text3);margin-top:1px}
+    .del-btn{background:none;border:none;color:var(--text3);font-size:18px;cursor:pointer;padding:2px 4px 2px 8px;line-height:1;flex-shrink:0}
+    .empty{text-align:center;padding:20px 0;color:var(--text3);font-size:14px}
+
+    /* Tab bar (within overview) */
+    .tab-bar{display:flex;gap:8px;margin-bottom:14px}
+    .tab{flex:1;padding:8px;border-radius:10px;border:1.5px solid var(--border);background:none;font-size:13px;font-weight:700;color:var(--text2);cursor:pointer;text-align:center}
+    .tab.active-tab{background:var(--p-light);border-color:var(--p);color:var(--p)}
+
+    /* FAB */
+    .fab{
+      position:fixed;left:50%;transform:translateX(-50%);
+      bottom:calc(var(--sb) + 74px);
+      background:linear-gradient(135deg,var(--p),var(--p2));
+      color:#fff;border:none;border-radius:99px;
+      padding:15px 32px;font-size:16px;font-weight:800;
+      box-shadow:0 4px 20px rgba(124,58,237,.4);
+      cursor:pointer;display:flex;align-items:center;gap:8px;
+      white-space:nowrap;transition:transform .15s;z-index:30;
+    }
+    .fab:active{transform:translateX(-50%) scale(.96)}
+
+    /* Nav */
+    .nav{
+      position:fixed;bottom:0;left:0;right:0;
+      background:var(--card);border-top:1px solid var(--border);
+      display:flex;padding-bottom:var(--sb);z-index:20;
+    }
+    .nav-btn{
+      flex:1;display:flex;flex-direction:column;align-items:center;
+      padding:8px 0 6px;background:none;border:none;cursor:pointer;
+      font-size:10px;color:var(--text2);gap:3px;font-weight:600;
+    }
+    .nav-btn.active{color:var(--p)}
+    .nav-btn svg{width:22px;height:22px}
+
+    /* Overlay */
+    .overlay{
+      position:fixed;inset:0;background:rgba(0,0,0,.45);
+      z-index:50;display:flex;align-items:flex-end;
+      opacity:0;pointer-events:none;transition:opacity .2s;
+    }
+    .overlay.show{opacity:1;pointer-events:all}
+    .sheet{
+      background:var(--card);border-radius:24px 24px 0 0;
+      padding:20px 20px calc(var(--sb) + 28px);
+      width:100%;
+      transform:translateY(100%);
+      transition:transform .3s cubic-bezier(.4,0,.2,1);
+    }
+    .overlay.show .sheet{transform:translateY(0)}
+    .handle{width:36px;height:4px;background:var(--border);border-radius:99px;margin:0 auto 20px}
+    .sheet-title{font-size:19px;font-weight:800;margin-bottom:18px}
+
+    /* Form */
+    .form-field{margin-bottom:14px}
+    .form-label{font-size:12px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px}
+    .form-input{
+      width:100%;padding:12px 14px;border:1.5px solid var(--border);
+      border-radius:12px;font-size:16px;background:var(--bg);color:var(--text);
+    }
+    .form-input:focus{outline:none;border-color:var(--p)}
+    .seg{display:flex;gap:6px}
+    .seg-btn{
+      flex:1;padding:10px 6px;border-radius:10px;border:1.5px solid var(--border);
+      background:none;font-size:13px;font-weight:700;color:var(--text2);cursor:pointer;
+    }
+    .seg-btn.active-income{background:#dcfce7;border-color:var(--income);color:#15803d}
+    .seg-btn.active-expense{background:#fee2e2;border-color:var(--expense);color:#b91c1c}
+    .submit-btn{
+      width:100%;padding:15px;border-radius:14px;border:none;
+      background:linear-gradient(135deg,var(--p),var(--p2));
+      color:#fff;font-size:16px;font-weight:800;cursor:pointer;margin-top:4px;
+    }
+    select.form-input{-webkit-appearance:none;appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' fill='none'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%236b7280' stroke-width='1.5' stroke-linecap='round'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 14px center}
+
+    /* Category filter */
+    .freq-note{font-size:12px;color:var(--text3);text-align:center;padding:6px 0 2px}
+  </style>
+</head>
+<body>
+
+<!-- OVERVIEW -->
+<div id="screen-overview" class="screen active">
+  <div class="hdr">
+    <h1>Budget</h1>
+    <div class="sub">Monthly view</div>
+  </div>
+  <div class="content">
+    <!-- Summary -->
+    <div class="card">
+      <div class="card-title">Monthly Summary</div>
+      <div class="summary-grid">
+        <div class="sum-box income">
+          <div class="sum-val" id="ov-income">$0</div>
+          <div class="sum-label">Income</div>
+        </div>
+        <div class="sum-box expense">
+          <div class="sum-val" id="ov-expense">$0</div>
+          <div class="sum-label">Expenses</div>
+        </div>
+      </div>
+      <div class="bal-section">
+        <div class="bal-row">
+          <span class="bal-label">Balance</span>
+          <span class="bal-val" id="ov-balance">$0</span>
+        </div>
+        <div class="bal-track"><div class="bal-fill pos" id="ov-bar" style="width:0%"></div></div>
+        <div class="freq-note" id="ov-note"></div>
+      </div>
+    </div>
+
+    <!-- Income list -->
+    <div class="card" id="card-income">
+      <div class="card-title">Income</div>
+      <div id="list-income"><div class="empty">No income added</div></div>
+    </div>
+
+    <!-- Expense list -->
+    <div class="card" id="card-expense">
+      <div class="card-title">Expenses</div>
+      <div id="list-expense"><div class="empty">No expenses added</div></div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">Frequency → Monthly</div>
+      <div style="font-size:13px;color:var(--text2);line-height:1.8">
+        Daily × 30 &nbsp;·&nbsp; Weekly × 4 &nbsp;·&nbsp; Fortnightly × 2 &nbsp;·&nbsp; Monthly × 1 &nbsp;·&nbsp; Yearly ÷ 12
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- HISTORY placeholder (future) -->
+
+<!-- FAB -->
+<button class="fab" id="fab" onclick="openSheet()">+ Add Entry</button>
+
+<!-- Nav -->
+<nav class="nav">
+  <button class="nav-btn active" id="nav-overview" onclick="goTo('overview')">
+    <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+    Overview
+  </button>
+  <button class="nav-btn" id="nav-settings" onclick="goTo('settings')">
+    <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+    Settings
+  </button>
+</nav>
+
+<!-- Settings screen (injected into DOM for nav) -->
+<div id="screen-settings" class="screen">
+  <div class="hdr"><h1>Settings</h1></div>
+  <div class="content">
+    <div class="card">
+      <div class="card-title">Multipliers (Monthly)</div>
+      <div style="font-size:14px;line-height:2;color:var(--text2)">
+        <div>Daily &nbsp;<strong style="color:var(--text)">× 30</strong></div>
+        <div>Weekly &nbsp;<strong style="color:var(--text)">× 4</strong></div>
+        <div>Fortnightly &nbsp;<strong style="color:var(--text)">× 2</strong></div>
+        <div>Monthly &nbsp;<strong style="color:var(--text)">× 1</strong></div>
+        <div>Yearly &nbsp;<strong style="color:var(--text)">÷ 12</strong></div>
+      </div>
+    </div>
+    <div class="card">
+      <button class="danger-btn" style="width:100%;padding:14px;border-radius:12px;border:1.5px solid #ef4444;color:#ef4444;background:none;font-size:15px;font-weight:700;cursor:pointer" onclick="clearData()">Clear All Data</button>
+    </div>
+  </div>
+</div>
+
+<!-- Add Entry Sheet -->
+<div class="overlay" id="overlay" onclick="overlayClick(event)">
+  <div class="sheet">
+    <div class="handle"></div>
+    <div class="sheet-title">Add Entry</div>
+
+    <!-- Type toggle -->
+    <div class="form-field">
+      <div class="form-label">Type</div>
+      <div class="seg" id="type-seg">
+        <button class="seg-btn active-income" data-v="income" onclick="setType('income')">Income</button>
+        <button class="seg-btn" data-v="expense" onclick="setType('expense')">Expense</button>
+      </div>
+    </div>
+
+    <div class="form-field">
+      <div class="form-label">Name</div>
+      <input type="text" class="form-input" id="f-name" placeholder="e.g. Rent, Salary, Netflix">
+    </div>
+
+    <div class="form-field">
+      <div class="form-label">Amount ($)</div>
+      <input type="number" class="form-input" id="f-amount" placeholder="0" min="0" step="0.01" inputmode="decimal">
+    </div>
+
+    <div class="form-field">
+      <div class="form-label">Frequency</div>
+      <select class="form-input" id="f-freq">
+        <option value="daily">Daily</option>
+        <option value="weekly" selected>Weekly</option>
+        <option value="fortnightly">Fortnightly</option>
+        <option value="monthly">Monthly</option>
+        <option value="yearly">Yearly</option>
+        <option value="once">One-time</option>
+      </select>
+    </div>
+
+    <button class="submit-btn" onclick="addEntry()">Add Entry</button>
+  </div>
+</div>
+
+<script>
+let entries=[];
+let formType='income';
+
+const MULT={daily:30,weekly:4,fortnightly:2,monthly:1,yearly:1/12,once:1};
+const FREQ_LABEL={daily:'Daily',weekly:'Weekly',fortnightly:'Fortnightly',monthly:'Monthly',yearly:'Yearly',once:'One-time'};
+
+function fmt(n){return '$'+Math.round(n).toLocaleString('en-AU')}
+function fmtRaw(n,freq){
+  const base='$'+parseFloat(n).toLocaleString('en-AU',{minimumFractionDigits:0,maximumFractionDigits:2});
+  return base+' / '+FREQ_LABEL[freq].toLowerCase();
+}
+function toMonthly(amount,freq){return amount*(MULT[freq]||1)}
+
+function load(){
+  try{entries=JSON.parse(localStorage.getItem('budget_entries')||'[]')}catch(e){entries=[]}
+}
+function save(){localStorage.setItem('budget_entries',JSON.stringify(entries))}
+function clearData(){
+  if(!confirm('Clear all data?'))return;
+  entries=[];save();render();
+}
+
+function setType(t){
+  formType=t;
+  document.querySelectorAll('#type-seg .seg-btn').forEach(b=>{
+    b.className='seg-btn'+(b.dataset.v===t?' active-'+t:'');
+  });
+}
+
+function addEntry(){
+  const name=document.getElementById('f-name').value.trim();
+  const amount=parseFloat(document.getElementById('f-amount').value);
+  const freq=document.getElementById('f-freq').value;
+  if(!name||!amount||amount<=0){alert('Please fill in name and amount.');return;}
+  entries.push({id:Date.now(),name,amount,freq,type:formType});
+  save();closeSheet();render();
+  document.getElementById('f-name').value='';
+  document.getElementById('f-amount').value='';
+  document.getElementById('f-freq').value='weekly';
+  setType('income');
+}
+
+function del(id){
+  entries=entries.filter(e=>e.id!==id);
+  save();render();
+}
+
+function render(){
+  const income=entries.filter(e=>e.type==='income');
+  const expense=entries.filter(e=>e.type==='expense');
+
+  const totalIncome=income.reduce((s,e)=>s+toMonthly(e.amount,e.freq),0);
+  const totalExpense=expense.reduce((s,e)=>s+toMonthly(e.amount,e.freq),0);
+  const balance=totalIncome-totalExpense;
+  const pct=totalIncome>0?Math.min(100,Math.max(0,(totalIncome-Math.abs(balance))/totalIncome*100)):0;
+
+  document.getElementById('ov-income').textContent=fmt(totalIncome);
+  document.getElementById('ov-expense').textContent=fmt(totalExpense);
+  document.getElementById('ov-balance').textContent=(balance>=0?'+':'')+fmt(balance);
+  document.getElementById('ov-balance').className='bal-val '+(balance>=0?'pos':'neg');
+  document.getElementById('ov-bar').style.width=pct+'%';
+  document.getElementById('ov-bar').className='bal-fill '+(balance>=0?'pos':'neg');
+  document.getElementById('ov-note').textContent=balance>=0
+    ?`${fmt(balance)} surplus / month`
+    :`${fmt(Math.abs(balance))} over budget / month`;
+
+  const renderList=(el,arr,cls)=>{
+    if(!arr.length){el.innerHTML='<div class="empty">None added</div>';return;}
+    el.innerHTML=arr.map(e=>`
+      <div class="entry-row">
+        <div class="entry-dot ${cls}"></div>
+        <div class="entry-info">
+          <div class="entry-name">${e.name}</div>
+          <div class="entry-freq">${FREQ_LABEL[e.freq]}</div>
+        </div>
+        <div class="entry-amounts">
+          <div class="entry-monthly ${cls}">${fmt(toMonthly(e.amount,e.freq))}/mo</div>
+          <div class="entry-raw">${fmtRaw(e.amount,e.freq)}</div>
+        </div>
+        <button class="del-btn" onclick="del(${e.id})">×</button>
+      </div>`).join('');
+  };
+
+  renderList(document.getElementById('list-income'),income,'income');
+  renderList(document.getElementById('list-expense'),expense,'expense');
+}
+
+function goTo(id){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('active'));
+  document.getElementById('screen-'+id).classList.add('active');
+  document.getElementById('nav-'+id).classList.add('active');
+}
+
+function openSheet(){document.getElementById('overlay').classList.add('show')}
+function closeSheet(){document.getElementById('overlay').classList.remove('show')}
+function overlayClick(e){if(e.target===document.getElementById('overlay'))closeSheet()}
+
+function genIcon(){
+  const c=document.createElement('canvas');c.width=c.height=180;
+  const x=c.getContext('2d');
+  const g=x.createLinearGradient(0,0,180,180);
+  g.addColorStop(0,'#a78bfa');g.addColorStop(1,'#4f46e5');
+  x.fillStyle=g;
+  x.beginPath();
+  if(x.roundRect)x.roundRect(0,0,180,180,40);
+  else{x.moveTo(40,0);x.lineTo(140,0);x.quadraticCurveTo(180,0,180,40);x.lineTo(180,140);x.quadraticCurveTo(180,180,140,180);x.lineTo(40,180);x.quadraticCurveTo(0,180,0,140);x.lineTo(0,40);x.quadraticCurveTo(0,0,40,0);}
+  x.fill();
+  x.fillStyle='#fff';x.font='bold 72px serif';x.textAlign='center';x.textBaseline='middle';
+  x.fillText('💰',90,95);
+  const l=document.getElementById('ati');if(l)l.href=c.toDataURL();
+}
+
+load();genIcon();render();
+</script>
+</body>
+</html>
