@@ -1,0 +1,439 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Pouch">
+  <title>Pouch</title>
+  <link rel="apple-touch-icon" id="ati">
+  <style>
+    :root{
+      --p:#22c55e;--p2:#16a34a;--p-light:#dcfce7;
+      --fresh:#22c55e;--reload:#f97316;
+      --text:#111827;--text2:#6b7280;--text3:#9ca3af;
+      --bg:#f5f5f7;--card:#fff;--border:#e5e7eb;
+      --st:env(safe-area-inset-top,0px);--sb:env(safe-area-inset-bottom,0px);
+    }
+    *{box-sizing:border-box;margin:0;padding:0}
+    body{
+      font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
+      background:var(--bg);color:var(--text);
+      min-height:100dvh;
+      padding-bottom:calc(var(--sb) + 80px);
+    }
+    .hdr{
+      background:var(--card);border-bottom:1px solid var(--border);
+      padding:calc(var(--st) + 16px) 20px 14px;
+      position:sticky;top:0;z-index:10;
+    }
+    .hdr h1{font-size:20px;font-weight:800;display:flex;align-items:center;gap:8px}
+    .hdr .sub{font-size:13px;color:var(--text2);margin-top:3px}
+    .content{padding:16px;display:flex;flex-direction:column;gap:12px}
+    .card{background:var(--card);border-radius:16px;padding:16px;box-shadow:0 1px 3px rgba(0,0,0,.06)}
+    .card-title{font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.6px;margin-bottom:12px}
+    .screen{display:none}
+    .screen.active{display:block}
+
+    /* Today stats */
+    .stats-row{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:14px}
+    .stat{text-align:center;padding:12px 6px;background:var(--bg);border-radius:12px}
+    .stat-val{font-size:30px;font-weight:800;line-height:1}
+    .stat-label{font-size:11px;color:var(--text2);margin-top:3px;font-weight:500}
+    .stat.fresh .stat-val{color:var(--fresh)}
+    .stat.reload .stat-val{color:var(--reload)}
+
+    /* Progress */
+    .prog-row{margin-bottom:4px}
+    .prog-lbl{display:flex;justify-content:space-between;font-size:13px;margin-bottom:6px;font-weight:500}
+    .prog-lbl span:last-child{color:var(--text2);font-weight:400}
+    .prog-track{height:10px;background:var(--bg);border-radius:99px;overflow:hidden}
+    .prog-fill{height:100%;border-radius:99px;background:linear-gradient(90deg,#4ade80,var(--p2));transition:width .4s cubic-bezier(.4,0,.2,1)}
+
+    /* Log list */
+    .log-item{display:flex;align-items:center;padding:9px 0;border-bottom:1px solid var(--border)}
+    .log-item:last-child{border-bottom:none}
+    .dot{width:9px;height:9px;border-radius:50%;margin-right:10px;flex-shrink:0}
+    .dot.fresh{background:var(--fresh)}
+    .dot.reload{background:var(--reload)}
+    .log-time{font-size:13px;color:var(--text2);flex:1}
+    .log-type{font-size:13px;font-weight:700}
+    .log-type.fresh{color:var(--fresh)}
+    .log-type.reload{color:var(--reload)}
+    .del-btn{background:none;border:none;color:var(--text3);font-size:18px;cursor:pointer;padding:2px 6px;line-height:1}
+    .empty{text-align:center;padding:24px 0;color:var(--text3);font-size:14px}
+
+    /* Info rows */
+    .info-row{display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid var(--border)}
+    .info-row:last-child{border-bottom:none}
+    .info-label{font-size:14px;color:var(--text2)}
+    .info-val{font-size:14px;font-weight:700}
+
+    /* History */
+    .hist-row{display:flex;align-items:center;padding:11px 0;border-bottom:1px solid var(--border)}
+    .hist-row:last-child{border-bottom:none}
+    .hist-date{flex:1}
+    .hist-day{font-size:14px;font-weight:600}
+    .hist-full{font-size:12px;color:var(--text2);margin-top:1px}
+    .pills{display:flex;gap:6px;flex-wrap:wrap}
+    .pill{padding:3px 10px;border-radius:99px;font-size:12px;font-weight:700}
+    .pill.fresh{background:#dcfce7;color:#15803d}
+    .pill.reload{background:#fff7ed;color:#c2410c}
+    .pill.none{background:var(--bg);color:var(--text3);font-weight:400}
+
+    /* Settings */
+    .set-row{display:flex;align-items:center;justify-content:space-between;padding:12px 0;border-bottom:1px solid var(--border)}
+    .set-row:last-child{border-bottom:none}
+    .set-label{font-size:15px;font-weight:600}
+    .set-sub{font-size:12px;color:var(--text2);margin-top:2px}
+    .set-input{width:70px;padding:8px 10px;border:1.5px solid var(--border);border-radius:10px;font-size:15px;text-align:center;background:var(--bg);font-weight:700}
+    .danger-btn{width:100%;padding:14px;border-radius:12px;border:1.5px solid #ef4444;color:#ef4444;background:none;font-size:15px;font-weight:700;cursor:pointer}
+
+    /* FAB */
+    .fab{
+      position:fixed;left:50%;transform:translateX(-50%);
+      bottom:calc(var(--sb) + 74px);
+      background:linear-gradient(135deg,#4ade80,var(--p2));
+      color:#fff;border:none;border-radius:99px;
+      padding:15px 32px;font-size:16px;font-weight:800;
+      box-shadow:0 4px 20px rgba(34,197,94,.45);
+      cursor:pointer;display:flex;align-items:center;gap:8px;
+      white-space:nowrap;transition:transform .15s;
+    }
+    .fab:active{transform:translateX(-50%) scale(.96)}
+
+    /* Nav */
+    .nav{
+      position:fixed;bottom:0;left:0;right:0;
+      background:var(--card);border-top:1px solid var(--border);
+      display:flex;padding-bottom:var(--sb);z-index:20;
+    }
+    .nav-btn{
+      flex:1;display:flex;flex-direction:column;align-items:center;
+      padding:8px 0 6px;background:none;border:none;cursor:pointer;
+      font-size:10px;color:var(--text2);gap:3px;font-weight:600;
+    }
+    .nav-btn.active{color:var(--p)}
+    .nav-btn svg{width:22px;height:22px}
+
+    /* Overlay / sheet */
+    .overlay{
+      position:fixed;inset:0;background:rgba(0,0,0,.45);
+      z-index:50;display:flex;align-items:flex-end;
+      opacity:0;pointer-events:none;transition:opacity .2s;
+    }
+    .overlay.show{opacity:1;pointer-events:all}
+    .sheet{
+      background:var(--card);border-radius:24px 24px 0 0;
+      padding:20px 20px calc(var(--sb) + 28px);
+      width:100%;
+      transform:translateY(100%);
+      transition:transform .3s cubic-bezier(.4,0,.2,1);
+    }
+    .overlay.show .sheet{transform:translateY(0)}
+    .handle{width:36px;height:4px;background:var(--border);border-radius:99px;margin:0 auto 20px}
+    .sheet-title{font-size:19px;font-weight:800;text-align:center;margin-bottom:6px}
+    .sheet-sub{font-size:14px;color:var(--text2);text-align:center;margin-bottom:24px;line-height:1.4}
+    .choice-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+    .choice-btn{
+      padding:22px 12px 18px;border-radius:18px;border:2px solid;
+      display:flex;flex-direction:column;align-items:center;gap:8px;
+      cursor:pointer;background:none;transition:background .12s;
+    }
+    .choice-btn.fresh{border-color:var(--fresh);color:var(--fresh)}
+    .choice-btn.fresh:active{background:#dcfce7}
+    .choice-btn.reload{border-color:var(--reload);color:var(--reload)}
+    .choice-btn.reload:active{background:#fff7ed}
+    .choice-icon{font-size:36px;line-height:1}
+    .choice-name{font-size:18px;font-weight:800}
+    .choice-desc{font-size:12px;color:var(--text2);text-align:center;line-height:1.3}
+  </style>
+</head>
+<body>
+
+<!-- TODAY -->
+<div id="screen-today" class="screen active">
+  <div class="hdr">
+    <h1>Pouch</h1>
+    <div class="sub" id="today-label"></div>
+  </div>
+  <div class="content">
+    <div class="card">
+      <div class="card-title">Today</div>
+      <div class="stats-row">
+        <div class="stat"><div class="stat-val" id="s-total">0</div><div class="stat-label">Uses</div></div>
+        <div class="stat fresh"><div class="stat-val" id="s-fresh">0</div><div class="stat-label">Fresh</div></div>
+        <div class="stat reload"><div class="stat-val" id="s-reload">0</div><div class="stat-label">Reload</div></div>
+      </div>
+      <div class="prog-row">
+        <div class="prog-lbl"><span>Current can</span><span id="can-lbl">0 / 15</span></div>
+        <div class="prog-track"><div class="prog-fill" id="can-fill" style="width:0%"></div></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">Today's Log</div>
+      <div id="today-entries"><div class="empty">No uses logged yet</div></div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">All Time</div>
+      <div class="info-row"><span class="info-label">Total fresh uses</span><span class="info-val" id="at-fresh">0</span></div>
+      <div class="info-row"><span class="info-label">Total reload uses</span><span class="info-val" id="at-reload">0</span></div>
+      <div class="info-row"><span class="info-label">Cans consumed</span><span class="info-val" id="at-cans">0</span></div>
+      <div class="info-row"><span class="info-label">Current can position</span><span class="info-val" id="at-pos">0 / 15</span></div>
+    </div>
+  </div>
+</div>
+
+<!-- HISTORY -->
+<div id="screen-history" class="screen">
+  <div class="hdr">
+    <h1>History</h1>
+    <div class="sub">Last 14 days</div>
+  </div>
+  <div class="content">
+    <div class="card" id="hist-card"></div>
+  </div>
+</div>
+
+<!-- SETTINGS -->
+<div id="screen-settings" class="screen">
+  <div class="hdr">
+    <h1>Settings</h1>
+  </div>
+  <div class="content">
+    <div class="card">
+      <div class="card-title">Can Size</div>
+      <div class="set-row">
+        <div>
+          <div class="set-label">Pouches per can</div>
+          <div class="set-sub">Standard Zyn is 15</div>
+        </div>
+        <input type="number" class="set-input" id="can-size" value="15" min="1" max="99" oninput="saveSettings()">
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-title">Packet Types</div>
+      <div class="info-row">
+        <span class="info-label" style="color:var(--fresh);font-weight:700">Fresh</span>
+        <span style="font-size:13px;color:var(--text2)">New pouch from the can</span>
+      </div>
+      <div class="info-row">
+        <span class="info-label" style="color:var(--reload);font-weight:700">Reload</span>
+        <span style="font-size:13px;color:var(--text2)">Reusing the same pouch</span>
+      </div>
+    </div>
+    <div class="card">
+      <button class="danger-btn" onclick="clearData()">Clear All Data</button>
+    </div>
+  </div>
+</div>
+
+<!-- FAB -->
+<button class="fab" id="fab" onclick="openSheet()">+ Log Use</button>
+
+<!-- Nav -->
+<nav class="nav">
+  <button class="nav-btn active" id="nav-today" onclick="goTo('today')">
+    <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+    Today
+  </button>
+  <button class="nav-btn" id="nav-history" onclick="goTo('history')">
+    <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+    History
+  </button>
+  <button class="nav-btn" id="nav-settings" onclick="goTo('settings')">
+    <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+    Settings
+  </button>
+</nav>
+
+<!-- Log Sheet -->
+<div class="overlay" id="overlay" onclick="overlayClick(event)">
+  <div class="sheet">
+    <div class="handle"></div>
+    <div class="sheet-title">Log a Use</div>
+    <div class="sheet-sub">Fresh pouch from the can, or reloading the same one?</div>
+    <div class="choice-grid">
+      <button class="choice-btn fresh" onclick="logUse('fresh')">
+        <span class="choice-icon">🟢</span>
+        <span class="choice-name">Fresh</span>
+        <span class="choice-desc">New pouch from the can</span>
+      </button>
+      <button class="choice-btn reload" onclick="logUse('reload')">
+        <span class="choice-icon">🔄</span>
+        <span class="choice-name">Reload</span>
+        <span class="choice-desc">Reusing the same pouch</span>
+      </button>
+    </div>
+  </div>
+</div>
+
+<script>
+let log={},settings={canSize:15};
+
+function todayStr(){
+  const d=new Date();
+  return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+}
+
+function fmt(dateStr){
+  const d=new Date(dateStr+'T12:00:00');
+  return d.toLocaleDateString('en-AU',{weekday:'long',day:'numeric',month:'long'});
+}
+
+function fmtShort(dateStr){
+  const d=new Date(dateStr+'T12:00:00');
+  return {day:d.toLocaleDateString('en-AU',{weekday:'short'}),full:d.toLocaleDateString('en-AU',{day:'numeric',month:'short'})};
+}
+
+function load(){
+  try{log=JSON.parse(localStorage.getItem('zyn_log')||'{}')}catch(e){log={}}
+  try{settings={...settings,...JSON.parse(localStorage.getItem('zyn_settings')||'{}')}catch(e){}}
+  document.getElementById('can-size').value=settings.canSize;
+}
+
+function save(){localStorage.setItem('zyn_log',JSON.stringify(log))}
+
+function saveSettings(){
+  settings.canSize=Math.max(1,parseInt(document.getElementById('can-size').value)||15);
+  localStorage.setItem('zyn_settings',JSON.stringify(settings));
+  render();
+}
+
+function logUse(type){
+  const today=todayStr();
+  if(!log[today])log[today]=[];
+  log[today].push({id:Date.now(),time:new Date().toISOString(),type});
+  save();
+  closeSheet();
+  render();
+}
+
+function del(date,id){
+  log[date]=(log[date]||[]).filter(e=>e.id!==id);
+  if(!log[date].length)delete log[date];
+  save();
+  render();
+}
+
+function clearData(){
+  if(!confirm('Clear all data? This cannot be undone.'))return;
+  localStorage.removeItem('zyn_log');
+  localStorage.removeItem('zyn_settings');
+  log={};settings={canSize:15};
+  document.getElementById('can-size').value=15;
+  render();
+}
+
+function allEntries(){return Object.values(log).flat()}
+
+function render(){
+  const today=todayStr();
+  const todayLog=log[today]||[];
+  const freshToday=todayLog.filter(e=>e.type==='fresh').length;
+  const reloadToday=todayLog.filter(e=>e.type==='reload').length;
+
+  document.getElementById('today-label').textContent=fmt(today);
+  document.getElementById('s-total').textContent=todayLog.length;
+  document.getElementById('s-fresh').textContent=freshToday;
+  document.getElementById('s-reload').textContent=reloadToday;
+
+  const all=allEntries();
+  const totalFresh=all.filter(e=>e.type==='fresh').length;
+  const totalReload=all.filter(e=>e.type==='reload').length;
+  const cs=settings.canSize;
+  const cansConsumed=Math.floor(totalFresh/cs);
+  const posInCan=totalFresh%cs;
+  const pct=cs>0?(posInCan/cs*100):0;
+
+  document.getElementById('can-fill').style.width=pct+'%';
+  document.getElementById('can-lbl').textContent=posInCan+' / '+cs;
+  document.getElementById('at-fresh').textContent=totalFresh;
+  document.getElementById('at-reload').textContent=totalReload;
+  document.getElementById('at-cans').textContent=cansConsumed;
+  document.getElementById('at-pos').textContent=posInCan+' / '+cs;
+
+  // Today's log
+  const el=document.getElementById('today-entries');
+  if(!todayLog.length){
+    el.innerHTML='<div class="empty">No uses logged yet</div>';
+  }else{
+    el.innerHTML=[...todayLog].reverse().map(e=>{
+      const t=new Date(e.time);
+      const time=t.toLocaleTimeString('en-AU',{hour:'2-digit',minute:'2-digit'});
+      return `<div class="log-item">
+        <div class="dot ${e.type}"></div>
+        <div class="log-time">${time}</div>
+        <div class="log-type ${e.type}">${e.type==='fresh'?'Fresh':'Reload'}</div>
+        <button class="del-btn" onclick="del('${today}',${e.id})">×</button>
+      </div>`;
+    }).join('');
+  }
+
+  renderHistory();
+}
+
+function renderHistory(){
+  const dates=[];
+  for(let i=0;i<14;i++){
+    const d=new Date();d.setDate(d.getDate()-i);
+    const s=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+    dates.push(s);
+  }
+  const today=todayStr();
+  const rows=dates.map(date=>{
+    const entries=log[date]||[];
+    const fresh=entries.filter(e=>e.type==='fresh').length;
+    const reload=entries.filter(e=>e.type==='reload').length;
+    const {day,full}=fmtShort(date);
+    const isToday=date===today;
+    return `<div class="hist-row">
+      <div class="hist-date">
+        <div class="hist-day">${isToday?'Today':day}</div>
+        <div class="hist-full">${full}</div>
+      </div>
+      <div class="pills">
+        ${fresh?`<span class="pill fresh">${fresh} fresh</span>`:''}
+        ${reload?`<span class="pill reload">${reload} reload</span>`:''}
+        ${!fresh&&!reload?'<span class="pill none">—</span>':''}
+      </div>
+    </div>`;
+  }).join('');
+  document.getElementById('hist-card').innerHTML='<div class="card-title">14-Day Log</div>'+rows;
+}
+
+function goTo(id){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('active'));
+  document.getElementById('screen-'+id).classList.add('active');
+  document.getElementById('nav-'+id).classList.add('active');
+  document.getElementById('fab').style.display=(id==='today'?'flex':'none');
+}
+
+function openSheet(){document.getElementById('overlay').classList.add('show')}
+function closeSheet(){document.getElementById('overlay').classList.remove('show')}
+function overlayClick(e){if(e.target===document.getElementById('overlay'))closeSheet()}
+
+function genIcon(){
+  const c=document.createElement('canvas');c.width=c.height=180;
+  const x=c.getContext('2d');
+  const g=x.createLinearGradient(0,0,180,180);
+  g.addColorStop(0,'#4ade80');g.addColorStop(1,'#16a34a');
+  x.fillStyle=g;
+  x.beginPath();
+  if(x.roundRect)x.roundRect(0,0,180,180,40);
+  else{x.moveTo(40,0);x.lineTo(140,0);x.quadraticCurveTo(180,0,180,40);x.lineTo(180,140);x.quadraticCurveTo(180,180,140,180);x.lineTo(40,180);x.quadraticCurveTo(0,180,0,140);x.lineTo(0,40);x.quadraticCurveTo(0,0,40,0);}
+  x.fill();
+  x.font='bold 80px serif';x.textAlign='center';x.textBaseline='middle';
+  x.fillText('🟢',90,95);
+  const l=document.getElementById('ati');if(l)l.href=c.toDataURL();
+}
+
+load();genIcon();render();
+</script>
+</body>
+</html>
