@@ -118,26 +118,47 @@ export function modelScenario(sc){
   const upfront = deposit + duty + lmi + govFees + buyCosts;
 
   const repay    = monthlyRepayment(loan, sc.rate ?? 6.0, sc.years ?? 30);
+
+  // Property-specific costs
   const strataM  = toMonthly(sc.strata, sc.strataFreq || 'quarter');
   const councilM = toMonthly(sc.council, sc.councilFreq || 'year');
-  const waterM   = toMonthly(sc.water, 'year');
   const insureM  = toMonthly(sc.insurance, 'year');
+  const contentsM= toMonthly(sc.contents, 'year');
   const maintM   = toMonthly(sc.maintenance, 'year');
-  const housing  = repay + strataM + councilM + waterM + insureM + maintM;
+
+  // Utilities — the bills that come with running the place
+  const elecM    = toMonthly(sc.electricity, sc.utilFreq || 'quarter');
+  const gasM     = toMonthly(sc.gas, sc.utilFreq || 'quarter');
+  const waterM   = toMonthly(sc.water, sc.utilFreq || 'quarter');
+  const netM     = toMonthly(sc.internet, 'month');
+  const utilities = elecM + gasM + waterM + netM;
+
+  const propertyCosts = strataM + councilM + insureM + contentsM + maintM;
+  const housing = repay + propertyCosts + utilities;
+
+  /* Costs that stop when you buy — rent above all, but often current
+     utilities too, since the scenario now counts its own. Without this
+     the model charges you rent AND a mortgage, making every scenario
+     look worse than it is. */
+  const replacedIds = sc.replaces || [];
+  const replaced = store.get().recurring
+    .filter(r => replacedIds.includes(r.id))
+    .reduce((n,r) => n + toMonthly(r.amount, r.freq), 0);
 
   const income   = monthlyIncome();
-  const fixedNow = monthlyFixed();
+  const fixedNow = monthlyFixed() - replaced;
   const afterAll = income - fixedNow - housing;
   const ratio    = income > 0 ? housing / income * 100 : 0;
 
   // +3% is roughly the serviceability buffer lenders must test against.
   const stressRepay = monthlyRepayment(loan, (sc.rate ?? 6.0) + 3, sc.years ?? 30);
-  const stressLeft  = income - fixedNow - (stressRepay + strataM + councilM + waterM + insureM + maintM);
+  const stressLeft  = income - fixedNow - (stressRepay + propertyCosts + utilities);
 
   return {
     loan, lvr, duty, lmi, govFees, buyCosts, upfront, deposit,
-    repay, strataM, councilM, waterM, insureM, maintM, housing,
-    afterAll, ratio, stressRepay, stressLeft,
+    repay, strataM, councilM, insureM, contentsM, maintM,
+    elecM, gasM, waterM, netM, utilities, propertyCosts,
+    housing, replaced, fixedNow, afterAll, ratio, stressRepay, stressLeft,
     verdict: ratio > 45 ? 'stretched' : ratio > 33 ? 'tight' : 'comfortable',
   };
 }
@@ -475,17 +496,33 @@ function openScenario(id){
     ${m.buyCosts ? rowLine('Legals, inspection, loan fee, moving', money(m.buyCosts)) : ''}
     ${rowLine('<b>Total cash needed</b>', '<b>' + money(m.upfront) + '</b>')}
 
-    <label class="label" style="margin-top:18px">Every month</label>
+    <label class="label" style="margin-top:18px">The property, every month</label>
     ${rowLine('Mortgage', money(m.repay))}
     ${m.strataM ? rowLine('Strata', money(m.strataM)) : ''}
     ${m.councilM ? rowLine('Council rates', money(m.councilM)) : ''}
-    ${m.waterM ? rowLine('Water', money(m.waterM)) : ''}
-    ${m.insureM ? rowLine('Insurance', money(m.insureM)) : ''}
+    ${m.insureM ? rowLine('Home / building insurance', money(m.insureM)) : ''}
+    ${m.contentsM ? rowLine('Contents insurance', money(m.contentsM)) : ''}
     ${m.maintM ? rowLine('Maintenance allowance', money(m.maintM)) : ''}
+
+    ${m.utilities ? `<label class="label" style="margin-top:18px">Running it</label>
+      ${m.elecM ? rowLine('Electricity', money(m.elecM)) : ''}
+      ${m.gasM ? rowLine('Gas', money(m.gasM)) : ''}
+      ${m.waterM ? rowLine('Water', money(m.waterM)) : ''}
+      ${m.netM ? rowLine('Internet', money(m.netM)) : ''}
+      ${rowLine('<b>Utilities</b>', '<b>' + money(m.utilities) + '</b>')}` : ''}
+
+    <label class="label" style="margin-top:18px">The bottom line</label>
     ${rowLine('<b>Total housing</b>', '<b>' + money(m.housing) + '</b>')}
-    ${rowLine('Your other fixed costs', money(monthlyFixed()))}
+    ${rowLine('Your other fixed costs', money(m.fixedNow))}
+    ${m.replaced ? rowLine(`Costs that stop when you buy`, '−' + money(m.replaced)) : ''}
     ${rowLine('<b>Left to live on</b>',
       `<b style="color:${m.afterAll<0?'var(--bad)':'var(--good)'}">${money(m.afterAll)}</b>`)}
+
+    ${!m.replaced ? `<div class="tiny muted" style="margin-top:10px;line-height:1.55">
+      Nothing marked as replaced. If you're paying rent or utilities now, tick them under
+      <b>Edit → What stops when you buy</b> — otherwise this charges you for both and every
+      scenario looks worse than it is.
+    </div>` : ''}
 
     <div class="card tight" style="box-shadow:none;background:${m.stressLeft<0?'var(--bad-tint)':'var(--surface-2)'};margin-top:16px">
       <div class="card-title" style="font-size:14.5px">If rates rise 3%</div>
@@ -627,7 +664,9 @@ function editScenario(sc){
     price:900000, deposit:180000, gift:0, rate:6.0, years:30,
     firstHome:false, ownerOccupier:true,
     strata:1200, strataFreq:'quarter', council:1600, councilFreq:'year',
-    water:800, insurance:600, maintenance:1500,
+    insurance:0, contents:400, maintenance:1500,
+    utilFreq:'quarter', electricity:350, gas:200, water:250, internet:80,
+    replaces:[],
     legal:2000, inspection:600, loanFee:600, moving:1000,
     transferFee:178, mortgageReg:178,
   };
@@ -688,7 +727,7 @@ function editScenario(sc){
       current rates and concessions.
     </div>
 
-    <div class="sec" style="margin-top:20px">Ongoing costs</div>
+    <div class="sec" style="margin-top:20px">The property</div>
     <label class="label">Strata</label>
     <div class="grid2">
       <input class="input" type="number" inputmode="numeric" id="sc-strata" value="${d.strata ?? 0}">
@@ -699,23 +738,56 @@ function editScenario(sc){
     </div>
     <div class="grid2" style="margin-top:12px">
       ${numField('sc-council','Council rates / yr', d.council)}
-      ${numField('sc-water','Water / yr', d.water)}
-      ${numField('sc-ins','Insurance / yr', d.insurance)}
+      ${numField('sc-ins','Building insurance / yr', d.insurance)}
+      ${numField('sc-contents','Contents insurance / yr', d.contents)}
       ${numField('sc-maint','Maintenance / yr', d.maintenance)}
     </div>
-    <div class="tiny muted" style="margin-top:8px">
-      A maintenance allowance of about 1% of the property value a year is the usual rule of thumb.
+    <div class="tiny muted" style="margin-top:8px;line-height:1.55">
+      In a strata apartment the building is usually insured by the body corporate, so leave building
+      insurance at 0 and keep contents. Maintenance of about 1% of the property value a year is the
+      usual rule of thumb.
     </div>
+
+    <div class="sec" style="margin-top:20px">Running it</div>
+    <label class="label">Electricity, gas and water are billed</label>
+    <select class="select" id="sc-ufreq">
+      ${[['quarter','per quarter'],['month','per month'],['year','per year']].map(([v,l]) =>
+        `<option value="${v}" ${(d.utilFreq||'quarter')===v?'selected':''}>${l}</option>`).join('')}
+    </select>
+    <div class="grid2" style="margin-top:12px">
+      ${numField('sc-elec','Electricity', d.electricity)}
+      ${numField('sc-gas','Gas', d.gas)}
+      ${numField('sc-water','Water', d.water)}
+      ${numField('sc-net','Internet / month', d.internet)}
+    </div>
+    <div class="tiny muted" style="margin-top:8px">
+      Internet is billed monthly; the other three follow the setting above.
+    </div>
+
+    <div class="sec" style="margin-top:20px">What stops when you buy</div>
+    <div class="tiny muted" style="margin:-4px 0 10px;line-height:1.55">
+      Tick anything you pay now that this property replaces — rent especially, and any utilities
+      you've entered above. Without this you're charged twice and every scenario looks unaffordable.
+    </div>
+    ${store.get().recurring.length ? `<div class="chips">
+      ${store.get().recurring.map(r => `<button class="chip ${(d.replaces||[]).includes(r.id)?'on':''}"
+        data-act="repl" data-v="${r.id}">${esc(r.name)} · ${money(toMonthly(r.amount,r.freq))}</button>`).join('')}
+    </div>` : `<div class="tiny muted">No fixed costs added yet — add them on the Fixed tab first.</div>`}
 
     <button class="btn btn-primary block" style="margin-top:20px" data-act="save">${isNew?'Create':'Save'}</button>
     <button class="btn btn-ghost block" data-act="close">Cancel</button>
   `);
 
   let ptype = d.propertyType;
+  const replaces = new Set(d.replaces || []);
   bindActions(document.querySelector('.sheet'), {
     ptype: (dd, el) => {
       ptype = dd.v;
       el.parentElement.querySelectorAll('.chip').forEach(c => c.classList.toggle('on', c === el));
+    },
+    repl: (dd, el) => {
+      replaces.has(dd.v) ? replaces.delete(dd.v) : replaces.add(dd.v);
+      el.classList.toggle('on', replaces.has(dd.v));
     },
     save: () => {
       const name = sheetVal('sc-name').trim();
@@ -733,8 +805,12 @@ function editScenario(sc){
         transferFee: sheetNum('sc-transfer'), mortgageReg: sheetNum('sc-mortreg'),
         strata: sheetNum('sc-strata'), strataFreq: sheetVal('sc-sfreq'),
         council: sheetNum('sc-council'), councilFreq: 'year',
-        water: sheetNum('sc-water'), insurance: sheetNum('sc-ins'),
+        insurance: sheetNum('sc-ins'), contents: sheetNum('sc-contents'),
         maintenance: sheetNum('sc-maint'),
+        utilFreq: sheetVal('sc-ufreq'),
+        electricity: sheetNum('sc-elec'), gas: sheetNum('sc-gas'),
+        water: sheetNum('sc-water'), internet: sheetNum('sc-net'),
+        replaces: [...replaces],
         // A price or status change invalidates any looked-up duty.
         dutyOverride: (sc && sc.price === sheetNum('sc-price')
                         && sc.firstHome === document.getElementById('sc-fh').checked)
