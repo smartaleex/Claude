@@ -71,7 +71,12 @@ function budgetFor(day){
 }
 
 const logsOn = day => store.get().logs.filter(l => dayKey(l.t) === day);
-const mgOn = day => logsOn(day).reduce((n,l) => n + l.mg, 0);
+
+/* Reusing a pouch delivers no NEW nicotine — you're finishing the mg you
+   already counted when you first took it out. So only fresh pouches add
+   to the daily total, otherwise a habit that reduces consumption would
+   show up as an increase. */
+const mgOn = day => logsOn(day).filter(l => !l.reused).reduce((n,l) => n + l.mg, 0);
 const lastLog = () => [...store.get().logs].sort((a,b) => a.t - b.t).at(-1);
 
 function gapText(){
@@ -191,7 +196,7 @@ function render(){
     </div>
   </header>
 
-  <div class="seg" style="margin:16px 0">
+  <div class="seg sticky" style="margin:16px 0">
     ${[['today','Today'],['trend','Progress'],['why','Plan']].map(([v,l]) =>
       `<button class="${tab===v?'on':''}" data-act="tab" data-v="${v}">${l}</button>`).join('')}
   </div>
@@ -526,7 +531,7 @@ function bind(){
         if (l){ l.reused = !l.reused; on = !!l.reused; }
       });
       haptic();
-      toast(on ? 'Marked as reusing a pouch ♻️' : 'Marked as a fresh pouch');
+      toast(on ? "Reused — doesn't add to today's mg ♻️" : 'Marked as a fresh pouch');
       render();
     },
     rm: d => {

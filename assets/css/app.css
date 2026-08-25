@@ -19,7 +19,7 @@ a{ color:inherit; }
 canvas{ display:block; }
 
 /* ---------- layout shell ---------- */
-#app{ min-height:100dvh; padding-bottom:calc(var(--tabbar-h) + var(--sab) + 12px); }
+#app{ min-height:100dvh; padding-bottom:calc(var(--tabbar-h) + var(--sab) + 26px); }
 .shell{ max-width:var(--shell-w); margin:0 auto; padding:calc(var(--sat) + 14px) 16px 0; }
 .stack{ display:flex; flex-direction:column; gap:14px; }
 .row{ display:flex; align-items:center; gap:10px; }
@@ -195,24 +195,49 @@ canvas{ display:block; }
 .sheet h2{ font-family:'Sora',sans-serif; font-size:21px; font-weight:800; letter-spacing:-.025em; margin:0 0 4px; }
 .sheet .sub{ color:var(--muted); font-size:14px; margin:0 0 16px; }
 
-/* ---------- tab bar ---------- */
+/* ---------- app switcher ----------
+   Deliberately styled as a floating pill rather than an edge-to-edge
+   bar. Flush bars read as part of the page, which led to tapping them
+   expecting sub-navigation and being thrown into a different tool. The
+   gap, the shadow and the rounded shell all say "this is above the app,
+   not inside it". */
 .tabbar{
   position:fixed; left:0; right:0; bottom:0; z-index:50;
-  height:calc(var(--tabbar-h) + var(--sab)); padding-bottom:var(--sab);
-  background:color-mix(in srgb, var(--surface) 86%, transparent);
-  backdrop-filter:saturate(180%) blur(20px);
-  border-top:1px solid var(--line-soft);
-  display:flex; align-items:stretch;
+  padding:0 12px calc(var(--sab) + 10px);
+  display:flex; justify-content:center;
+  pointer-events:none;                     /* only the pill is tappable */
 }
-.tabbar-inner{ max-width:var(--shell-w); margin:0 auto; width:100%; display:flex; }
+.tabbar-inner{
+  pointer-events:auto;
+  max-width:calc(var(--shell-w) - 24px); width:100%;
+  display:flex; gap:2px;
+  height:var(--tabbar-h);
+  padding:5px 6px;
+  border-radius:var(--r-pill);
+  background:color-mix(in srgb, var(--surface) 92%, transparent);
+  backdrop-filter:saturate(180%) blur(22px);
+  border:1px solid var(--line);
+  box-shadow:0 8px 28px rgba(20,24,60,.14), 0 2px 6px rgba(20,24,60,.06);
+}
 .tab{
-  flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:3px;
-  color:var(--faint); transition:color var(--fast); padding:0 2px;
+  flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:2px;
+  color:var(--faint); padding:0 2px; border-radius:var(--r-pill);
+  transition:color var(--fast), background var(--fast);
+  min-width:0;
 }
-.tab .ti{ font-size:19px; line-height:1; transition:transform var(--base) var(--ease-out); }
-.tab .tl{ font-size:9.5px; font-weight:700; letter-spacing:.04em; }
-.tab.on{ color:var(--accent-1, var(--brand-1)); }
-.tab.on .ti{ transform:translateY(-1px) scale(1.08); }
+.tab .ti{ font-size:18px; line-height:1; transition:transform var(--base) var(--ease-out); }
+.tab .tl{ font-size:9px; font-weight:700; letter-spacing:.03em; overflow:hidden; text-overflow:ellipsis; max-width:100%; }
+.tab.on{ color:var(--accent-1, var(--brand-1)); background:var(--accent-tint, var(--brand-tint)); }
+.tab.on .ti{ transform:translateY(-1px) scale(1.06); }
+.tab:active{ transform:scale(.94); }
+
+/* ---------- sticky sub-nav ----------
+   Each tool's own tabs stay reachable while scrolling, so there's no
+   reason to reach for the switcher to move around inside an app. */
+.seg.sticky{
+  position:sticky; top:calc(var(--sat) + 4px); z-index:20;
+  box-shadow:0 6px 18px -8px rgba(20,24,60,.22);
+}
 
 /* ---------- toast ---------- */
 .toast{

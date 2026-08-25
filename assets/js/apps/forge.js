@@ -124,7 +124,7 @@ function render(){
     </div>
   </header>
 
-  <div class="seg" style="margin:16px 0">
+  <div class="seg sticky" style="margin:16px 0">
     ${[['plan','Plan'],['goal','Goal'],['log','History']].map(([v,l]) =>
       `<button class="${tab===v?'on':''}" data-act="tab" data-v="${v}">${l}</button>`).join('')}
   </div>

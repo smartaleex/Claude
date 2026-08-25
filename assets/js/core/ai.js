@@ -41,7 +41,10 @@ const settings = new Slice('settings', {
   model: '',          // empty = auto-pick from MODEL_CHAIN
   callCount: 0,
   lastCallDay: '',
+  tabOrder: null,     // null = registry default; see appOrder() in main.js
 });
+
+export function setTabOrder(order){ settings.update(s => { s.tabOrder = order; }); }
 
 export function setModel(m){ settings.update(s => { s.model = m || ''; }); }
 

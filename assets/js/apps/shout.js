@@ -25,14 +25,21 @@ const store = new Slice('shout', {
 let tab = 'roster';
 let root = null;
 
+/* Weighted toward the short end — the whole point is catching drift
+   early, and "every few months" is long enough that a friendship can
+   quietly lapse before the app says anything. */
 const CADENCES = [
+  { v:3,   l:'Every few days' },
   { v:7,   l:'Weekly' },
+  { v:10,  l:'Every 10 days' },
   { v:14,  l:'Fortnightly' },
+  { v:21,  l:'Every 3 weeks' },
   { v:30,  l:'Monthly' },
-  { v:90,  l:'Every few months' },
-  { v:180, l:'Twice a year' },
+  { v:60,  l:'Every 2 months' },
+  { v:90,  l:'Quarterly' },
 ];
-const cadenceLabel = v => CADENCES.find(c => c.v === v)?.l || `Every ${v} days`;
+const cadenceLabel = v => CADENCES.find(c => c.v === v)?.l
+  || (v % 7 === 0 ? `Every ${v/7} weeks` : `Every ${v} days`);
 
 /* How overdue is this mate, as a ratio of their own cadence?
    Ratio rather than raw days, so a weekly mate at 10 days ranks above
@@ -78,7 +85,7 @@ function render(){
     </div>
   </header>
 
-  <div class="seg" style="margin:16px 0">
+  <div class="seg sticky" style="margin:16px 0">
     ${[['roster','Roster'],['plans','Plans']].map(([v,l]) =>
       `<button class="${tab===v?'on':''}" data-act="tab" data-v="${v}">${l}</button>`).join('')}
   </div>
@@ -332,6 +339,13 @@ function editMate(m){
     <div class="chips" id="m-cad">
       ${CADENCES.map(c => `<button class="chip ${c.v===d.cadence?'on':''}" data-act="cad" data-v="${c.v}">${c.l}</button>`).join('')}
     </div>
+    <div class="row" style="margin-top:10px;gap:8px;align-items:center">
+      <span class="tiny muted nowrap">Or every</span>
+      <input class="input" type="number" inputmode="numeric" min="1" id="m-cad-custom"
+             value="${CADENCES.some(c => c.v === d.cadence) ? '' : d.cadence}"
+             placeholder="…" style="width:80px;text-align:center;padding:9px">
+      <span class="tiny muted nowrap">days</span>
+    </div>
 
     <label class="label" style="margin-top:16px">Last caught up</label>
     <input class="input" type="date" id="m-last" value="${d.lastSeen||''}" max="${today()}">
@@ -348,11 +362,15 @@ function editMate(m){
   bindActions(document.querySelector('.sheet'), {
     cad: (dd, el) => {
       cad = +dd.v;
+      const custom = document.getElementById('m-cad-custom');
+      if (custom) custom.value = '';        // a preset overrides a typed value
       el.parentElement.querySelectorAll('.chip').forEach(c => c.classList.toggle('on', c === el));
     },
     save: () => {
       const name = sheetVal('m-name').trim();
       if (!name){ toast('Name?'); return; }
+      const typed = parseInt(sheetVal('m-cad-custom'), 10);
+      if (Number.isFinite(typed) && typed > 0) cad = typed;
       const obj = { id: m?.id || uid(), name, cadence: cad,
                     lastSeen: sheetVal('m-last') || '', note: sheetVal('m-note').trim() };
       store.update(s => {

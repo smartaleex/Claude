@@ -2,7 +2,7 @@
    main.js — app shell: registry, router, tab bar, home dashboard.
    ============================================================ */
 
-import { initAI, aiStatus, setKey, aiSettings, testKey, discoverModels } from './core/ai.js';
+import { initAI, aiStatus, setKey, aiSettings, setTabOrder, testKey, discoverModels } from './core/ai.js';
 import { exportAll, importAll, Slice, today } from './core/store.js';
 import { esc, $, toast, openSheet, closeSheet, sheetVal, bindActions, haptic } from './core/ui.js';
 
@@ -37,10 +37,21 @@ export const APPS = {
             accent:['#C026D3','#EC4899','#FBEAFB','rgba(192,38,211,.28)'] },
 };
 
-// Clear earns a bottom-bar slot: it's a several-times-a-day log, where
-// Ledger is a weekly sit-down. Frequency of use decides the tab bar.
-const TABS = ['home','fuel','forge','clear','shout','more'];
-const MORE = ['ledger','vale'];
+/* Order is user-editable in Settings. The first four sit in the bottom
+   bar, the rest live under More — frequency of use should decide that,
+   and only the person using it knows their own. */
+const DEFAULT_ORDER = ['fuel','forge','clear','shout','ledger','vale'];
+const BAR_SLOTS = 4;
+
+function appOrder(){
+  const saved = aiSettings()?.tabOrder;
+  const valid = Array.isArray(saved) ? saved.filter(id => APPS[id]) : [];
+  // Append anything missing so a new tool can't vanish behind stale prefs.
+  return [...valid, ...DEFAULT_ORDER.filter(id => !valid.includes(id))];
+}
+const barApps  = () => appOrder().slice(0, BAR_SLOTS);
+const moreApps = () => appOrder().slice(BAR_SLOTS);
+const TABS = () => ['home', ...barApps(), 'more'];
 
 const view = $('#view');
 let current = 'home';
@@ -86,8 +97,9 @@ export const rerender = () => navigate(location.hash.slice(1) || 'home', { keepS
 
 /* ---------------- tab bar ---------------- */
 function renderTabs(){
-  const activeTab = TABS.includes(current) ? current : (MORE.includes(current) ? 'more' : 'home');
-  $('#tabbar-inner').innerHTML = TABS.map(t => {
+  const tabs = TABS();
+  const activeTab = tabs.includes(current) ? current : (moreApps().includes(current) ? 'more' : 'home');
+  $('#tabbar-inner').innerHTML = tabs.map(t => {
     const meta = t === 'home' ? { icon:'◈', tab:'HQ' }
                : t === 'more' ? { icon:'⋯', tab:'More' }
                : APPS[t];
@@ -106,7 +118,7 @@ $('#tabbar').addEventListener('click', e => {
    so each tool exports summary() and we show only what's live. */
 async function homeHTML(){
   const cards = [];
-  for (const id of ['fuel','forge','clear','shout','ledger','vale']){
+  for (const id of appOrder()){
     try{ cards.push({ id, ...(await APPS[id].mod.summary()) }); }
     catch{ cards.push({ id, headline:'—', detail:'Tap to set up' }); }
   }
@@ -145,7 +157,7 @@ async function homeHTML(){
 
   <div class="sec">Everything</div>
   <div class="grid2" style="gap:10px">
-    ${Object.values(APPS).map(a => `
+    ${appOrder().map(id => APPS[id]).map(a => `
       <button class="card tight in" data-go2="${a.id}" style="text-align:left">
         <div style="font-size:22px">${a.icon}</div>
         <div class="card-title" style="margin-top:8px">${a.name}</div>
@@ -214,7 +226,7 @@ function moreHTML(){
     <h1 class="page-h1">More</h1>
   </header>
   <div class="stack" style="margin-top:18px">
-    ${MORE.map(id => {
+    ${moreApps().map(id => {
       const a = APPS[id];
       return `<button class="rowcard in" onclick="navigate('${id}')" style="width:100%;text-align:left">
         <div class="av" style="background:linear-gradient(135deg,${a.accent[0]},${a.accent[1]});font-size:18px">${a.icon}</div>
@@ -259,6 +271,23 @@ function openSettings(){
         `<button class="${theme===v?'on':''}" data-act="theme" data-v="${v}">${l}</button>`).join('')}
     </div>
 
+    <label class="label" style="margin-top:20px">App order</label>
+    <div class="tiny muted" style="margin:-2px 0 8px">
+      The first ${BAR_SLOTS} sit in the bottom bar; the rest live under More.
+    </div>
+    <div class="stack" style="gap:6px">
+      ${appOrder().map((id,i) => {
+        const a = APPS[id];
+        return `<div class="rowcard" style="padding:10px 12px">
+          <div class="av" style="background:linear-gradient(135deg,${a.accent[0]},${a.accent[1]});width:32px;height:32px;font-size:15px">${a.icon}</div>
+          <div class="grow"><b style="font-size:14.5px">${esc(a.name)}</b>
+            <span class="sub" style="font-size:11.5px">${i < BAR_SLOTS ? 'Bottom bar' : 'Under More'}</span></div>
+          <button class="btn btn-sm btn-plain" data-act="mv" data-i="${i}" data-dir="-1" ${i===0?'disabled':''} aria-label="Move up">↑</button>
+          <button class="btn btn-sm btn-plain" data-act="mv" data-i="${i}" data-dir="1" ${i===appOrder().length-1?'disabled':''} aria-label="Move down">↓</button>
+        </div>`;
+      }).join('')}
+    </div>
+
     <label class="label" style="margin-top:20px">Your data</label>
     <button class="btn btn-plain block" data-act="export">⬇ Download a backup</button>
     <button class="btn btn-plain block" style="margin-top:8px" data-act="import">⬆ Restore from backup</button>
@@ -273,6 +302,16 @@ function openSettings(){
       document.documentElement.dataset.theme = d.v;
       try{ localStorage.setItem('alexhq:theme', d.v); }catch{}
       openSettings();
+    },
+    mv: d => {
+      const order = appOrder();
+      const i = +d.i, j = i + (+d.dir);
+      if (j < 0 || j >= order.length) return;
+      [order[i], order[j]] = [order[j], order[i]];
+      setTabOrder(order);
+      haptic();
+      openSettings();          // reopen so the list and labels refresh
+      rerender();
     },
     export: doExport,
     import: doImport,
