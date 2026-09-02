@@ -1,0 +1,392 @@
+/* ============================================================
+   ALEX HQ — component layer · Claymorphism
+   ============================================================ */
+
+*,*::before,*::after{ box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+html,body{ margin:0; padding:0; }
+html{ -webkit-text-size-adjust:100%; }
+body{
+  background:var(--bg); color:var(--ink);
+  font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
+  font-size:16px; line-height:1.5;
+  overscroll-behavior-y:none;
+  -webkit-font-smoothing:antialiased;
+}
+
+/* A soft coloured wash behind everything, so the clay has light to
+   catch rather than sitting on flat grey. Fixed, so it never scrolls.
+   Pulled right back at night — at full strength it turns the background
+   muddy and fights the surfaces for attention. */
+body::before{
+  content:""; position:fixed; inset:0; z-index:-1; pointer-events:none;
+  background:
+    radial-gradient(60% 45% at 12% 0%,   hsl(232 90% 72% / .20), transparent 70%),
+    radial-gradient(55% 40% at 92% 8%,   hsl(291 85% 74% / .17), transparent 70%),
+    radial-gradient(70% 45% at 50% 100%, hsl(28 95% 70% / .13),  transparent 72%);
+}
+:root[data-theme="dark"] body::before{ opacity:.30; }
+@media (prefers-color-scheme: dark){ :root[data-theme="auto"] body::before{ opacity:.30; } }
+
+.display{ font-family:'Sora','Inter',sans-serif; font-weight:800; letter-spacing:-.03em; }
+button{ font-family:inherit; font-size:inherit; color:inherit; cursor:pointer; border:none; background:none; }
+input,textarea,select{ font-family:inherit; font-size:16px; color:var(--ink); }
+a{ color:inherit; }
+canvas{ display:block; }
+
+/* ---------- layout shell ---------- */
+#app{ min-height:100dvh; padding-bottom:calc(var(--tabbar-h) + var(--sab) + 30px); }
+.shell{ max-width:var(--shell-w); margin:0 auto; padding:calc(var(--sat) + 14px) 17px 0; }
+.stack{ display:flex; flex-direction:column; gap:11px; }
+.row{ display:flex; align-items:center; gap:10px; }
+.spread{ display:flex; align-items:center; justify-content:space-between; gap:12px; }
+.grow{ flex:1; min-width:0; }
+
+/* ---------- page header ---------- */
+.eyebrow{
+  font-size:11.5px; letter-spacing:.2em; text-transform:uppercase;
+  font-weight:800; color:var(--faint);
+}
+.page-h1{ font-family:'Sora',sans-serif; font-weight:800; font-size:32px; letter-spacing:-.034em; margin:4px 0 0; line-height:1.05; }
+.page-sub{ color:var(--muted); font-size:14.5px; margin-top:6px; }
+
+/* ---------- cards ---------- */
+.card{
+  background:var(--surface); border-radius:var(--r-lg); padding:19px;
+  box-shadow:var(--clay);
+  border:none;
+}
+.card.tight{ padding:15px; border-radius:var(--r-md); }
+.card.flush{ padding:0; overflow:hidden; }
+
+/* Pressed into the surface rather than raised out of it. Used for
+   nested blocks inside a card or sheet, where another raised layer
+   would just look like clutter. */
+.card.sunk, .sunk{
+  background:var(--surface-2);
+  box-shadow:var(--clay-in);
+  border:none;
+}
+
+.card-title{ font-family:'Sora',sans-serif; font-weight:700; font-size:16px; letter-spacing:-.012em; }
+.card-note{ color:var(--muted); font-size:13.5px; line-height:1.58; }
+
+.sec{
+  font-size:11.5px; letter-spacing:.16em; text-transform:uppercase;
+  font-weight:800; color:var(--faint); margin:20px 4px 10px;
+}
+
+/* ---------- hero: a big block of coloured clay ---------- */
+.hero{
+  position:relative; overflow:hidden; border-radius:var(--r-xl);
+  padding:22px; color:#fff;
+  background:var(--accent-grad, var(--brand-grad));
+  box-shadow:var(--clay-tint-lg), var(--clay-on-colour);
+}
+/* Gloss: a soft highlight across the upper third, like light on a
+   rounded surface. Removed in dark, where it just washes the colour out. */
+:root[data-theme="dark"] .hero::before,
+:root[data-theme="dark"] .hero-num,
+:root[data-theme="dark"] .hero-side{ display:revert; text-shadow:none; }
+:root[data-theme="dark"] .hero::before{ opacity:.35; }
+@media (prefers-color-scheme: dark){ :root[data-theme="auto"] .hero::before{ opacity:.35; } }
+.hero::before{
+  content:""; position:absolute; inset:0; pointer-events:none;
+  background:
+    radial-gradient(120% 80% at 18% -20%, rgba(255,255,255,.34), transparent 62%),
+    radial-gradient(90% 60% at 108% 6%, rgba(255,255,255,.16), transparent 60%);
+}
+.hero > *{ position:relative; }
+.hero-num{ font-family:'Sora',sans-serif; font-weight:800; font-size:52px; line-height:1; letter-spacing:-.04em; text-shadow:0 2px 10px rgba(0,0,0,.13); }
+.hero-cap{ font-size:15px; opacity:.9; margin-top:7px; }
+.hero-side{ font-family:'Sora',sans-serif; font-weight:800; font-size:36px; text-align:right; line-height:1; text-shadow:0 2px 10px rgba(0,0,0,.13); }
+
+/* Progress bar as a groove carved into the clay. */
+.bar{
+  height:13px; border-radius:var(--r-pill); margin-top:18px; overflow:hidden;
+  background:rgba(0,0,0,.16);
+  box-shadow:inset 0 2px 5px rgba(0,0,0,.24), inset 0 -1px 1px rgba(255,255,255,.16);
+}
+.bar > i{
+  display:block; height:100%; background:#fff; border-radius:var(--r-pill);
+  box-shadow:inset 0 -2px 4px rgba(0,0,0,.10), inset 0 2px 3px rgba(255,255,255,.9);
+  transition:width var(--slow) var(--ease-out);
+}
+
+/* ---------- buttons ---------- */
+.btn{
+  display:inline-flex; align-items:center; justify-content:center; gap:8px;
+  border-radius:var(--r-pill); padding:14px 20px; font-weight:700; font-size:15.5px;
+  transition:transform var(--fast) var(--ease-squish),
+             box-shadow var(--fast) var(--ease), opacity var(--fast);
+}
+.btn:active{ transform:translateY(2px) scale(.975); }
+.btn:disabled{ opacity:.5; pointer-events:none; }
+.btn.block{ display:flex; width:100%; }
+
+.btn-primary{
+  background:var(--accent-grad, var(--brand-grad)); color:#fff;
+  box-shadow:var(--clay-tint), var(--clay-on-colour);
+}
+.btn-primary:active{ box-shadow:var(--clay-press); }
+
+.btn-ink{
+  background:var(--ink); color:var(--surface);
+  box-shadow:var(--clay-cast), inset 0 -6px 14px -5px rgba(0,0,0,.5), inset 0 7px 14px -5px rgba(255,255,255,.22);
+}
+.btn-ink:active{ box-shadow:var(--clay-press); }
+
+.btn-soft{ background:var(--accent-tint, var(--brand-tint)); color:var(--accent-1, var(--brand-1)); box-shadow:var(--clay-sm); }
+.btn-plain{ background:var(--surface); box-shadow:var(--clay-sm); }
+.btn-soft:active, .btn-plain:active, .btn-danger:active{ box-shadow:var(--clay-press); }
+.btn-ghost{ color:var(--muted); font-weight:600; padding:13px; box-shadow:none; }
+.btn-ghost:active{ transform:scale(.97); }
+.btn-sm{ padding:10px 16px; font-size:13.5px; }
+.btn-danger{ background:var(--bad-tint); color:var(--bad); box-shadow:var(--clay-sm); }
+
+/* ---------- chips ---------- */
+.chip{
+  border-radius:var(--r-pill); padding:10px 16px; font-weight:600; font-size:14px;
+  background:var(--surface); border:none; white-space:nowrap;
+  box-shadow:var(--clay-sm);
+  transition:transform var(--fast) var(--ease-squish), box-shadow var(--fast), background var(--fast), color var(--fast);
+}
+.chip.on{
+  background:var(--accent-grad, var(--brand-grad)); color:#fff;
+  box-shadow:var(--clay-tint), inset 0 -5px 11px -4px rgba(0,0,0,.18), inset 0 5px 11px -4px rgba(255,255,255,.4);
+}
+.chip:active{ transform:translateY(2px) scale(.96); box-shadow:var(--clay-press); }
+.chips{ display:flex; gap:9px; flex-wrap:wrap; }
+.chips.scroll{ flex-wrap:nowrap; overflow-x:auto; scrollbar-width:none; padding:2px 0 4px; }
+.chips.scroll::-webkit-scrollbar{ display:none; }
+
+/* ---------- segmented control: a groove with a clay pebble in it ---------- */
+.seg{
+  display:flex; background:var(--bg-sunk); border-radius:var(--r-pill); padding:5px; gap:3px;
+  box-shadow:var(--clay-in);
+}
+.seg button{
+  flex:1; border-radius:var(--r-pill); padding:10px 6px;
+  font-weight:600; font-size:13.5px; color:var(--muted);
+  transition:all var(--fast) var(--ease);
+}
+.seg button.on{
+  background:var(--surface); color:var(--ink); font-weight:700;
+  box-shadow:var(--clay-sm);
+}
+.seg.sticky{
+  position:sticky; top:calc(var(--sat) + 6px); z-index:20;
+  box-shadow:var(--clay-in), 0 10px 22px -12px hsl(var(--clay-hue) / .3);
+}
+
+/* ---------- forms: inputs are pressed in, not raised ---------- */
+.field{ display:block; }
+.label{
+  display:block; font-size:11.5px; letter-spacing:.1em; text-transform:uppercase;
+  font-weight:800; color:var(--muted); margin:0 0 8px;
+}
+.input, .textarea, .select{
+  width:100%; background:var(--surface-2); border:none;
+  border-radius:var(--r-sm); padding:13px 15px; color:var(--ink);
+  box-shadow:var(--clay-in);
+  transition:box-shadow var(--fast);
+}
+.input:focus, .textarea:focus, .select:focus{
+  outline:none;
+  box-shadow:var(--clay-in), 0 0 0 3px var(--accent-tint, var(--brand-tint));
+}
+.textarea{ resize:none; min-height:92px; line-height:1.5; }
+.input::placeholder,.textarea::placeholder{ color:var(--faint); }
+.grid2{ display:grid; grid-template-columns:1fr 1fr; gap:11px; }
+.grid3{ display:grid; grid-template-columns:repeat(3,1fr); gap:11px; }
+
+/* ---------- stat tiles ---------- */
+.stat{
+  background:var(--surface); border-radius:var(--r-md); padding:15px;
+  box-shadow:var(--clay-sm); border:none;
+}
+.stat .v{ font-family:'Sora',sans-serif; font-weight:800; font-size:26px; letter-spacing:-.025em; }
+.stat .v small{ font-family:'Inter',sans-serif; font-size:13px; color:var(--muted); font-weight:600; }
+.stat .l{ color:var(--muted); font-size:11.5px; font-weight:700; letter-spacing:.06em; text-transform:uppercase; margin-top:5px; }
+
+/* ---------- meters: grooves with clay fills ---------- */
+.meter{ margin-bottom:15px; }
+.meter:last-child{ margin-bottom:0; }
+.meter-head{ display:flex; justify-content:space-between; align-items:baseline; margin-bottom:7px; }
+.meter-lab{ font-size:12.5px; font-weight:800; letter-spacing:.13em; text-transform:uppercase; }
+.meter-val{ font-family:'Sora',sans-serif; font-weight:800; font-size:21px; }
+.meter-val span{ color:var(--faint); font-weight:700; font-size:16px; }
+.meter-track{
+  height:13px; border-radius:var(--r-pill); overflow:hidden;
+  box-shadow:inset 0 2px 5px hsl(var(--clay-hue) / .20), inset 0 -1px 2px rgba(255,255,255,.7);
+}
+.meter-fill{
+  height:100%; border-radius:var(--r-pill);
+  box-shadow:inset 0 -2px 5px rgba(0,0,0,.14), inset 0 2px 4px rgba(255,255,255,.5);
+  transition:width var(--slow) var(--ease-out);
+}
+.meter-foot{ text-align:right; font-size:12.5px; color:var(--muted); margin-top:5px; }
+
+/* ---------- list rows ---------- */
+.rowcard{
+  background:var(--surface); border-radius:var(--r-md); padding:14px 15px;
+  box-shadow:var(--clay-sm); border:none;
+  display:flex; align-items:center; gap:13px;
+  transition:transform var(--fast) var(--ease-squish), box-shadow var(--fast);
+}
+.rowcard:active{ transform:translateY(2px) scale(.99); box-shadow:var(--clay-press); }
+.rowcard b{ font-size:15.5px; font-weight:700; display:block; }
+.rowcard .sub{ color:var(--muted); font-size:13px; margin-top:3px; display:block; }
+.caret{ color:var(--faint); font-size:17px; flex:none; }
+
+/* avatar — a little clay bead */
+.av{
+  width:41px; height:41px; border-radius:var(--r-pill); flex:none;
+  display:grid; place-items:center; font-weight:800; font-size:15px;
+  font-family:'Sora',sans-serif; color:#fff;
+  box-shadow:0 8px 16px -8px hsl(var(--clay-hue) / .5),
+             inset 0 -4px 9px -3px rgba(0,0,0,.22),
+             inset 0 5px 10px -3px rgba(255,255,255,.42);
+}
+
+/* badge */
+.badge{
+  display:inline-block; font-size:10.5px; font-weight:800; letter-spacing:.07em;
+  text-transform:uppercase; padding:5px 11px; border-radius:var(--r-pill);
+  /* Without this a two-word badge wraps and the pill inflates into a
+     circle, which is what "1/4 this week" was doing on the home tiles. */
+  white-space:nowrap; flex:none;
+  box-shadow:inset 0 -2px 5px -2px rgba(0,0,0,.10), inset 0 2px 5px -2px rgba(255,255,255,.85);
+}
+.badge.good{ background:var(--good-tint); color:var(--good); }
+.badge.warn{ background:var(--warn-tint); color:var(--warn); }
+.badge.bad{ background:var(--bad-tint); color:var(--bad); }
+.badge.neutral{ background:var(--bg-sunk); color:var(--muted); }
+.badge.accent{ background:var(--accent-tint, var(--brand-tint)); color:var(--accent-1, var(--brand-1)); }
+
+/* ---------- empty state ---------- */
+.empty{ text-align:center; padding:40px 22px; color:var(--muted); font-size:14.5px; line-height:1.65; }
+.empty .ico{ font-size:38px; display:block; margin-bottom:14px; opacity:.55; filter:drop-shadow(0 6px 10px hsl(var(--clay-hue) / .22)); }
+
+/* ---------- bottom sheet ---------- */
+.scrim{
+  position:fixed; inset:0; background:hsl(var(--clay-hue) / .42); backdrop-filter:blur(4px);
+  opacity:0; pointer-events:none; transition:opacity var(--base); z-index:60;
+}
+.scrim.on{ opacity:1; pointer-events:auto; }
+.sheet{
+  position:fixed; left:0; right:0; bottom:0; z-index:61;
+  background:var(--surface); border-radius:var(--r-xl) var(--r-xl) 0 0;
+  padding:12px 22px calc(var(--sab) + 26px);
+  transform:translateY(102%); transition:transform var(--base) var(--ease-out);
+  max-height:90dvh; overflow-y:auto;
+  box-shadow:0 -22px 50px -18px hsl(var(--clay-hue) / .38),
+             inset 0 9px 18px -8px rgba(255,255,255,.95);
+  max-width:var(--shell-w); margin:0 auto;
+}
+.sheet.on{ transform:translateY(0); }
+.sheet-grip{
+  width:44px; height:5px; border-radius:99px; background:var(--bg-sunk); margin:0 auto 18px;
+  box-shadow:var(--clay-in);
+}
+.sheet h2{ font-family:'Sora',sans-serif; font-size:22px; font-weight:800; letter-spacing:-.028em; margin:0 0 5px; }
+.sheet .sub{ color:var(--muted); font-size:14px; margin:0 0 18px; }
+
+/* ---------- app switcher ----------
+   A floating clay pill, deliberately detached from the page. A flush
+   edge-to-edge bar reads as page content and gets tapped expecting
+   sub-navigation; the gap and the cast shadow say "above the app". */
+/* Installed to the home screen there is no browser chrome, so scrolled
+   content slides straight under the clock and the signal bars. A blurred
+   scrim over the safe-area strip keeps the time legible and stops a
+   half-cropped heading reading like a layout bug. */
+.statusbar-scrim{
+  position:fixed; top:0; left:0; right:0; z-index:60;
+  height:var(--sat); pointer-events:none;
+  backdrop-filter:blur(14px); -webkit-backdrop-filter:blur(14px);
+  background:color-mix(in srgb, var(--bg) 72%, transparent);
+}
+
+.tabbar{
+  position:fixed; left:0; right:0; bottom:0; z-index:50;
+  padding:0 14px calc(var(--sab) + 12px);
+  display:flex; justify-content:center;
+  pointer-events:none;
+}
+.tabbar-inner{
+  pointer-events:auto;
+  max-width:calc(var(--shell-w) - 28px); width:100%;
+  display:flex; gap:2px;
+  height:var(--tabbar-h);
+  padding:6px 7px;
+  border-radius:var(--r-pill);
+  background:color-mix(in srgb, var(--surface) 90%, transparent);
+  backdrop-filter:saturate(180%) blur(22px);
+  box-shadow:0 20px 38px -14px hsl(var(--clay-hue) / .45),
+             inset 0 -6px 14px -5px hsl(var(--clay-hue) / .14),
+             inset 0 8px 15px -6px rgba(255,255,255,.95);
+}
+.tab{
+  flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:2px;
+  color:var(--faint); padding:0 2px; border-radius:var(--r-pill);
+  transition:color var(--fast), background var(--fast), transform var(--fast) var(--ease-squish);
+  min-width:0;
+}
+.tab .ti{ font-size:19px; line-height:1; transition:transform var(--base) var(--ease-squish); }
+.tab .tl{ font-size:9px; font-weight:800; letter-spacing:.03em; overflow:hidden; text-overflow:ellipsis; max-width:100%; }
+.tab.on{
+  color:var(--accent-1, var(--brand-1));
+  background:var(--accent-tint, var(--brand-tint));
+  box-shadow:var(--clay-in);
+}
+.tab.on .ti{ transform:translateY(-1px) scale(1.1); }
+.tab:active{ transform:scale(.93); }
+
+/* ---------- toast ---------- */
+.toast{
+  position:fixed; left:50%; bottom:calc(var(--tabbar-h) + var(--sab) + 22px);
+  transform:translate(-50%,14px) scale(.96); z-index:70;
+  background:var(--ink); color:var(--surface);
+  padding:15px 24px; border-radius:var(--r-pill); font-size:14px; font-weight:600;
+  box-shadow:0 18px 34px -12px hsl(var(--clay-hue) / .55),
+             inset 0 -5px 12px -4px rgba(0,0,0,.45),
+             inset 0 6px 12px -4px rgba(255,255,255,.2);
+  opacity:0; pointer-events:none;
+  transition:opacity var(--base), transform var(--base) var(--ease-squish);
+  max-width:calc(100vw - 44px); text-align:center;
+}
+.toast.on{ opacity:1; transform:translate(-50%,0) scale(1); }
+
+/* ---------- spinner ---------- */
+.spin{
+  display:inline-block; width:15px; height:15px; border-radius:99px;
+  border:2.5px solid rgba(255,255,255,.35); border-top-color:#fff;
+  animation:spin .7s linear infinite;
+}
+.spin.dark{ border-color:var(--bg-sunk); border-top-color:var(--accent-1,var(--brand-1)); }
+@keyframes spin{ to{ transform:rotate(360deg); } }
+
+/* ---------- motion ---------- */
+.in{ animation:in .42s var(--ease-squish) both; }
+@keyframes in{ from{ opacity:0; transform:translateY(12px) scale(.985); } to{ opacity:1; transform:none; } }
+.in-2{ animation-delay:.05s; } .in-3{ animation-delay:.1s; } .in-4{ animation-delay:.15s; }
+@media (prefers-reduced-motion:reduce){
+  *,*::before,*::after{ animation-duration:.01ms !important; transition-duration:.01ms !important; }
+}
+
+/* ---------- utility ---------- */
+.mono{ font-variant-numeric:tabular-nums; }
+.muted{ color:var(--muted); }
+.tiny{ font-size:12.5px; }
+.center{ text-align:center; }
+.hr{ height:2px; background:var(--line-soft); border-radius:2px; margin:15px 0;
+     box-shadow:inset 0 1px 1px hsl(var(--clay-hue) / .10); }
+.nowrap{ white-space:nowrap; }
+.trunc{ overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+
+/* ---------- drawn icons ----------
+   Replacing emoji: these inherit currentColor, so one icon works on a
+   white card, a coloured bead and an active tab without three variants. */
+.ico{ display:block; flex:none; }
+.av .ico{ color:#fff; }
+.tab .ti{ display:grid; place-items:center; }
+.chip .ico, .btn .ico{ margin:-1px 0; }
