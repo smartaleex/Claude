@@ -17,6 +17,7 @@ import {
   esc, num, toast, openSheet, closeSheet, sheetVal, bindActions,
   empty, stat, haptic,
 } from '../core/ui.js';
+import { icon } from '../core/icons.js';
 import { LESSONS, LEVELS, SCENARIOS, lessonsIn } from '../data/spanish.js';
 
 const store = new Slice('vale', {
@@ -106,7 +107,7 @@ function render(){
         <div class="eyebrow">Español · Vale</div>
         <h1 class="page-h1">${tab==='learn' ? 'Learn' : tab==='drill' ? 'Practise' : 'Talk'}</h1>
       </div>
-      <div class="chip" style="pointer-events:none">🔥 ${store.get().streak}</div>
+      <div class="chip" style="pointer-events:none">${icon('flame',15)} ${store.get().streak}</div>
     </div>
   </header>
 
@@ -262,7 +263,7 @@ function sessionHTML(){
     const pct = Math.round(session.right / queue.length * 100);
     return `
     <div class="card in center" style="padding:34px 22px">
-      <div style="font-size:44px">${pct >= 80 ? '🎉' : pct >= 50 ? '👊' : '📚'}</div>
+      <div style="color:var(--accent-1)">${icon(pct >= 80 ? 'spark' : pct >= 50 ? 'check' : 'note', 40)}</div>
       <div style="font-family:'Sora',sans-serif;font-weight:800;font-size:28px;margin-top:12px">
         ${session.right} / ${queue.length}
       </div>
@@ -332,7 +333,7 @@ function talkHTML(){
   <div class="grid2" style="gap:10px">
     ${SCENARIOS.map(s => `
       <button class="card tight in" data-act="scenario" data-id="${s.id}" style="text-align:left">
-        <div style="font-size:22px">${s.icon}</div>
+        <div style="color:var(--accent-1)">${icon(s.icon,22)}</div>
         <div class="card-title" style="margin-top:8px;font-size:14.5px">${esc(s.title)}</div>
       </button>`).join('')}
   </div>
@@ -393,7 +394,7 @@ Respond with ONLY this JSON:
 function openScenario(id){
   const sc = SCENARIOS.find(s => s.id === id);
   openSheet(`
-    <h2>${sc.icon} ${esc(sc.title)}</h2>
+    <h2>${esc(sc.title)}</h2>
     <p class="sub">Write what you'd say. It'll be corrected as a Spaniard would hear it.</p>
     <div class="card tight sunk" style="margin-bottom:14px">
       <div class="tiny muted">Situación: ${esc(sc.prompt)}</div>

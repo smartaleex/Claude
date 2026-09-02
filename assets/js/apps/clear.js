@@ -15,6 +15,7 @@ import {
   esc, num, round, toast, openSheet, closeSheet, sheetVal, sheetNum,
   bindActions, empty, stat, haptic, barChart,
 } from '../core/ui.js';
+import { icon } from '../core/icons.js';
 
 const store = new Slice('clear', {
   logs: [],                      // { id, t, mg, tag, reused }
@@ -192,7 +193,7 @@ function render(){
         <div class="eyebrow">Nicotine · Clear</div>
         <h1 class="page-h1">${tab==='today' ? 'Today' : tab==='trend' ? 'Progress' : 'Plan'}</h1>
       </div>
-      <button class="chip" data-act="plan">⚙</button>
+      <button class="chip" data-act="plan">${icon('settings',18)}</button>
     </div>
   </header>
 
@@ -242,20 +243,20 @@ function todayHTML(){
   </div>
 
   <div class="sec">Today's log</div>
-  ${!ls.length ? empty('🌱','Nothing yet today.<br>Every hour you delay the first one makes the rest easier.') :
+  ${!ls.length ? empty(icon('leaf',34),'Nothing yet today.<br>Every hour you delay the first one makes the rest easier.') :
     `<div class="stack" style="gap:8px">${ls.map(l => `
       <div class="rowcard" ${l.reused ? 'style="opacity:.82"' : ''}>
         <div class="grow">
           <b>${l.mg}mg</b>
-          <span class="sub">${esc(fmtTime(l.t))} · ${l.reused ? '♻️ same pouch again' : 'fresh pouch'}${l.tag ? ' · ' + esc(l.tag) : ''}</span>
+          <span class="sub">${esc(fmtTime(l.t))} · ${l.reused ? icon('repeat',13) + ' same pouch again' : 'fresh pouch'}${l.tag ? ' · ' + esc(l.tag) : ''}</span>
         </div>
         <button class="btn btn-sm ${l.reused ? 'btn-soft' : 'btn-plain'}" data-act="reuse" data-id="${l.id}"
-                title="${l.reused ? 'Mark as a fresh pouch' : 'Mark as reusing an earlier pouch'}">♻️</button>
+                title="${l.reused ? 'Mark as a fresh pouch' : 'Mark as reusing an earlier pouch'}">${icon('repeat',15)}</button>
         <button class="btn btn-sm btn-plain" data-act="tag" data-id="${l.id}">${l.tag ? 'Retag' : 'Tag'}</button>
         <button class="btn btn-sm" style="color:var(--faint);padding:6px 8px" data-act="rm" data-id="${l.id}">✕</button>
       </div>`).join('')}
     <div class="tiny muted" style="margin-top:4px">
-      Tap ♻️ when you're picking a pouch back up rather than opening a new one — only fresh ones
+      Tap the repeat icon when you're picking a pouch back up rather than opening a new one — only fresh ones
       count toward how many you actually get through.
     </div></div>`}`;
 }
@@ -328,7 +329,7 @@ function tinStatsHTML(){
   const st = useStats(30);
   if (!st.sessions){
     return `<div class="card in in-3" style="margin-top:14px">
-      <div class="card-title">📦 Pouches used</div>
+      <div class="card-title">Pouches used</div>
       <div class="card-note" style="margin-top:5px">
         Log a few and this fills in — pouches actually used, how often you reuse one, and how many
         packets a week that works out to.
@@ -337,7 +338,7 @@ function tinStatsHTML(){
   }
   return `
   <div class="card in in-3" style="margin-top:14px">
-    <div class="card-title">📦 Pouches used</div>
+    <div class="card-title">Pouches used</div>
     <div class="card-note" style="margin:4px 0 14px">Last 30 days. Only fresh pouches count — reuses aren't new ones.</div>
     <div class="grid2" style="gap:10px">
       ${stat(num(st.pouches), 'Pouches used', 'var(--accent-1)')}
@@ -349,7 +350,7 @@ function tinStatsHTML(){
       You reused a pouch ${st.reused} time${st.reused===1?'':'s'} — ${st.reusePct}% of the time,
       about ${st.perSession} sessions per pouch. That's ${st.reused} pouch${st.reused===1?'':'es'} you didn't open.
     </div>` : `<div class="tiny muted" style="margin-top:12px;line-height:1.55">
-      No reuses logged yet. Tap ♻️ on a log entry when you pick an earlier pouch back up.
+      No reuses logged yet. Tap the repeat icon on a log entry when you pick an earlier pouch back up.
     </div>`}
     ${st.packetDays !== null ? `<div class="tiny muted" style="margin-top:8px;line-height:1.55">
       A ${st.size}-pouch packet lasts you about ${st.packetDays} days — roughly
@@ -531,7 +532,7 @@ function bind(){
         if (l){ l.reused = !l.reused; on = !!l.reused; }
       });
       haptic();
-      toast(on ? "Reused — doesn't add to today's mg ♻️" : 'Marked as a fresh pouch');
+      toast(on ? "Reused — doesn't add to today's mg" : 'Marked as a fresh pouch');
       render();
     },
     rm: d => {

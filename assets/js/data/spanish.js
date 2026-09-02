@@ -250,12 +250,12 @@ export const LESSONS = [
 
 /* ---------------- conversation scenarios ---------------- */
 export const SCENARIOS = [
-  { id:'bar',    icon:'🍺', title:'At the bar',        prompt:'ordering drinks and tapas, chatting with the barman' },
-  { id:'gym',    icon:'💪', title:'At the gym',        prompt:'asking about equipment, machines, a routine' },
-  { id:'piso',   icon:'🏠', title:'Renting a flat',    prompt:'viewing a piso, asking about the contract and bills' },
-  { id:'work',   icon:'💼', title:'Work small talk',   prompt:'colleagues chatting before a meeting starts' },
-  { id:'friend', icon:'👋', title:'Catching up',       prompt:'seeing an old friend after a long time' },
-  { id:'doctor', icon:'🩺', title:'At the doctor',     prompt:'describing a shoulder injury and symptoms' },
+  { id:'bar',    icon:'food', title:'At the bar',        prompt:'ordering drinks and tapas, chatting with the barman' },
+  { id:'gym',    icon:'training', title:'At the gym',        prompt:'asking about equipment, machines, a routine' },
+  { id:'piso',   icon:'money', title:'Renting a flat',    prompt:'viewing a piso, asking about the contract and bills' },
+  { id:'work',   icon:'note', title:'Work small talk',   prompt:'colleagues chatting before a meeting starts' },
+  { id:'friend', icon:'people', title:'Catching up',       prompt:'seeing an old friend after a long time' },
+  { id:'doctor', icon:'pill', title:'At the doctor',     prompt:'describing a shoulder injury and symptoms' },
 ];
 
 export const levelOf = id => LESSONS.find(l => l.id === id)?.level;

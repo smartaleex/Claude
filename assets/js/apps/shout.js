@@ -16,6 +16,7 @@ import {
   esc, toast, openSheet, closeSheet, sheetVal, sheetNum, bindActions,
   empty, stat, haptic, avatarStyle, initials, num,
 } from '../core/ui.js';
+import { icon } from '../core/icons.js';
 
 const store = new Slice('shout', {
   mates: [],    // { id, name, cadence, lastSeen, note, tags:[] }
@@ -155,7 +156,7 @@ function plansHTML(){
   return `
   <button class="btn btn-primary block in" data-act="addplan">+ New plan</button>
 
-  ${!ps.length ? empty('📅','Nothing planned.<br>Vague intentions don\'t survive a busy week — put a date on it.') :
+  ${!ps.length ? empty(icon('note',34),'Nothing planned.<br>Vague intentions don\'t survive a busy week — put a date on it.') :
     `<div class="sec">Coming up</div><div class="stack" style="gap:9px">${ps.map(p => `
       <div class="rowcard">
         <div class="grow">
@@ -194,8 +195,8 @@ function openMate(id){
     <button class="btn btn-primary block" data-act="sawthem">✓ Caught up today</button>
 
     <div class="grid2" style="margin-top:10px;gap:8px">
-      <button class="btn btn-plain" data-act="draft">✨ Draft a text</button>
-      <button class="btn btn-plain" data-act="ideas">✨ Plan ideas</button>
+      <button class="btn btn-plain" data-act="draft">${icon('spark',16)} Draft a text</button>
+      <button class="btn btn-plain" data-act="ideas">${icon('spark',16)} Plan ideas</button>
     </div>
 
     <div id="mate-ai"></div>

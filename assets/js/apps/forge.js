@@ -12,6 +12,7 @@ import {
   esc, num, round, toast, openSheet, closeSheet, sheetVal, sheetNum,
   bindActions, empty, stat, haptic,
 } from '../core/ui.js';
+import { icon } from '../core/icons.js';
 import {
   PHASES, WARMUPS, PROGRESSION, TAG_STYLE, PHYSIQUE,
   weeklyVolume, sessionMinutes, totalExercises,
@@ -120,7 +121,7 @@ function render(){
         <h1 class="page-h1">${tab==='plan' ? 'The plan' : tab==='goal' ? 'The goal' : 'History'}</h1>
         <div class="page-sub">Phase ${p.phase} · ${esc(p.name)} · week ${Math.min(weekInBlock(),8)} of 8</div>
       </div>
-      <button class="chip" data-act="settings">⚙</button>
+      <button class="chip" data-act="settings">${icon('settings',18)}</button>
     </div>
   </header>
 
@@ -234,7 +235,7 @@ function sessionHTML(sess){
   ${wu ? `<div class="card in in-2" style="margin-top:14px">
     <div class="spread" data-act="togglewu">
       <div class="grow">
-        <div class="card-title">⚡ ${esc(wu.name)}</div>
+        <div class="card-title">${icon('spark',17)} ${esc(wu.name)}</div>
         <div class="card-note" style="margin-top:3px">${esc(wu.why)}</div>
       </div>
       <span class="caret">▾</span>
@@ -369,7 +370,7 @@ function goalHTML(){
 
   ${volumeHTML()}
 
-  <button class="btn btn-plain block in" style="margin-top:14px" data-act="advice">✨ Ask about form or a swap</button>`;
+  <button class="btn btn-plain block in" style="margin-top:14px" data-act="advice">${icon('spark',17)} Ask about form or a swap</button>`;
 }
 
 /* Weekly sets per muscle for the current phase — the honesty check that
@@ -421,7 +422,7 @@ function volumeHTML(){
 function historyHTML(){
   const sess = Object.values(store.get().sessions).filter(s => s.done)
     .sort((a,b) => b.dayKey.localeCompare(a.dayKey));
-  if (!sess.length) return empty('🏋️', 'No sessions logged yet.<br>Finish one and it will show up here.');
+  if (!sess.length) return empty(icon('training',34), 'No sessions logged yet.<br>Finish one and it will show up here.');
 
   const allDays = PHASES.flatMap(p => p.days);
   return `

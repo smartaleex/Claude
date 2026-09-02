@@ -5,7 +5,9 @@
 import { initAI, aiStatus, setKey, aiSettings, setTabOrder, testKey, discoverModels } from './core/ai.js';
 import { exportAll, importAll, Slice, today } from './core/store.js';
 import { esc, $, toast, openSheet, closeSheet, sheetVal, bindActions, haptic } from './core/ui.js';
+import { icon } from './core/icons.js';
 
+import * as day    from './apps/day.js';
 import * as fuel   from './apps/fuel.js';
 import * as forge  from './apps/forge.js';
 import * as ledger from './apps/ledger.js';
@@ -17,30 +19,33 @@ import * as vale   from './apps/vale.js';
    `accent` drives the whole page: hero gradients, primary buttons and
    the active tab all read these vars, so one entry re-themes a tool. */
 export const APPS = {
-  fuel:   { id:'fuel',   name:'Fuel',   tab:'Fuel',   icon:'🍳', title:'Fuel',
-            blurb:'Macros & lean bulk', mod:fuel,
+  day:    { id:'day',    name:'Day',      icon:'day',      mod:day,
+            blurb:'Meds, sleep, anchors',
+            accent:['#0EA5A5','#14B8A6','#E0F5F4','rgba(14,165,165,.30)'] },
+  fuel:   { id:'fuel',   name:'Food',     icon:'food',     mod:fuel,
+            blurb:'Macros and the bulk',
             accent:['#5850EC','#8B5CF6','#ECEBFE','rgba(88,80,236,.30)'] },
-  forge:  { id:'forge',  name:'Forge',  tab:'Forge',  icon:'💪', title:'Forge',
-            blurb:'Training & physique', mod:forge,
+  forge:  { id:'forge',  name:'Training', icon:'training', mod:forge,
+            blurb:'The swimmer build',
             accent:['#2563EB','#4F46E5','#E4ECFE','rgba(37,99,235,.30)'] },
-  clear:  { id:'clear',  name:'Clear',  tab:'Clear',  icon:'🌅', title:'Clear',
-            blurb:'Nicotine taper', mod:clear,
+  clear:  { id:'clear',  name:'Nicotine', icon:'nicotine', mod:clear,
+            blurb:'The taper',
             accent:['#F97316','#FBBF24','#FEF0E2','rgba(249,115,22,.30)'] },
-  shout:  { id:'shout',  name:'Shout',  tab:'Shout',  icon:'🍻', title:'Shout',
-            blurb:'Mates & plans', mod:shout,
+  shout:  { id:'shout',  name:'People',   icon:'people',   mod:shout,
+            blurb:'Mates and plans',
             accent:['#EC4899','#F43F5E','#FDEAF2','rgba(236,72,153,.28)'] },
-  ledger: { id:'ledger', name:'Ledger', tab:'Ledger', icon:'💰', title:'Ledger',
-            blurb:'Money & the house', mod:ledger,
+  ledger: { id:'ledger', name:'Money',    icon:'money',    mod:ledger,
+            blurb:'Budget and the house',
             accent:['#8B5CF6','#C026D3','#F3EAFD','rgba(139,92,246,.28)'] },
-  vale:   { id:'vale',   name:'Vale',   tab:'Vale',   icon:'🇪🇸', title:'Vale',
-            blurb:'Spanish, properly', mod:vale,
+  vale:   { id:'vale',   name:'Spanish',  icon:'spanish',  mod:vale,
+            blurb:'From rusty to fluent',
             accent:['#C026D3','#EC4899','#FBEAFB','rgba(192,38,211,.28)'] },
 };
 
 /* Order is user-editable in Settings. The first four sit in the bottom
    bar, the rest live under More — frequency of use should decide that,
    and only the person using it knows their own. */
-const DEFAULT_ORDER = ['fuel','forge','clear','shout','ledger','vale'];
+const DEFAULT_ORDER = ['day','fuel','forge','clear','shout','ledger','vale'];
 const BAR_SLOTS = 4;
 
 function appOrder(){
@@ -100,11 +105,11 @@ function renderTabs(){
   const tabs = TABS();
   const activeTab = tabs.includes(current) ? current : (moreApps().includes(current) ? 'more' : 'home');
   $('#tabbar-inner').innerHTML = tabs.map(t => {
-    const meta = t === 'home' ? { icon:'◈', tab:'HQ' }
-               : t === 'more' ? { icon:'⋯', tab:'More' }
+    const meta = t === 'home' ? { icon:'hq',   name:'HQ' }
+               : t === 'more' ? { icon:'more', name:'More' }
                : APPS[t];
     return `<button class="tab ${t===activeTab?'on':''}" data-go="${t}" aria-current="${t===activeTab}">
-      <span class="ti">${meta.icon}</span><span class="tl">${meta.tab}</span></button>`;
+      <span class="ti">${icon(meta.icon, 21)}</span><span class="tl">${esc(meta.name)}</span></button>`;
   }).join('');
 }
 
@@ -120,13 +125,18 @@ async function homeHTML(){
   const cards = [];
   for (const id of appOrder()){
     try{ cards.push({ id, ...(await APPS[id].mod.summary()) }); }
-    catch{ cards.push({ id, headline:'—', detail:'Tap to set up' }); }
+    catch{ cards.push({ id, headline:'\u2014', detail:'Tap to set up' }); }
   }
 
   const now = new Date();
   const hour = now.getHours();
   const greet = hour < 5 ? 'Still up' : hour < 12 ? 'Morning' : hour < 17 ? 'Afternoon' : 'Evening';
   const ai = aiStatus();
+
+  // Day leads. Everything else is a tool you open when you want it —
+  // a wall of six scoreboards is the last thing that helps on a bad day.
+  const dayCard  = cards.find(c => c.id === 'day');
+  const restCards = cards.filter(c => c.id !== 'day');
 
   return `
   <header class="in">
@@ -135,38 +145,40 @@ async function homeHTML(){
         <div class="eyebrow">${esc(now.toLocaleDateString('en-AU',{weekday:'long', day:'numeric', month:'long'}))}</div>
         <h1 class="page-h1">${greet}, Alex</h1>
       </div>
-      <button class="chip" data-act="settings" aria-label="Settings">⚙</button>
+      <button class="chip" data-act="settings" aria-label="Settings">${icon('settings',18)}</button>
     </div>
   </header>
 
-  ${ai.tier === 3 ? `
-  <div class="card in in-2" style="margin-top:16px;background:var(--warn-tint);border-color:transparent">
-    <div class="spread">
+  ${dayCard ? `
+  <button class="hero in" data-go2="day" style="width:100%;text-align:left;margin-top:16px;
+          --accent-grad:linear-gradient(140deg,#0EA5A5 0%,#14B8A6 55%,#34D399 100%);
+          --accent-glow:rgba(14,165,165,.38)">
+    <div class="spread" style="align-items:flex-start">
       <div class="grow">
-        <div class="card-title" style="color:var(--warn)">AI features are off</div>
-        <div class="card-note" style="margin-top:4px">Add a free Gemini key to turn on food photos, suggestions and Spanish feedback.</div>
+        <div class="eyebrow" style="color:rgba(255,255,255,.8)">Today</div>
+        <div style="font-family:'Sora',sans-serif;font-weight:800;font-size:28px;letter-spacing:-.03em;margin-top:6px">
+          ${esc(dayCard.headline)}
+        </div>
+        <div class="hero-cap">${esc(dayCard.detail)}</div>
       </div>
+      <span style="opacity:.85">${icon('day',30)}</span>
     </div>
-    <button class="btn btn-sm block" style="margin-top:12px;background:var(--warn);color:#fff" data-act="setup-ai">Set it up — 2 minutes</button>
+  </button>` : ''}
+
+  ${ai.tier === 3 ? `
+  <div class="card in in-2" style="margin-top:12px;background:var(--warn-tint);border-color:transparent">
+    <div class="card-title" style="color:var(--warn)">AI features are off</div>
+    <div class="card-note" style="margin-top:4px">A free Gemini key turns on food photos, suggestions and Spanish feedback.</div>
+    <button class="btn btn-sm block" style="margin-top:12px;background:var(--warn);color:#fff" data-act="setup-ai">Set it up</button>
   </div>` : ''}
 
-  <div class="sec">Today</div>
+  <div class="sec">The rest</div>
   <div class="stack">
-    ${cards.map((c,i) => tileHTML(c, i)).join('')}
+    ${restCards.map((c,i) => tileHTML(c, i)).join('')}
   </div>
 
-  <div class="sec">Everything</div>
-  <div class="grid2" style="gap:10px">
-    ${appOrder().map(id => APPS[id]).map(a => `
-      <button class="card tight in" data-go2="${a.id}" style="text-align:left">
-        <div style="font-size:22px">${a.icon}</div>
-        <div class="card-title" style="margin-top:8px">${a.name}</div>
-        <div class="card-note" style="font-size:12.5px">${a.blurb}</div>
-      </button>`).join('')}
-  </div>
-
-  <div class="center tiny muted" style="margin:28px 0 8px">
-    Alex HQ · everything saves to this device
+  <div class="center tiny muted" style="margin:26px 0 8px">
+    Everything saves to this device
   </div>`;
 }
 
@@ -177,23 +189,23 @@ function tileHTML(c, i){
   // invalid HTML and swallow the inner taps.
   return `
   <div class="card in ${i<3?'in-'+(i+2):''}">
-    <div style="display:flex;align-items:center;gap:14px;width:100%" data-go2="${c.id}">
-      <div class="av" style="background:linear-gradient(135deg,${c1},${c2});font-size:19px">${a.icon}</div>
+    <div style="display:flex;align-items:center;gap:13px;width:100%" data-go2="${c.id}">
+      <div class="av" style="background:linear-gradient(135deg,${c1},${c2})">${icon(a.icon, 20)}</div>
       <div class="grow" style="text-align:left">
         <div class="spread" style="align-items:baseline">
           <span style="font-weight:700;font-size:15.5px">${a.name}</span>
           ${c.badge ? `<span class="badge" style="background:color-mix(in srgb, ${c1} 15%, var(--surface));color:${c1}">${esc(c.badge)}</span>` : ''}
         </div>
-        <div style="font-family:'Sora',sans-serif;font-weight:800;font-size:19px;letter-spacing:-.02em;margin-top:3px">${c.headline}</div>
+        <div style="font-family:'Sora',sans-serif;font-weight:800;font-size:18px;letter-spacing:-.02em;margin-top:3px">${c.headline}</div>
         <div class="card-note" style="font-size:12.5px;margin-top:1px">${c.detail}</div>
       </div>
-      <span class="caret">›</span>
+      <span class="caret">${icon('chevron',16)}</span>
     </div>
     ${c.chips?.length ? `
       <div class="chips scroll" style="margin-top:12px;padding-top:12px;border-top:1px solid var(--line-soft)">
         ${c.chips.map(ch => `<button class="chip ${ch.on?'on':''}" style="font-size:12.5px;padding:8px 13px"
             data-act="${esc(ch.act)}" ${Object.entries(ch.data||{}).map(([k,v]) => `data-${k}="${esc(v)}"`).join(' ')}
-          >${ch.on ? '✓ ' : ''}${esc(ch.label)}</button>`).join('')}
+          >${ch.on ? '&#10003; ' : ''}${esc(ch.label)}</button>`).join('')}
       </div>` : ''}
   </div>`;
 }
@@ -229,13 +241,13 @@ function moreHTML(){
     ${moreApps().map(id => {
       const a = APPS[id];
       return `<button class="rowcard in" onclick="navigate('${id}')" style="width:100%;text-align:left">
-        <div class="av" style="background:linear-gradient(135deg,${a.accent[0]},${a.accent[1]});font-size:18px">${a.icon}</div>
+        <div class="av" style="background:linear-gradient(135deg,${a.accent[0]},${a.accent[1]})">${icon(a.icon, 19)}</div>
         <div class="grow"><b>${a.name}</b><span class="sub">${a.blurb}</span></div>
         <span class="caret">›</span>
       </button>`;
     }).join('')}
     <button class="rowcard in" onclick="window.__openSettings()" style="width:100%;text-align:left">
-      <div class="av" style="background:linear-gradient(135deg,#6E7488,#3A3F52);font-size:18px">⚙</div>
+      <div class="av" style="background:linear-gradient(135deg,#6E7488,#3A3F52)">${icon('settings',19)}</div>
       <div class="grow"><b>Settings</b><span class="sub">AI, backup, appearance</span></div>
       <span class="caret">›</span>
     </button>
@@ -279,7 +291,7 @@ function openSettings(){
       ${appOrder().map((id,i) => {
         const a = APPS[id];
         return `<div class="rowcard" style="padding:10px 12px">
-          <div class="av" style="background:linear-gradient(135deg,${a.accent[0]},${a.accent[1]});width:32px;height:32px;font-size:15px">${a.icon}</div>
+          <div class="av" style="background:linear-gradient(135deg,${a.accent[0]},${a.accent[1]});width:32px;height:32px">${icon(a.icon,17)}</div>
           <div class="grow"><b style="font-size:14.5px">${esc(a.name)}</b>
             <span class="sub" style="font-size:11.5px">${i < BAR_SLOTS ? 'Bottom bar' : 'Under More'}</span></div>
           <button class="btn btn-sm btn-plain" data-act="mv" data-i="${i}" data-dir="-1" ${i===0?'disabled':''} aria-label="Move up">↑</button>
@@ -289,8 +301,8 @@ function openSettings(){
     </div>
 
     <label class="label" style="margin-top:20px">Your data</label>
-    <button class="btn btn-plain block" data-act="export">⬇ Download a backup</button>
-    <button class="btn btn-plain block" style="margin-top:8px" data-act="import">⬆ Restore from backup</button>
+    <button class="btn btn-plain block" data-act="export">Download a backup</button>
+    <button class="btn btn-plain block" style="margin-top:8px" data-act="import">Restore from backup</button>
 
     <button class="btn btn-ghost block" style="margin-top:16px" data-act="close">Done</button>
   `);

@@ -9,6 +9,7 @@ import {
   esc, num, round, pct, toast, openSheet, closeSheet, sheetNum, bindActions,
   meter, stat, empty, barChart, haptic, $$,
 } from '../core/ui.js';
+import { icon } from '../core/icons.js';
 import { offlineMatch, offlineSuggest, looksBranded } from '../data/foods.js';
 
 /* Targets carried over verbatim from the original Fuel artifact
@@ -93,7 +94,7 @@ function render(){
         <h1 class="page-h1">${tab==='today' ? "Today" : tab==='history' ? 'History' : 'Trends'}</h1>
         <div class="page-sub">${tab==='today' ? esc(fmtDay(today())) : `${num(T.kcal)} kcal · ${num(T.p)}g protein target`}</div>
       </div>
-      <button class="chip" data-act="targets">⚙</button>
+      <button class="chip" data-act="targets">${icon('settings',18)}</button>
     </div>
   </header>
 
@@ -147,7 +148,7 @@ function dayHTML(d, isToday){
 
   ${isToday ? `
     <button class="btn btn-primary block in in-3" style="margin-top:14px" data-act="suggest" id="suggest-btn">
-      ✨ What should I eat?
+      ${icon('spark',17)} What should I eat?
     </button>
 
     <div class="row" style="margin:16px 0 12px">
@@ -160,7 +161,7 @@ function dayHTML(d, isToday){
 
 function logList(d){
   const es = entries(d);
-  if (!es.length) return empty('🍽', `Nothing logged ${d===today() ? 'yet today' : 'this day'}.<br>A lean bulk doesn't run on vibes.`);
+  if (!es.length) return empty(icon('food',34), `Nothing logged ${d===today() ? 'yet today' : 'this day'}.<br>A lean bulk doesn't run on vibes.`);
   return `<div class="stack" style="gap:9px">` + [...es].reverse().map(e => `
     <div class="card tight" style="padding:14px 16px">
       <div class="spread" data-act="toggle" data-id="${e.id}">
@@ -194,8 +195,8 @@ function addPanel(){
       Photograph the nutrition panel or the plate, and say how much you actually ate — "ate 4/5", "2 serves", "180g".
     </p>
     <div class="row" style="margin-bottom:12px">
-      <button class="btn btn-plain grow btn-sm" data-act="cam">📷 Take photo</button>
-      <button class="btn btn-plain grow btn-sm" data-act="lib">🖼 From library</button>
+      <button class="btn btn-plain grow btn-sm" data-act="cam">${icon('camera',16)} Take photo</button>
+      <button class="btn btn-plain grow btn-sm" data-act="lib">From library</button>
     </div>
     ${photos.length ? `<div class="row" style="flex-wrap:wrap;gap:8px;margin-bottom:12px">${photos.map((p,i) => `
       <div style="position:relative;width:62px;height:62px;border-radius:12px;overflow:hidden;border:1.5px solid var(--line)">
@@ -215,7 +216,7 @@ function addPanel(){
 /* ---------------- history ---------------- */
 function historyHTML(){
   const days = Object.keys(store.get().days).filter(d => d !== today()).sort().reverse();
-  if (!days.length) return empty('📅', 'No past days yet.<br>History builds itself as you log.');
+  if (!days.length) return empty(icon('note',34), 'No past days yet.<br>History builds itself as you log.');
   const T = store.get().targets;
   return `<div class="tiny muted" style="margin-bottom:10px">Green dot = protein target hit</div>
   <div class="stack" style="gap:9px">${days.map(d => {
@@ -568,7 +569,7 @@ Respond with ONLY this JSON:
     toast(e.message || 'Could not get suggestions');
   }finally{
     btn.disabled = false;
-    btn.textContent = '✨ What should I eat?';
+    btn.innerHTML = icon('spark',17) + ' What should I eat?';
   }
 }
 

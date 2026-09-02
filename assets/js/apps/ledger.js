@@ -17,6 +17,7 @@ import {
   esc, num, money, round, toast, openSheet, closeSheet, sheetVal, sheetNum,
   bindActions, empty, stat, haptic,
 } from '../core/ui.js';
+import { icon } from '../core/icons.js';
 
 const DEFAULT_BANKS = ['CommBank', 'Up', 'NAB', 'UBank', 'ING'];
 const DEFAULT_CATEGORIES = [
@@ -194,7 +195,7 @@ function render(){
           tab==='plan' ? 'The plan' : tab==='fixed' ? 'Fixed costs' :
           tab==='goals' ? 'Goals' : 'The house'}</h1>
       </div>
-      <button class="chip" data-act="settings">⚙</button>
+      <button class="chip" data-act="settings">${icon('settings',18)}</button>
     </div>
   </header>
 
@@ -352,7 +353,7 @@ function fixedHTML(){
     </div>` : ''}
   </div>
 
-  ${!rs.length ? empty('📋','Nothing fixed yet.<br>Add rent, subscriptions, insurance — anything that leaves without you deciding.') :
+  ${!rs.length ? empty(icon('note',34),'Nothing fixed yet.<br>Add rent, subscriptions, insurance — anything that leaves without you deciding.') :
     cats.map(([cat, items]) => {
       const sub = items.reduce((n,r) => n + toMonthly(r.amount, r.freq), 0);
       return `<div class="sec">${esc(cat)} · ${money(sub)}/mo</div>
@@ -446,7 +447,7 @@ function houseHTML(){
     <button class="btn btn-primary block" style="margin-top:14px" data-act="addsc">+ New scenario</button>
   </div>
 
-  ${!scs.length ? empty('🏠','No scenarios yet.<br>Add a place you\'re considering and see what it does to your month.') :
+  ${!scs.length ? empty(icon('money',34),'No scenarios yet.<br>Add a place you\'re considering and see what it does to your month.') :
     `<div class="stack" style="margin-top:14px;gap:10px">${scs.map(sc => {
       const m = modelScenario(sc);
       const tone = m.verdict === 'comfortable' ? 'good' : m.verdict === 'tight' ? 'warn' : 'bad';
@@ -534,8 +535,8 @@ function openScenario(id){
       </div>
     </div>
 
-    <button class="btn btn-plain block" style="margin-top:16px" data-act="lookup">✨ Look up stamp duty & fees</button>
-    <button class="btn btn-plain block" style="margin-top:8px" data-act="talk">✨ Talk through this scenario</button>
+    <button class="btn btn-plain block" style="margin-top:16px" data-act="lookup">${icon('spark',17)} Look up stamp duty & fees</button>
+    <button class="btn btn-plain block" style="margin-top:8px" data-act="talk">${icon('spark',17)} Talk through this scenario</button>
     <div id="sc-ai"></div>
     <button class="btn btn-plain block" style="margin-top:8px" data-act="edit">Edit</button>
     <button class="btn btn-ghost block" data-act="rm" style="color:var(--bad)">Delete scenario</button>
@@ -600,7 +601,7 @@ Respond with ONLY this JSON:
   }catch(e){
     toast(e.message || 'Could not look that up');
     btn.disabled = false;
-    btn.textContent = '✨ Look up stamp duty & fees';
+    btn.innerHTML = icon('spark',17) + ' Look up stamp duty & fees';
   }
 }
 
@@ -653,7 +654,7 @@ Respond with ONLY this JSON:
             ${a.watch.map(w => `<li>${esc(w)}</li>`).join('')}</ul>` : ''}
       </div>`;
   }catch(e){ toast(e.message || 'Could not reach AI'); }
-  finally{ btn.disabled = false; btn.textContent = '✨ Talk through this scenario'; }
+  finally{ btn.disabled = false; btn.innerHTML = icon('spark',17) + ' Talk through this scenario'; }
 }
 
 /* ---------------- scenario editor ---------------- */

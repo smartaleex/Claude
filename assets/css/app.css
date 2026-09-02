@@ -359,3 +359,11 @@ canvas{ display:block; }
      box-shadow:inset 0 1px 1px hsl(var(--clay-hue) / .10); }
 .nowrap{ white-space:nowrap; }
 .trunc{ overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+
+/* ---------- drawn icons ----------
+   Replacing emoji: these inherit currentColor, so one icon works on a
+   white card, a coloured bead and an active tab without three variants. */
+.ico{ display:block; flex:none; }
+.av .ico{ color:#fff; }
+.tab .ti{ display:grid; place-items:center; }
+.chip .ico, .btn .ico{ margin:-1px 0; }
