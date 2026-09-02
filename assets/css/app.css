@@ -252,6 +252,9 @@ canvas{ display:block; }
 .badge{
   display:inline-block; font-size:10.5px; font-weight:800; letter-spacing:.07em;
   text-transform:uppercase; padding:5px 11px; border-radius:var(--r-pill);
+  /* Without this a two-word badge wraps and the pill inflates into a
+     circle, which is what "1/4 this week" was doing on the home tiles. */
+  white-space:nowrap; flex:none;
   box-shadow:inset 0 -2px 5px -2px rgba(0,0,0,.10), inset 0 2px 5px -2px rgba(255,255,255,.85);
 }
 .badge.good{ background:var(--good-tint); color:var(--good); }
@@ -292,6 +295,17 @@ canvas{ display:block; }
    A floating clay pill, deliberately detached from the page. A flush
    edge-to-edge bar reads as page content and gets tapped expecting
    sub-navigation; the gap and the cast shadow say "above the app". */
+/* Installed to the home screen there is no browser chrome, so scrolled
+   content slides straight under the clock and the signal bars. A blurred
+   scrim over the safe-area strip keeps the time legible and stops a
+   half-cropped heading reading like a layout bug. */
+.statusbar-scrim{
+  position:fixed; top:0; left:0; right:0; z-index:60;
+  height:var(--sat); pointer-events:none;
+  backdrop-filter:blur(14px); -webkit-backdrop-filter:blur(14px);
+  background:color-mix(in srgb, var(--bg) 72%, transparent);
+}
+
 .tabbar{
   position:fixed; left:0; right:0; bottom:0; z-index:50;
   padding:0 14px calc(var(--sab) + 12px);

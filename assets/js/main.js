@@ -201,8 +201,10 @@ function tileHTML(c, i){
   // invalid HTML and swallow the inner taps.
   // One line per tool. The six-stacked-dashboards version buried the
   // thing that actually needs attention under a wall of numbers.
+  // .rowcard is display:flex, so a chips row added as a second child lines
+  // up BESIDE the content and runs off the right edge. Stack the tile.
   return `
-  <div class="rowcard in ${i<3?'in-'+(i+2):''}" style="align-items:center">
+  <div class="rowcard in ${i<3?'in-'+(i+2):''}" style="flex-direction:column;align-items:stretch;gap:0">
     <div style="display:flex;align-items:center;gap:12px;width:100%;min-width:0" data-go2="${c.id}">
       <div class="av" style="background:linear-gradient(135deg,${c1},${c2});width:36px;height:36px">${icon(a.icon, 18)}</div>
       <div class="grow" style="text-align:left;min-width:0">

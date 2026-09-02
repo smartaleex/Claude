@@ -87,7 +87,7 @@ export async function summary(){
   return {
     headline: doneToday(d.key) ? 'Done for today ✓' : d.title,
     detail: `Phase ${p.phase} · ${p.name} · week ${Math.min(weekInBlock(),8)} of 8`,
-    badge: `${thisWeekCount()}/4 this week`,
+    badge: `${thisWeekCount()}/4`,
     chips: p.days.map(day => ({
       label: SHORT[day.key] || day.title,
       act: 'forge-day',
