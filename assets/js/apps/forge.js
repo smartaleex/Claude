@@ -585,7 +585,7 @@ Respond with ONLY this JSON:
         });
         const a = res.data;
         document.getElementById('ans').innerHTML = `
-          <div class="card tight" style="box-shadow:none;background:var(--surface-2)">
+          <div class="card tight sunk">
             <div style="font-size:14.5px;line-height:1.65;white-space:pre-wrap">${esc(a.answer)}</div>
             ${(a.swaps||[]).length ? `<div class="hr"></div>${a.swaps.map(s => `
               <div style="padding:8px 0">
@@ -608,8 +608,8 @@ function openSettings(){
     <p class="sub">6–8 weeks each, then it advances on its own and loops back to Phase 1. Switch manually any time.</p>
     <div class="stack" style="gap:8px">
       ${PHASES.map((p,i) => `
-        <button class="card tight" data-act="setblock" data-i="${i}"
-                style="text-align:left;box-shadow:none;background:${i===s.blockIndex?'var(--accent-tint)':'var(--surface-2)'}">
+        <button class="card tight ${i===s.blockIndex?"":"sunk"}" data-act="setblock" data-i="${i}"
+                style="text-align:left;${i===s.blockIndex?"background:var(--accent-tint)":""}">
           <div class="spread"><b>Phase ${p.phase} · ${esc(p.name)}</b>
             ${i===s.blockIndex?'<span class="badge accent">Current</span>':`<span class="tiny muted">${esc(p.weeks)}</span>`}</div>
           <div class="tiny muted" style="margin-top:4px">${esc(p.focus)}</div>

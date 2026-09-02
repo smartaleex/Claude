@@ -102,8 +102,8 @@ index.html              shell
 manifest.webmanifest    home-screen install
 sw.js                   offline cache — bump CACHE when deploying
 assets/
-  css/tokens.css        design tokens: colour, type, elevation, motion
-  css/app.css           shared components
+  css/tokens.css        claymorphism tokens: the 3-shadow recipe, palette, geometry
+  css/app.css           shared components, all built on that recipe
   js/main.js            registry, router, tab bar, home dashboard, settings
   js/core/store.js      persistence + date helpers
   js/core/ui.js         view helpers, sheets, toasts, charts

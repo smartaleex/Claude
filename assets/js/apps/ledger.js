@@ -479,7 +479,7 @@ function openScenario(id){
     <h2>${esc(sc.name)}</h2>
     <p class="sub">${money(sc.price)} at ${sc.rate}% over ${sc.years} years${sc.suburb ? ' · ' + esc(sc.suburb) : ''}</p>
 
-    <div class="card tight" style="box-shadow:none;background:var(--surface-2);margin-bottom:14px">
+    <div class="card tight sunk" style="margin-bottom:14px">
       <div class="spread"><span class="card-note">Verdict</span><span class="badge ${tone}">${m.verdict}</span></div>
       <div class="tiny muted" style="margin-top:8px;line-height:1.6">
         Housing eats <b>${round(m.ratio,0)}%</b> of your income.
@@ -524,7 +524,7 @@ function openScenario(id){
       scenario looks worse than it is.
     </div>` : ''}
 
-    <div class="card tight" style="box-shadow:none;background:${m.stressLeft<0?'var(--bad-tint)':'var(--surface-2)'};margin-top:16px">
+    <div class="card tight sunk" style="background:${m.stressLeft<0?'var(--bad-tint)':'var(--surface-2)'};margin-top:16px">
       <div class="card-title" style="font-size:14.5px">If rates rise 3%</div>
       <div class="tiny" style="margin-top:6px;line-height:1.6;color:${m.stressLeft<0?'var(--bad)':'var(--muted)'}">
         Repayment goes to <b>${money(m.stressRepay)}</b>, leaving <b>${money(m.stressLeft)}</b> a month.
@@ -643,7 +643,7 @@ Respond with ONLY this JSON:
     });
     const a = res.data;
     document.getElementById('sc-ai').innerHTML = `
-      <div class="card tight" style="box-shadow:none;background:var(--surface-2);margin-top:12px">
+      <div class="card tight sunk" style="margin-top:12px">
         <b style="font-size:15px">${esc(a.verdict)}</b>
         <ul style="margin:10px 0 0;padding-left:18px;font-size:13.5px;line-height:1.7;color:var(--ink-2)">
           ${(a.points||[]).map(p => `<li>${esc(p)}</li>`).join('')}

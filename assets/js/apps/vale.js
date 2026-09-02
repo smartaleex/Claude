@@ -182,7 +182,7 @@ function openLesson(id){
 
     <div class="label" style="margin-top:20px">In practice</div>
     ${l.examples.map(([es_, en, note]) => `
-      <div class="card tight" style="box-shadow:none;background:var(--surface-2);margin-bottom:8px">
+      <div class="card tight sunk" style="margin-bottom:8px">
         <div style="font-size:15px;font-weight:600">${esc(es_)}</div>
         <div class="tiny muted" style="margin-top:3px">${esc(en)}</div>
         ${note ? `<div class="tiny" style="margin-top:6px;color:var(--accent-1)">${esc(note)}</div>` : ''}
@@ -369,7 +369,7 @@ Respond with ONLY this JSON:
     const a = res.data;
     const out = document.getElementById('v-out');
     if (out) out.innerHTML = `
-      <div class="card tight in" style="box-shadow:none;background:var(--surface-2);margin-top:14px">
+      <div class="card tight sunk in" style="margin-top:14px">
         <div class="spread"><span class="label" style="margin:0">Corrected</span>
           ${a.level ? `<span class="badge accent">${esc(a.level)}</span>` : ''}</div>
         <div style="font-size:15px;font-weight:600;margin-top:6px;line-height:1.5">${esc(a.corrected)}</div>
@@ -395,7 +395,7 @@ function openScenario(id){
   openSheet(`
     <h2>${sc.icon} ${esc(sc.title)}</h2>
     <p class="sub">Write what you'd say. It'll be corrected as a Spaniard would hear it.</p>
-    <div class="card tight" style="box-shadow:none;background:var(--surface-2);margin-bottom:14px">
+    <div class="card tight sunk" style="margin-bottom:14px">
       <div class="tiny muted">Situación: ${esc(sc.prompt)}</div>
     </div>
     <textarea class="textarea" id="v-text" placeholder="Escribe aquí…" style="min-height:110px"></textarea>

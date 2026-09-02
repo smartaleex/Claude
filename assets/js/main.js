@@ -172,7 +172,7 @@ async function homeHTML(){
 
 function tileHTML(c, i){
   const a = APPS[c.id];
-  const [c1, c2, tint] = a.accent;
+  const [c1, c2] = a.accent;
   // A tile with chips can't be one big <button> — nested buttons are
   // invalid HTML and swallow the inner taps.
   return `
@@ -182,7 +182,7 @@ function tileHTML(c, i){
       <div class="grow" style="text-align:left">
         <div class="spread" style="align-items:baseline">
           <span style="font-weight:700;font-size:15.5px">${a.name}</span>
-          ${c.badge ? `<span class="badge" style="background:${tint};color:${c1}">${esc(c.badge)}</span>` : ''}
+          ${c.badge ? `<span class="badge" style="background:color-mix(in srgb, ${c1} 15%, var(--surface));color:${c1}">${esc(c.badge)}</span>` : ''}
         </div>
         <div style="font-family:'Sora',sans-serif;font-weight:800;font-size:19px;letter-spacing:-.02em;margin-top:3px">${c.headline}</div>
         <div class="card-note" style="font-size:12.5px;margin-top:1px">${c.detail}</div>
@@ -251,7 +251,7 @@ function openSettings(){
     <h2>Settings</h2>
     <p class="sub">Everything here stays on this device.</p>
 
-    <div class="card tight" style="box-shadow:none;background:var(--surface-2)">
+    <div class="card tight sunk">
       <div class="spread">
         <div class="grow">
           <div class="card-title">AI · ${esc(ai.label)}</div>
@@ -326,7 +326,7 @@ function openAISetup(){
     <h2>Free AI, no tokens</h2>
     <p class="sub">Google's Gemini free tier runs the smart features. No card, no cost.</p>
 
-    <div class="card tight" style="box-shadow:none;background:var(--surface-2);margin-bottom:16px">
+    <div class="card tight sunk" style="margin-bottom:16px">
       <ol style="margin:0;padding-left:19px;font-size:14px;line-height:1.85;color:var(--ink-2)">
         <li>Open <b>aistudio.google.com/apikey</b></li>
         <li>Sign in with any Google account</li>
@@ -368,7 +368,7 @@ function openAISetup(){
   const showResult = r => {
     const out = document.getElementById('test-out');
     if (out) out.innerHTML = `
-      <div class="card tight" style="box-shadow:none;margin-top:10px;
+      <div class="card tight sunk" style="margin-top:10px;
            background:${r.ok ? 'var(--good-tint)' : 'var(--bad-tint)'};border-color:transparent">
         <div class="tiny" style="color:${r.ok ? 'var(--good)' : 'var(--bad)'};line-height:1.55">
           ${r.ok ? '✓ ' : ''}${esc(r.message)}
@@ -400,7 +400,7 @@ function openAISetup(){
         setKey(k);
         const { results, picked } = await discoverModels(k);
         out.innerHTML = `
-          <div class="card tight" style="box-shadow:none;margin-top:10px;background:var(--surface-2)">
+          <div class="card tight sunk" style="margin-top:10px;">
             <div class="tiny" style="font-weight:700;margin-bottom:8px;color:${picked?'var(--good)':'var(--bad)'}">
               ${picked ? `✓ Using ${esc(picked)}` : 'No model has free quota right now'}
             </div>

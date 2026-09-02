@@ -1,66 +1,117 @@
 /* ============================================================
-   ALEX HQ — Design tokens
-   Light-first. One system, six accents.
+   ALEX HQ — Design tokens · Claymorphism
+
+   The whole look rests on one idea: every surface is a piece of soft
+   clay pressed out of the background. That needs three shadows working
+   together, never one:
+
+     1. CAST   a big, soft, coloured drop shadow underneath — the object
+               sitting above the page.
+     2. RIM    a dark inset from the bottom edge — the underside curving
+               away from you.
+     3. LIP    a bright white inset along the top — light catching the
+               rounded upper edge.
+
+   Drop any one and it stops reading as clay: cast alone is flat
+   material design, insets alone are neumorphism. Shadows are tinted
+   violet rather than grey, because neutral grey on a lavender ground
+   looks like dirt.
    ============================================================ */
 
 :root{
-  /* ---- surfaces ---- */
-  --bg:        #F4F5FA;
-  --bg-sunk:   #EBEDF5;
+  /* ---- surfaces ----
+     The ground is deliberately darker than the cards. Clay only reads
+     as raised if there's something for it to sit on. */
+  --bg:        #E9EAF6;
+  --bg-sunk:   #DCDDEE;
   --surface:   #FFFFFF;
-  --surface-2: #F8F9FD;
-  --line:      #E6E8F1;
-  --line-soft: #EFF1F7;
+  --surface-2: #F4F5FC;
+  --line:      #DFE1F0;
+  --line-soft: #EBECF7;
 
   /* ---- ink ---- */
-  --ink:       #0D0E14;
-  --ink-2:     #3A3F52;
-  --muted:     #757B90;
-  --faint:     #A7ADC0;
+  --ink:       #191A28;
+  --ink-2:     #43465C;
+  --muted:     #767A96;
+  --faint:     #A6AAC6;
 
   /* ---- brand ----
-     Taken straight off the app icon: blue at dawn through violet and
-     pink to sunrise orange. The shell uses the full sweep; each tool
-     takes one slice of it, so nothing ever looks bolted on. */
-  --brand-1:   #4A7CF7;
+     Straight off the app icon: dawn blue through violet and pink to
+     sunrise orange. */
+  --brand-1:   #5B6CF6;
   --brand-2:   #EC4899;
-  --brand-tint:#EDF0FE;
-  --brand-grad: linear-gradient(140deg, #4A7CF7 0%, #8B5CF6 42%, #EC4899 78%, #F97316 100%);
+  --brand-tint:#E9EBFE;
+  --brand-grad: linear-gradient(140deg, #5B6CF6 0%, #8B5CF6 42%, #EC4899 78%, #F97316 100%);
 
   /* ---- per-app accents: six slices of the same spectrum ---- */
-  --forge-1:#2563EB; --forge-2:#4F46E5; --forge-tint:#E4ECFE;  /* dawn blue   */
-  --fuel-1:#5850EC;  --fuel-2:#8B5CF6;  --fuel-tint:#ECEBFE;   /* indigo      */
-  --ldgr-1:#8B5CF6;  --ldgr-2:#C026D3;  --ldgr-tint:#F3EAFD;   /* violet      */
-  --vale-1:#C026D3;  --vale-2:#EC4899;  --vale-tint:#FBEAFB;   /* fuchsia     */
-  --shout-1:#EC4899; --shout-2:#F43F5E; --shout-tint:#FDEAF2;  /* pink        */
-  --clear-1:#F97316; --clear-2:#FBBF24; --clear-tint:#FEF0E2;  /* sunrise     */
+  --forge-1:#2563EB; --forge-2:#4F46E5; --forge-tint:#E2EAFE;
+  --fuel-1:#5850EC;  --fuel-2:#8B5CF6;  --fuel-tint:#EAE9FE;
+  --ldgr-1:#8B5CF6;  --ldgr-2:#C026D3;  --ldgr-tint:#F1E8FD;
+  --vale-1:#C026D3;  --vale-2:#EC4899;  --vale-tint:#FAE8FB;
+  --shout-1:#EC4899; --shout-2:#F43F5E; --shout-tint:#FCE8F1;
+  --clear-1:#F97316; --clear-2:#FBBF24; --clear-tint:#FEEEE0;
 
   /* ---- semantic ---- */
-  --good:#16A34A;  --good-tint:#E4F5E9;
-  --warn:#D97706;  --warn-tint:#FDF0DC;
-  --bad:#DC2626;   --bad-tint:#FCE9E9;
+  --good:#12A150;  --good-tint:#DFF5E8;
+  --warn:#D97706;  --warn-tint:#FDEFD9;
+  --bad:#DC2626;   --bad-tint:#FBE7E7;
 
-  /* ---- macro colours (shared by Fuel + Forge) ----
-     Pulled onto the icon spectrum so the macro bars sit inside the
-     palette rather than fighting it. Protein takes the warmest end
-     because it is the number that matters most on a bulk. */
-  --pro:#F43F5E;  --pro-tint:#FDEAEE;  --pro-bar:#FAD3DA;
-  --carb:#8B5CF6; --carb-tint:#F0EBFE; --carb-bar:#DFD5FC;
-  --fat:#F59E0B;  --fat-tint:#FEF3E2;  --fat-bar:#FBE3C0;
+  /* ---- macro colours (Fuel + Forge) ---- */
+  --pro:#F43F5E;  --pro-tint:#FDE7EC;  --pro-bar:#F9CFD8;
+  --carb:#8B5CF6; --carb-tint:#EFE9FE; --carb-bar:#DDD2FB;
+  --fat:#F59E0B;  --fat-tint:#FEF2E0;  --fat-bar:#FADFBD;
 
-  /* ---- geometry ---- */
-  --r-xs:10px; --r-sm:14px; --r-md:18px; --r-lg:24px; --r-xl:28px; --r-pill:999px;
+  /* ---- geometry ----
+     Clay is extruded, not cut. Radii run large and the smallest things
+     stay fully rounded so nothing looks sharp-edged next to a blob. */
+  --r-xs:13px; --r-sm:17px; --r-md:22px; --r-lg:27px; --r-xl:33px; --r-pill:999px;
 
-  /* ---- elevation: soft, coloured, never grey mush ---- */
-  --sh-sm: 0 2px 8px rgba(20,24,60,.05);
-  --sh:    0 8px 24px rgba(20,24,60,.07);
-  --sh-md: 0 14px 36px rgba(20,24,60,.09);
-  --sh-lg: 0 24px 60px rgba(20,24,60,.13);
-  --sh-brand: 0 14px 34px rgba(88,70,235,.28);
+  /* ---- the clay recipe ----
+     Shadow colour is a violet-grey so it sits in the palette rather
+     than muddying it. */
+  --clay-hue: 245 60% 45%;
 
-  /* ---- motion ---- */
+  --clay-cast:    0 18px 34px -14px hsl(var(--clay-hue) / .30);
+  --clay-cast-lg: 0 30px 56px -18px hsl(var(--clay-hue) / .34);
+  --clay-cast-sm: 0 10px 20px -10px hsl(var(--clay-hue) / .22);
+  --clay-rim:     inset 0 -7px 14px -4px hsl(var(--clay-hue) / .16);
+  --clay-lip:     inset 0 8px 16px -6px rgba(255,255,255,.95);
+
+  /* Composites — use these, not the parts. */
+  --clay:    var(--clay-cast),    var(--clay-rim), var(--clay-lip);
+  --clay-lg: var(--clay-cast-lg), var(--clay-rim), var(--clay-lip);
+  --clay-sm: var(--clay-cast-sm), inset 0 -4px 9px -3px hsl(var(--clay-hue) / .13),
+             inset 0 5px 11px -4px rgba(255,255,255,.9);
+
+  /* Pressed into the surface rather than sitting on it — the shadows
+     invert, so light comes from below and dark from above. */
+  --clay-in: inset 0 6px 14px -4px hsl(var(--clay-hue) / .22),
+             inset 0 -5px 11px -4px rgba(255,255,255,.85);
+
+  /* Squashed: what a button looks like mid-press. */
+  --clay-press: 0 4px 10px -6px hsl(var(--clay-hue) / .28),
+                inset 0 4px 10px -3px hsl(var(--clay-hue) / .20),
+                inset 0 -3px 8px -3px rgba(255,255,255,.7);
+
+  /* Coloured clay — hero blocks and primary buttons. --accent-glow is
+     set per app by the router. */
+  --clay-tint:    0 20px 38px -14px var(--accent-glow, rgba(91,108,246,.42));
+  --clay-tint-lg: 0 30px 58px -16px var(--accent-glow, rgba(91,108,246,.48));
+  --clay-on-colour: inset 0 -8px 18px -6px rgba(0,0,0,.16),
+                    inset 0 9px 18px -6px rgba(255,255,255,.42);
+
+  /* legacy aliases so older rules keep working */
+  --sh-sm: var(--clay-sm);
+  --sh:    var(--clay);
+  --sh-md: var(--clay);
+  --sh-lg: var(--clay-lg);
+  --sh-brand: var(--clay-tint);
+
+  /* ---- motion ----
+     Clay is soft and slightly overshooting; it should feel squishy. */
   --ease: cubic-bezier(.32,.72,.28,1);
   --ease-out: cubic-bezier(.16,1,.3,1);
+  --ease-squish: cubic-bezier(.34,1.56,.64,1);
   --fast:.16s; --base:.26s; --slow:.42s;
 
   /* ---- safe areas ---- */
@@ -69,24 +120,48 @@
 
   /* ---- layout ---- */
   --shell-w: 620px;
-  --tabbar-h: 62px;
+  --tabbar-h: 66px;
 }
 
-/* Dark mode kept deliberately restrained — you said you hate nighttime.
-   Light is the product; this exists so the phone doesn't blast you at 11pm. */
+/* Dark mode: clay still works, but the lip highlight has to drop to
+   near nothing or every card gets a glowing white scar across the top,
+   and the cast shadow goes near-black since there's no light to tint. */
+@media (prefers-color-scheme: dark){
+  :root[data-theme="auto"]{ color-scheme: dark; }
+}
+:root[data-theme="dark"], :root[data-theme="auto"]:where(.dark-probe){ color-scheme: dark; }
+
 @media (prefers-color-scheme: dark){
   :root[data-theme="auto"]{
-    --bg:#12131A; --bg-sunk:#0C0D12; --surface:#1A1C25; --surface-2:#20222D;
-    --line:#2A2D3A; --line-soft:#23262F;
-    --ink:#F2F3F8; --ink-2:#C9CDDB; --muted:#8F95A8; --faint:#5F6577;
-    --sh-sm:0 2px 8px rgba(0,0,0,.4); --sh:0 8px 24px rgba(0,0,0,.45);
-    --sh-md:0 14px 36px rgba(0,0,0,.5); --sh-lg:0 24px 60px rgba(0,0,0,.55);
+    --bg:#15161F; --bg-sunk:#0F1017; --surface:#1E2030; --surface-2:#262941;
+    --line:#31344A; --line-soft:#282B3E;
+    --ink:#F3F4FA; --ink-2:#CCD0E0; --muted:#9095AE; --faint:#666B87;
+    --clay-hue: 245 40% 4%;
+    --clay-lip: inset 0 8px 16px -6px rgba(255,255,255,.07);
+    --clay-cast:    0 18px 34px -12px hsl(var(--clay-hue) / .75);
+    --clay-cast-lg: 0 30px 56px -16px hsl(var(--clay-hue) / .8);
+    --clay-cast-sm: 0 10px 20px -10px hsl(var(--clay-hue) / .6);
+    --clay-rim:     inset 0 -7px 14px -4px hsl(var(--clay-hue) / .5);
+    --clay-in: inset 0 6px 14px -4px hsl(var(--clay-hue) / .7),
+               inset 0 -5px 11px -4px rgba(255,255,255,.05);
+    --brand-tint:#262A4A; --fuel-tint:#252449; --forge-tint:#1E2A4C;
+    --ldgr-tint:#2C2350; --vale-tint:#3A1F45; --shout-tint:#3D1F35; --clear-tint:#3A2616;
+    --good-tint:#16301F; --warn-tint:#33240D; --bad-tint:#361A1A;
   }
 }
 :root[data-theme="dark"]{
-  --bg:#12131A; --bg-sunk:#0C0D12; --surface:#1A1C25; --surface-2:#20222D;
-  --line:#2A2D3A; --line-soft:#23262F;
-  --ink:#F2F3F8; --ink-2:#C9CDDB; --muted:#8F95A8; --faint:#5F6577;
-  --sh-sm:0 2px 8px rgba(0,0,0,.4); --sh:0 8px 24px rgba(0,0,0,.45);
-  --sh-md:0 14px 36px rgba(0,0,0,.5); --sh-lg:0 24px 60px rgba(0,0,0,.55);
+  --bg:#15161F; --bg-sunk:#0F1017; --surface:#1E2030; --surface-2:#262941;
+  --line:#31344A; --line-soft:#282B3E;
+  --ink:#F3F4FA; --ink-2:#CCD0E0; --muted:#9095AE; --faint:#666B87;
+  --clay-hue: 245 40% 4%;
+  --clay-lip: inset 0 8px 16px -6px rgba(255,255,255,.07);
+  --clay-cast:    0 18px 34px -12px hsl(var(--clay-hue) / .75);
+  --clay-cast-lg: 0 30px 56px -16px hsl(var(--clay-hue) / .8);
+  --clay-cast-sm: 0 10px 20px -10px hsl(var(--clay-hue) / .6);
+  --clay-rim:     inset 0 -7px 14px -4px hsl(var(--clay-hue) / .5);
+  --clay-in: inset 0 6px 14px -4px hsl(var(--clay-hue) / .7),
+             inset 0 -5px 11px -4px rgba(255,255,255,.05);
+  --brand-tint:#262A4A; --fuel-tint:#252449; --forge-tint:#1E2A4C;
+  --ldgr-tint:#2C2350; --vale-tint:#3A1F45; --shout-tint:#3D1F35; --clear-tint:#3A2616;
+  --good-tint:#16301F; --warn-tint:#33240D; --bad-tint:#361A1A;
 }

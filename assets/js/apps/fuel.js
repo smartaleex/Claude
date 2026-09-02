@@ -479,7 +479,7 @@ function openReview(items, meal, source){
     <h2>Check the numbers</h2>
     <p class="sub">Tweak anything that looks off, then log it.</p>
     ${items.map((it,i) => `
-      <div class="card tight" style="box-shadow:none;background:var(--surface-2);margin-bottom:10px">
+      <div class="card tight sunk" style="margin-bottom:10px">
         <b style="font-size:15px">${esc(it.name)}</b>
         ${it.reasoning ? `<div class="tiny muted" style="margin:8px 0 10px;line-height:1.5">
           <span class="badge accent">${esc(source)}</span><br>${esc(it.reasoning)}</div>` : ''}
@@ -541,7 +541,7 @@ Respond with ONLY this JSON:
       <h2>To hit today's goals</h2>
       <p class="sub">Built around the ${num(gap.p)}g of protein you've got left.${res.tier===3 ? ' (offline picks)' : ''}</p>
       ${list.map((s,i) => `
-        <div class="card tight" style="box-shadow:none;background:var(--surface-2);margin-bottom:10px">
+        <div class="card tight sunk" style="margin-bottom:10px">
           <b style="font-size:15px">${esc(s.name)}</b>
           <p class="card-note" style="margin:5px 0 11px">${esc(s.desc)}</p>
           <div class="spread">
@@ -581,7 +581,7 @@ function openTargets(){
     <h2>Targets</h2>
     <p class="sub">A controlled surplus beats a big one. You're already lean — the gap is size, not body fat.</p>
 
-    <div class="card tight" style="box-shadow:none;background:var(--surface-2);margin-bottom:16px">
+    <div class="card tight sunk" style="margin-bottom:16px">
       <div class="spread">
         <div><div class="tiny muted">Maintenance</div>
           <b class="mono" style="font-size:18px">${num(maintenance())}</b></div>

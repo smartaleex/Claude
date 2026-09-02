@@ -188,7 +188,7 @@ function openMate(id){
       </div>
     </div>
 
-    ${m.note ? `<div class="card tight" style="box-shadow:none;background:var(--surface-2);margin-bottom:14px">
+    ${m.note ? `<div class="card tight sunk" style="margin-bottom:14px">
       <div class="tiny muted" style="line-height:1.6">${esc(m.note)}</div></div>` : ''}
 
     <button class="btn btn-primary block" data-act="sawthem">✓ Caught up today</button>
@@ -262,7 +262,7 @@ Respond with ONLY this JSON:
     const out = document.getElementById('mate-ai');
     if (kind === 'draft'){
       out.innerHTML = `<div style="margin-top:12px">${(res.data.options||[]).map(o => `
-        <div class="card tight" style="box-shadow:none;background:var(--surface-2);margin-bottom:8px">
+        <div class="card tight sunk" style="margin-bottom:8px">
           <div class="spread" style="align-items:flex-start">
             <div class="grow">
               <span class="badge accent">${esc(o.tone)}</span>
@@ -274,7 +274,7 @@ Respond with ONLY this JSON:
         </div>`).join('')}</div>`;
     } else {
       out.innerHTML = `<div style="margin-top:12px">${(res.data.ideas||[]).map(i => `
-        <div class="card tight" style="box-shadow:none;background:var(--surface-2);margin-bottom:8px">
+        <div class="card tight sunk" style="margin-bottom:8px">
           <div class="spread" style="align-items:baseline">
             <b style="font-size:14.5px">${esc(i.what)}</b>
             <span class="badge ${i.effort==='low'?'good':i.effort==='high'?'warn':'neutral'}">${esc(i.effort)}</span>
