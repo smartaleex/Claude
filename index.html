@@ -30,6 +30,51 @@
   <input type="file" id="file-cam" accept="image/*" capture="environment" hidden>
   <input type="file" id="file-lib" accept="image/*" multiple hidden>
 
+  <!-- Boot watchdog.
+       A phone has no console. If the module graph fails — a bad deploy, a
+       half-cached update, no signal on first load — the page just sits
+       there blank and unresponsive with nothing to tap. That happened, so
+       now there is always a way out. -->
+  <script>
+  (function(){
+    var booted = false;
+    window.__booted = function(){ booted = true; };
+
+    function recover(reason){
+      if (booted) return;
+      document.getElementById('view').innerHTML =
+        '<div style="max-width:420px;margin:14vh auto;padding:26px;text-align:center;font-family:system-ui,sans-serif">'
+        + '<div style="font-size:19px;font-weight:700;color:#191A28">Alex HQ didn\'t start</div>'
+        + '<p style="color:#767A96;font-size:14.5px;line-height:1.6;margin:10px 0 22px">'
+        + 'Usually a half-finished update. Reloading fixes it. Your data is stored separately and is not affected.</p>'
+        + '<button id="rb1" style="display:block;width:100%;padding:15px;border:0;border-radius:999px;'
+        + 'background:linear-gradient(140deg,#5B6CF6,#8B5CF6);color:#fff;font-size:15.5px;font-weight:700">Reload</button>'
+        + '<button id="rb2" style="display:block;width:100%;margin-top:10px;padding:14px;border:0;border-radius:999px;'
+        + 'background:#EDEEF8;color:#43465C;font-size:14.5px;font-weight:600">Clear the app cache and reload</button>'
+        + '<div style="color:#A6AAC6;font-size:11.5px;margin-top:18px">' + (reason||'') + '</div></div>';
+
+      document.getElementById('rb1').onclick = function(){ location.reload(); };
+      document.getElementById('rb2').onclick = function(){
+        // Caches and service workers only — never touch localStorage,
+        // that is where everything he has logged actually lives.
+        var done = function(){ location.reload(true); };
+        var jobs = [];
+        if (window.caches) jobs.push(caches.keys().then(function(k){
+          return Promise.all(k.map(function(n){ return caches.delete(n); })); }));
+        if (navigator.serviceWorker) jobs.push(
+          navigator.serviceWorker.getRegistrations().then(function(rs){
+            return Promise.all(rs.map(function(r){ return r.unregister(); })); }));
+        Promise.all(jobs).then(done, done);
+      };
+    }
+
+    window.addEventListener('error', function(e){
+      if (!booted && e.filename && /\.js/.test(e.filename)) recover('Script error');
+    }, true);
+    setTimeout(function(){ recover('Timed out'); }, 7000);
+  })();
+  </script>
+
   <script type="module" src="./assets/js/main.js"></script>
 </body>
 </html>

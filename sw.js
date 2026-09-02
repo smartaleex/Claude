@@ -1,14 +1,13 @@
 /* ============================================================
    Alex HQ service worker.
 
-   Strategy: cache-first for the app shell so it opens instantly and
-   works with no signal, network-first for nothing (there is no API to
-   talk to — AI calls go straight out and are never cached).
+   Cache-first for the app shell so it opens instantly and works with no
+   signal. Nothing else is cached — AI calls go straight out.
 
-   Bump CACHE when you deploy or phones will keep serving the old build.
+   Bump CACHE on every deploy or phones keep serving the old build.
    ============================================================ */
 
-const CACHE = 'alexhq-v13';
+const CACHE = 'alexhq-v14';
 
 const SHELL = [
   './',
@@ -45,12 +44,33 @@ self.addEventListener('install', e => {
 });
 
 self.addEventListener('activate', e => {
-  e.waitUntil(
-    caches.keys()
-      .then(keys => Promise.all(keys.filter(k => k !== CACHE).map(k => caches.delete(k))))
-      .then(() => self.clients.claim())
-  );
+  e.waitUntil((async () => {
+    const keys = await caches.keys();
+    await Promise.all(keys.filter(k => k !== CACHE).map(k => caches.delete(k)));
+    await self.clients.claim();
+
+    /* Claiming an already-loaded page is what froze the app on the last
+       update. The page was running the previous build's main.js, we then
+       deleted the cache it came from and took over its fetches — so its
+       dynamic imports resolved against the NEW build, and modules that
+       did not exist in the old one (day.js, icons.js) simply failed.
+       A failed ES module import kills the whole graph: blank screen,
+       nothing to tap, no visible error.
+
+       So tell the page instead of silently swapping the ground under it.
+       It reloads once and old and new code never mix. */
+    const clients = await self.clients.matchAll({ type: 'window' });
+    for (const c of clients) c.postMessage({ type: 'sw-updated', cache: CACHE });
+  })());
 });
+
+/** A real Response, never undefined — see the fetch handler. */
+const offlineResponse = req =>
+  new Response(
+    req.destination === 'script' ? '/* offline */' : '',
+    { status: 503, statusText: 'Offline', headers: { 'Content-Type':
+      req.destination === 'script' ? 'application/javascript' : 'text/plain' } }
+  );
 
 self.addEventListener('fetch', e => {
   const { request } = e;
@@ -69,11 +89,21 @@ self.addEventListener('fetch', e => {
           caches.open(CACHE).then(c => c.put(request, copy));
         }
         return res;
-      }).catch(() =>
-        // Offline and uncached: for a navigation, fall back to the shell
-        // so the app still opens instead of showing the browser error.
-        request.mode === 'navigate' ? caches.match('./index.html') : undefined
-      );
+      }).catch(async () => {
+        // Offline and uncached. A navigation falls back to the shell so
+        // the app still opens. Anything else MUST still return a
+        // Response — returning undefined rejects the request, and for a
+        // module import that takes the entire app down with it.
+        if (request.mode === 'navigate'){
+          return (await caches.match('./index.html')) || offlineResponse(request);
+        }
+        return offlineResponse(request);
+      });
     })
   );
+});
+
+/* Lets the app force an update from Settings without reinstalling. */
+self.addEventListener('message', e => {
+  if (e.data?.type === 'skip-waiting') self.skipWaiting();
 });

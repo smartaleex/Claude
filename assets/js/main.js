@@ -304,8 +304,35 @@ function openSettings(){
     <button class="btn btn-plain block" data-act="export">Download a backup</button>
     <button class="btn btn-plain block" style="margin-top:8px" data-act="import">Restore from backup</button>
 
+    <label class="label" style="margin-top:20px">App</label>
+    <div class="card tight sunk">
+      <div class="spread">
+        <div class="grow">
+          <div class="tiny muted">Build</div>
+          <b class="mono" id="sw-ver" style="font-size:14px">checking…</b>
+        </div>
+        <button class="btn btn-plain btn-sm" data-act="update">Force update</button>
+      </div>
+      <div class="tiny muted" style="margin-top:10px;line-height:1.55">
+        If the app ever opens blank or stops responding, this reinstalls it. Your data is stored
+        separately and is not touched.
+      </div>
+    </div>
+
     <button class="btn btn-ghost block" style="margin-top:16px" data-act="close">Done</button>
   `);
+
+  // Ask the worker which build is actually running — that is the number
+  // that matters when something looks stale, not the one in the source.
+  (async () => {
+    let v = 'unknown';
+    try{
+      const keys = await caches.keys();
+      v = keys.find(k => k.startsWith('alexhq-')) || 'not cached';
+    }catch{ v = 'unavailable'; }
+    const el = document.getElementById('sw-ver');
+    if (el) el.textContent = v;
+  })();
 
   const root = document.querySelector('.sheet');
   bindActions(root, {
@@ -324,6 +351,17 @@ function openSettings(){
       haptic();
       openSettings();          // reopen so the list and labels refresh
       rerender();
+    },
+    update: async () => {
+      try{
+        const keys = await caches.keys();
+        await Promise.all(keys.map(k => caches.delete(k)));
+        const regs = await navigator.serviceWorker?.getRegistrations?.() || [];
+        await Promise.all(regs.map(r => r.unregister()));
+      }catch{}
+      try{ sessionStorage.removeItem('alexhq:reloaded'); }catch{}
+      toast('Reinstalling…');
+      setTimeout(() => location.reload(), 500);
     },
     export: doExport,
     import: doImport,
@@ -488,7 +526,23 @@ function doImport(){
     if (r !== current) navigate(r);
   });
 
+  // Tell the boot watchdog in index.html we made it.
+  window.__booted?.();
+
   if ('serviceWorker' in navigator && location.protocol === 'https:'){
     navigator.serviceWorker.register('./sw.js').catch(() => {});
+
+    /* When a new build activates it takes over this already-running page.
+       Reloading once is the only way to guarantee old and new code never
+       mix — that mixing is what froze the app on the previous update.
+       The guard stops a reload loop if anything ever goes wrong here. */
+    navigator.serviceWorker.addEventListener('message', ev => {
+      if (ev.data?.type !== 'sw-updated') return;
+      try{
+        if (sessionStorage.getItem('alexhq:reloaded') === ev.data.cache) return;
+        sessionStorage.setItem('alexhq:reloaded', ev.data.cache);
+      }catch{}
+      location.reload();
+    });
   }
 })();
