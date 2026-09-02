@@ -62,6 +62,31 @@ export const RESETS = [
     why:'Hard physical effort changes your state faster than trying to think your way out of one.' },
 ];
 
+/* Reflection prompts. Deliberately concrete and answerable in one line —
+   "how are you feeling" is a question you can stare at for ten minutes.
+   None of them assume the day went well, and none of them ask you to be
+   grateful, which lands badly when things are genuinely hard. */
+const PROMPTS = [
+  'What took the most out of you today?',
+  'What did you do today that you would not have managed a month ago?',
+  'Something that was true today and will not be true in a year.',
+  'Where did you push against your own limits today?',
+  'What did you avoid, and what was underneath the avoiding?',
+  'What do you want to remember about today in five years?',
+  'Who did you think about today that you have not spoken to?',
+  'What was the smallest good moment?',
+  'What are you carrying that is not actually yours to carry?',
+  'What would you tell a friend who had the day you just had?',
+  'What did you learn about yourself this week?',
+  'What is the next thing you are actually looking forward to?',
+  'Where did you show up for someone today?',
+  'What is worrying you that you have not put into words yet?',
+  'What did your body tell you today that you talked yourself out of?',
+  'If today repeated all week, what one thing would you change?',
+  'What are you being harder on yourself about than the facts warrant?',
+  'What made you laugh?',
+];
+
 const store = new Slice('day', {
   medDoses: 3,     // he takes them three times a day
   anchors: DEFAULT_ANCHORS,
@@ -74,6 +99,14 @@ const store = new Slice('day', {
 
 let tab = 'today';
 let root = null;
+
+/* One prompt per day so it feels settled rather than slot-machine, seeded
+   off the date so it is the same all day. `nudge` walks it on when tapped. */
+let promptNudge = 0;
+function currentPrompt(){
+  const seed = Number(today().replaceAll('-', '')) || 0;
+  return PROMPTS[(seed + promptNudge) % PROMPTS.length];
+}
 
 /* ---------------- helpers ---------------- */
 const anchors    = () => store.get().anchors;
@@ -258,6 +291,14 @@ function todayHTML(){
 
   <div class="sec">Anything you want to put down</div>
   <div class="card in">
+    <!-- A blank box asks you to be interesting on demand, which is exactly
+         what you cannot do on a flat day. A question is easier to answer
+         than a page is to fill. Tap it for a different one. -->
+    <button class="rowcard" data-act="reprompt" style="width:100%;text-align:left;margin-bottom:11px">
+      <span style="color:var(--accent-1);flex:none">${icon('spark',17)}</span>
+      <span class="grow" style="font-size:13.5px;line-height:1.5">${esc(currentPrompt())}</span>
+      <span class="tiny faint" style="flex:none">another</span>
+    </button>
     <textarea class="textarea" id="day-note" placeholder="Two lines is plenty. Nobody reads this but you."
       style="min-height:76px">${esc(note)}</textarea>
     <div class="spread" style="margin-top:10px">
@@ -529,6 +570,15 @@ function bind(){
       const v = document.getElementById('day-note').value;
       store.update(s => { s.notes[today()] = v; });
       toast('Saved');
+    },
+    reprompt: () => {
+      // Re-rendering blows away whatever is half-typed in the box, so keep
+      // it. Shuffling the question should never cost you a sentence.
+      const draft = document.getElementById('day-note')?.value ?? '';
+      promptNudge++;
+      render();
+      const box = document.getElementById('day-note');
+      if (box){ box.value = draft; }
     },
     heavy: () => {
       const d = today();

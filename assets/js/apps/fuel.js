@@ -111,6 +111,7 @@ export async function summary(){
     headline: `${num(t.kcal)} / ${num(T.kcal)} kcal`,
     detail: pLeft > 0 ? `${num(pLeft)}g protein still to go` : 'Protein target hit ✓',
     badge: left > 0 ? `${num(left)} left` : 'Done',
+    chips: [{ label:'Snap a meal', act:'fuel-snap' }],
   };
 }
 
@@ -119,6 +120,11 @@ export async function mount(el, sub){
   root = el;
   await store.load();
   if (sub === 'add'){ tab = 'today'; adding = true; }
+  if (sub === 'snap'){
+    // Arriving from the home screen's camera button: land on Today with the
+    // panel open and the camera already coming up, so the trip is one tap.
+    tab = 'today'; adding = true; render(); pickPhotos('cam'); return;
+  }
   render();
 }
 
@@ -191,9 +197,17 @@ function dayHTML(d, isToday){
   </div>
 
   ${isToday ? `
-    <button class="btn btn-primary block in in-3" style="margin-top:14px" data-act="suggest" id="suggest-btn">
-      ${icon('spark',17)} What should I eat?
-    </button>
+    <!-- One tap to the camera. Logging a meal used to be four taps deep
+         (Add food -> Take photo -> wait -> type), which is three taps more
+         than a plate of food is worth when you are already eating. -->
+    <div class="row in in-3" style="margin-top:14px">
+      <button class="btn btn-primary grow" data-act="snap">
+        ${icon('camera',17)} Snap a meal
+      </button>
+      <button class="btn btn-plain" data-act="suggest" id="suggest-btn" aria-label="What should I eat?">
+        ${icon('spark',17)}
+      </button>
+    </div>
 
     <div class="row" style="margin:16px 0 12px">
       <button class="chip ${!adding?'on':''}" data-act="showlog">Log (${es.length})</button>
@@ -751,6 +765,7 @@ function bind(){
     showlog: () => { adding = false; render(); },
     showadd: () => { adding = true; render(); setTimeout(() => document.getElementById('fuel-desc')?.focus(), 80); },
     meal: d => { mealSel = d.v; render(); },
+    snap: () => { adding = true; render(); pickPhotos('cam'); },
     cam: () => pickPhotos('cam'),
     lib: () => pickPhotos('lib'),
     rmphoto: d => { photos.splice(+d.i, 1); render(); },

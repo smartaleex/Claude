@@ -232,6 +232,8 @@ function bindHome(){
       await APPS.forge.mod.startFromHome(d.d);
       navigate('forge');
     },
+    // Camera straight from HQ — Fuel opens with the shutter already up.
+    'fuel-snap': () => navigate('fuel', 'snap'),
     'day-anchor': async d => {
       await APPS.day.mod.tickFromHome(d.id);
       haptic();
