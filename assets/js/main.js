@@ -75,7 +75,10 @@ function applyAccent(appId){
   }
   root.style.setProperty('--accent-1', a[0]);
   root.style.setProperty('--accent-2', a[1]);
-  root.style.setProperty('--accent-tint', a[2]);
+  /* Mixed against the live surface rather than the registry's fixed pale
+     hex — otherwise every tinted thing (active tab, soft buttons, badges)
+     stays daylight-coloured in dark mode and glares. */
+  root.style.setProperty('--accent-tint', `color-mix(in srgb, ${a[0]} 17%, var(--surface))`);
   root.style.setProperty('--accent-glow', a[3]);
   root.style.setProperty('--accent-grad', `linear-gradient(118deg, ${a[0]} 6%, ${a[1]} 94%)`);
 }
@@ -150,20 +153,29 @@ async function homeHTML(){
   </header>
 
   ${dayCard ? `
-  <button class="hero in" data-go2="day" style="width:100%;text-align:left;margin-top:16px;
-          --accent-grad:linear-gradient(140deg,#0EA5A5 0%,#14B8A6 55%,#34D399 100%);
-          --accent-glow:rgba(14,165,165,.38)">
-    <div class="spread" style="align-items:flex-start">
+  <div class="hero in" style="margin-top:14px;
+       --accent-grad:linear-gradient(140deg,#0E9E9E 0%,#14B8A6 55%,#2FBF87 100%);
+       --accent-glow:rgba(14,165,165,.38)">
+    <div class="spread" style="align-items:flex-start" data-go2="day">
       <div class="grow">
-        <div class="eyebrow" style="color:rgba(255,255,255,.8)">Today</div>
-        <div style="font-family:'Sora',sans-serif;font-weight:800;font-size:28px;letter-spacing:-.03em;margin-top:6px">
+        <div class="eyebrow" style="color:rgba(255,255,255,.82)">Today</div>
+        <div style="font-family:'Sora',sans-serif;font-weight:800;font-size:26px;letter-spacing:-.03em;margin-top:5px">
           ${esc(dayCard.headline)}
         </div>
-        <div class="hero-cap">${esc(dayCard.detail)}</div>
+        <div class="hero-cap" style="font-size:13.5px">${esc(dayCard.detail)}</div>
       </div>
-      <span style="opacity:.85">${icon('day',30)}</span>
+      <span style="opacity:.8">${icon('chevron',20)}</span>
     </div>
-  </button>` : ''}
+    ${dayCard.pips?.length ? `
+      <div class="chips scroll" style="margin-top:14px;padding-top:14px;border-top:1px solid rgba(255,255,255,.22)">
+        ${dayCard.pips.map(pp => `<button data-act="day-anchor" data-id="${pp.id}"
+          style="border-radius:999px;padding:9px 14px;font-size:12.5px;font-weight:700;white-space:nowrap;
+                 background:${pp.on ? '#fff' : pp.partial ? 'rgba(255,255,255,.4)' : 'rgba(255,255,255,.16)'};
+                 color:${pp.on ? '#0E7C7C' : '#fff'};
+                 box-shadow:${pp.on ? '0 4px 10px -4px rgba(0,0,0,.3)' : 'none'}">
+          ${pp.on ? '&#10003; ' : ''}${esc(pp.label)}</button>`).join('')}
+      </div>` : ''}
+  </div>` : ''}
 
   ${ai.tier === 3 ? `
   <div class="card in in-2" style="margin-top:12px;background:var(--warn-tint);border-color:transparent">
@@ -173,7 +185,7 @@ async function homeHTML(){
   </div>` : ''}
 
   <div class="sec">The rest</div>
-  <div class="stack">
+  <div class="stack" style="gap:9px">
     ${restCards.map((c,i) => tileHTML(c, i)).join('')}
   </div>
 
@@ -187,19 +199,20 @@ function tileHTML(c, i){
   const [c1, c2] = a.accent;
   // A tile with chips can't be one big <button> — nested buttons are
   // invalid HTML and swallow the inner taps.
+  // One line per tool. The six-stacked-dashboards version buried the
+  // thing that actually needs attention under a wall of numbers.
   return `
-  <div class="card in ${i<3?'in-'+(i+2):''}">
-    <div style="display:flex;align-items:center;gap:13px;width:100%" data-go2="${c.id}">
-      <div class="av" style="background:linear-gradient(135deg,${c1},${c2})">${icon(a.icon, 20)}</div>
-      <div class="grow" style="text-align:left">
-        <div class="spread" style="align-items:baseline">
-          <span style="font-weight:700;font-size:15.5px">${a.name}</span>
+  <div class="rowcard in ${i<3?'in-'+(i+2):''}" style="align-items:center">
+    <div style="display:flex;align-items:center;gap:12px;width:100%;min-width:0" data-go2="${c.id}">
+      <div class="av" style="background:linear-gradient(135deg,${c1},${c2});width:36px;height:36px">${icon(a.icon, 18)}</div>
+      <div class="grow" style="text-align:left;min-width:0">
+        <div class="spread" style="align-items:baseline;gap:8px">
+          <b style="font-size:14.5px">${a.name}</b>
           ${c.badge ? `<span class="badge" style="background:color-mix(in srgb, ${c1} 15%, var(--surface));color:${c1}">${esc(c.badge)}</span>` : ''}
         </div>
-        <div style="font-family:'Sora',sans-serif;font-weight:800;font-size:18px;letter-spacing:-.02em;margin-top:3px">${c.headline}</div>
-        <div class="card-note" style="font-size:12.5px;margin-top:1px">${c.detail}</div>
+        <span class="sub trunc" style="margin-top:2px">${c.headline} · ${c.detail}</span>
       </div>
-      <span class="caret">${icon('chevron',16)}</span>
+      <span class="caret">${icon('chevron',15)}</span>
     </div>
     ${c.chips?.length ? `
       <div class="chips scroll" style="margin-top:12px;padding-top:12px;border-top:1px solid var(--line-soft)">
@@ -218,6 +231,11 @@ function bindHome(){
     'forge-day': async d => {
       await APPS.forge.mod.startFromHome(d.d);
       navigate('forge');
+    },
+    'day-anchor': async d => {
+      await APPS.day.mod.tickFromHome(d.id);
+      haptic();
+      navigate('home', { keepScroll:true });
     },
   });
   if (!view.__homeBound){

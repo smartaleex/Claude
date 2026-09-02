@@ -123,45 +123,111 @@
   --tabbar-h: 66px;
 }
 
-/* Dark mode: clay still works, but the lip highlight has to drop to
-   near nothing or every card gets a glowing white scar across the top,
-   and the cast shadow goes near-black since there's no light to tint. */
-@media (prefers-color-scheme: dark){
-  :root[data-theme="auto"]{ color-scheme: dark; }
-}
-:root[data-theme="dark"], :root[data-theme="auto"]:where(.dark-probe){ color-scheme: dark; }
+/* ---------------- dark ----------------
+   Claymorphism is a lighting effect, and in the dark there is no light
+   to model. A dark shadow on a dark ground is invisible, and the white
+   lip highlight — the thing that makes a light card look inflated —
+   becomes a glowing rim on every element at once. That is the "bubbly
+   and confusing" part: dozens of glowing edges competing, none of them
+   telling you what is on top of what.
+
+   So dark mode stops pretending to be clay. Same geometry, same palette,
+   but layers separate through SURFACE CONTRAST and a hairline border
+   rather than shadow. Flatter, calmer, far easier to read at night. */
 
 @media (prefers-color-scheme: dark){
   :root[data-theme="auto"]{
-    --bg:#15161F; --bg-sunk:#0F1017; --surface:#1E2030; --surface-2:#262941;
-    --line:#31344A; --line-soft:#282B3E;
-    --ink:#F3F4FA; --ink-2:#CCD0E0; --muted:#9095AE; --faint:#666B87;
-    --clay-hue: 245 40% 4%;
-    --clay-lip: inset 0 8px 16px -6px rgba(255,255,255,.07);
-    --clay-cast:    0 18px 34px -12px hsl(var(--clay-hue) / .75);
-    --clay-cast-lg: 0 30px 56px -16px hsl(var(--clay-hue) / .8);
-    --clay-cast-sm: 0 10px 20px -10px hsl(var(--clay-hue) / .6);
-    --clay-rim:     inset 0 -7px 14px -4px hsl(var(--clay-hue) / .5);
-    --clay-in: inset 0 6px 14px -4px hsl(var(--clay-hue) / .7),
-               inset 0 -5px 11px -4px rgba(255,255,255,.05);
-    --brand-tint:#262A4A; --fuel-tint:#252449; --forge-tint:#1E2A4C;
-    --ldgr-tint:#2C2350; --vale-tint:#3A1F45; --shout-tint:#3D1F35; --clear-tint:#3A2616;
-    --good-tint:#16301F; --warn-tint:#33240D; --bad-tint:#361A1A;
+    color-scheme: dark;
+  --bg:        #101119;
+  --bg-sunk:   #0A0B11;
+  --surface:   #1B1D28;
+  --surface-2: #232635;
+  --line:      #2E3242;
+  --line-soft: #262A38;
+
+  --ink:       #F1F2F8;
+  --ink-2:     #C3C7D8;
+  --muted:     #8B90A6;
+  --faint:     #61667E;
+
+  /* Definition comes from a hairline, not a highlight. */
+  --clay-hue: 240 30% 3%;
+  --clay-edge: inset 0 0 0 1px rgba(255,255,255,.055);
+
+  --clay-cast:    0 10px 24px -14px rgba(0,0,0,.8);
+  --clay-cast-lg: 0 18px 38px -18px rgba(0,0,0,.85);
+  --clay-cast-sm: 0 6px 14px -10px rgba(0,0,0,.7);
+  --clay-rim:     none;
+  --clay-lip:     none;
+
+  --clay:    var(--clay-cast),    var(--clay-edge);
+  --clay-lg: var(--clay-cast-lg), var(--clay-edge);
+  --clay-sm: var(--clay-cast-sm), var(--clay-edge);
+
+  /* Pressed-in reads as a darker well plus the same hairline. */
+  --clay-in: inset 0 1px 3px rgba(0,0,0,.55), inset 0 0 0 1px rgba(255,255,255,.035);
+  --clay-press: inset 0 2px 6px rgba(0,0,0,.6), inset 0 0 0 1px rgba(255,255,255,.04);
+
+  --clay-tint:    0 12px 26px -14px var(--accent-glow, rgba(91,108,246,.5));
+  --clay-tint-lg: 0 18px 36px -16px var(--accent-glow, rgba(91,108,246,.55));
+  --clay-on-colour: inset 0 0 0 1px rgba(255,255,255,.10);
+
+  /* Tints sit just above the surface — enough to register, not enough
+     to glow. */
+  --brand-tint:#232746; --fuel-tint:#232248; --forge-tint:#1B2745;
+  --ldgr-tint:#282050; --vale-tint:#34203E; --shout-tint:#372030; --clear-tint:#33240F;
+  --good-tint:#14291D; --warn-tint:#2C2010; --bad-tint:#2F1919;
+  --good:#3DD68C; --warn:#F0A93B; --bad:#F26B6B;
+
+  --pro-tint:#38202A;  --pro-bar:#4A2833;
+  --carb-tint:#2A2447; --carb-bar:#372E5C;
+  --fat-tint:#372B16;  --fat-bar:#4A3A1E;
   }
 }
 :root[data-theme="dark"]{
-  --bg:#15161F; --bg-sunk:#0F1017; --surface:#1E2030; --surface-2:#262941;
-  --line:#31344A; --line-soft:#282B3E;
-  --ink:#F3F4FA; --ink-2:#CCD0E0; --muted:#9095AE; --faint:#666B87;
-  --clay-hue: 245 40% 4%;
-  --clay-lip: inset 0 8px 16px -6px rgba(255,255,255,.07);
-  --clay-cast:    0 18px 34px -12px hsl(var(--clay-hue) / .75);
-  --clay-cast-lg: 0 30px 56px -16px hsl(var(--clay-hue) / .8);
-  --clay-cast-sm: 0 10px 20px -10px hsl(var(--clay-hue) / .6);
-  --clay-rim:     inset 0 -7px 14px -4px hsl(var(--clay-hue) / .5);
-  --clay-in: inset 0 6px 14px -4px hsl(var(--clay-hue) / .7),
-             inset 0 -5px 11px -4px rgba(255,255,255,.05);
-  --brand-tint:#262A4A; --fuel-tint:#252449; --forge-tint:#1E2A4C;
-  --ldgr-tint:#2C2350; --vale-tint:#3A1F45; --shout-tint:#3D1F35; --clear-tint:#3A2616;
-  --good-tint:#16301F; --warn-tint:#33240D; --bad-tint:#361A1A;
+  color-scheme: dark;
+  --bg:        #101119;
+  --bg-sunk:   #0A0B11;
+  --surface:   #1B1D28;
+  --surface-2: #232635;
+  --line:      #2E3242;
+  --line-soft: #262A38;
+
+  --ink:       #F1F2F8;
+  --ink-2:     #C3C7D8;
+  --muted:     #8B90A6;
+  --faint:     #61667E;
+
+  /* Definition comes from a hairline, not a highlight. */
+  --clay-hue: 240 30% 3%;
+  --clay-edge: inset 0 0 0 1px rgba(255,255,255,.055);
+
+  --clay-cast:    0 10px 24px -14px rgba(0,0,0,.8);
+  --clay-cast-lg: 0 18px 38px -18px rgba(0,0,0,.85);
+  --clay-cast-sm: 0 6px 14px -10px rgba(0,0,0,.7);
+  --clay-rim:     none;
+  --clay-lip:     none;
+
+  --clay:    var(--clay-cast),    var(--clay-edge);
+  --clay-lg: var(--clay-cast-lg), var(--clay-edge);
+  --clay-sm: var(--clay-cast-sm), var(--clay-edge);
+
+  /* Pressed-in reads as a darker well plus the same hairline. */
+  --clay-in: inset 0 1px 3px rgba(0,0,0,.55), inset 0 0 0 1px rgba(255,255,255,.035);
+  --clay-press: inset 0 2px 6px rgba(0,0,0,.6), inset 0 0 0 1px rgba(255,255,255,.04);
+
+  --clay-tint:    0 12px 26px -14px var(--accent-glow, rgba(91,108,246,.5));
+  --clay-tint-lg: 0 18px 36px -16px var(--accent-glow, rgba(91,108,246,.55));
+  --clay-on-colour: inset 0 0 0 1px rgba(255,255,255,.10);
+
+  /* Tints sit just above the surface — enough to register, not enough
+     to glow. */
+  --brand-tint:#232746; --fuel-tint:#232248; --forge-tint:#1B2745;
+  --ldgr-tint:#282050; --vale-tint:#34203E; --shout-tint:#372030; --clear-tint:#33240F;
+  --good-tint:#14291D; --warn-tint:#2C2010; --bad-tint:#2F1919;
+  --good:#3DD68C; --warn:#F0A93B; --bad:#F26B6B;
+
+  --pro-tint:#38202A;  --pro-bar:#4A2833;
+  --carb-tint:#2A2447; --carb-bar:#372E5C;
+  --fat-tint:#372B16;  --fat-bar:#4A3A1E;
 }

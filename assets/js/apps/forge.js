@@ -13,6 +13,7 @@ import {
   bindActions, empty, stat, haptic,
 } from '../core/ui.js';
 import { icon } from '../core/icons.js';
+import { compress, addPhoto, listPhotos, deletePhoto, urlFor, releaseUrls } from '../core/photos.js';
 import {
   PHASES, WARMUPS, PROGRESSION, TAG_STYLE, PHYSIQUE,
   weeklyVolume, sessionMinutes, totalExercises,
@@ -118,7 +119,7 @@ function render(){
     <div class="spread">
       <div>
         <div class="eyebrow">The Swimmer Build</div>
-        <h1 class="page-h1">${tab==='plan' ? 'The plan' : tab==='goal' ? 'The goal' : 'History'}</h1>
+        <h1 class="page-h1">${tab==='plan' ? 'The plan' : tab==='goal' ? 'The goal' : tab==='photos' ? 'Progress' : 'History'}</h1>
         <div class="page-sub">Phase ${p.phase} · ${esc(p.name)} · week ${Math.min(weekInBlock(),8)} of 8</div>
       </div>
       <button class="chip" data-act="settings">${icon('settings',18)}</button>
@@ -126,13 +127,14 @@ function render(){
   </header>
 
   <div class="seg sticky" style="margin:16px 0">
-    ${[['plan','Plan'],['goal','Goal'],['log','History']].map(([v,l]) =>
+    ${[['plan','Plan'],['goal','Goal'],['photos','Photos'],['log','History']].map(([v,l]) =>
       `<button class="${tab===v?'on':''}" data-act="tab" data-v="${v}">${l}</button>`).join('')}
   </div>
 
   ${ active && tab==='plan' ? sessionHTML(active)
    : tab==='plan' ? planHTML()
    : tab==='goal' ? goalHTML()
+   : tab==='photos' ? photosHTML()
    : historyHTML() }`;
 
   bind();
@@ -418,6 +420,114 @@ function volumeHTML(){
   </div>`;
 }
 
+/* ---------------- progress photos ----------------
+   The scale is a bad instrument for this goal. On a lean bulk it moves
+   for water, food and salt, and it says nothing at all about shoulder
+   width — which is the entire point. Photos in the same pose a month
+   apart show the change the scale cannot.
+
+   Stored in IndexedDB via core/photos.js, never in localStorage: a few
+   base64 images would exhaust the quota and break every other app. */
+let photoCache = null;
+
+function photosHTML(){
+  if (photoCache === null){
+    listPhotos('physique').then(list => { photoCache = list; render(); });
+    return `<div class="card in"><div class="card-note">Loading…</div></div>`;
+  }
+  const shots = photoCache;
+
+  return `
+  <div class="card in">
+    <div class="card-title">Same pose, same light</div>
+    <p class="card-note" style="margin-top:7px;line-height:1.6">
+      Relaxed front, arms at your sides, same spot and same time of day — morning, before food, is
+      the most consistent. Consistency matters more than the photo being flattering; the point is
+      that two shots a month apart are actually comparable.
+    </p>
+    <div class="row" style="margin-top:14px;gap:9px">
+      <button class="btn btn-primary grow" data-act="shoot">${icon('camera',18)} Take one</button>
+      <button class="btn btn-plain" data-act="pick">From library</button>
+    </div>
+  </div>
+
+  ${!shots.length ? empty(icon('camera',34), 'No photos yet.<br>The first one is the baseline — it only gets useful from the second onward.') : `
+    ${shots.length >= 2 ? `
+      <div class="sec">Then and now</div>
+      <div class="card in" style="padding:0;overflow:hidden">
+        <div class="grid2" style="gap:0">
+          ${[shots[0], shots[shots.length-1]].map((sh,i) => `
+            <div style="position:relative">
+              <img src="${urlFor(sh)}" style="width:100%;display:block;aspect-ratio:3/4;object-fit:cover">
+              <div style="position:absolute;left:0;right:0;bottom:0;padding:9px 11px;
+                   background:linear-gradient(to top,rgba(0,0,0,.66),transparent);color:#fff">
+                <div style="font-size:11px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;opacity:.8">
+                  ${i===0 ? 'First' : 'Latest'}</div>
+                <div style="font-size:13px;font-weight:600">${esc(fmtDayShort(dayKey(sh.t)))}</div>
+              </div>
+            </div>`).join('')}
+        </div>
+        <div class="tiny muted center" style="padding:12px">
+          ${daysBetween(dayKey(shots[0].t), dayKey(shots[shots.length-1].t))} days apart
+        </div>
+      </div>` : ''}
+
+    <div class="sec">All ${shots.length}</div>
+    <div class="grid3" style="gap:9px">
+      ${[...shots].reverse().map(sh => `
+        <button data-act="viewphoto" data-id="${sh.id}" style="position:relative;border-radius:var(--r-sm);
+                overflow:hidden;box-shadow:var(--clay-sm);aspect-ratio:3/4">
+          <img src="${urlFor(sh)}" style="width:100%;height:100%;object-fit:cover;display:block">
+          <span style="position:absolute;left:0;right:0;bottom:0;padding:5px;font-size:10px;font-weight:700;
+                color:#fff;background:linear-gradient(to top,rgba(0,0,0,.6),transparent)">
+            ${esc(fmtDayShort(dayKey(sh.t)))}</span>
+        </button>`).join('')}
+    </div>
+    <div class="tiny muted center" style="margin-top:14px;line-height:1.55">
+      Stored on this device only, never uploaded. They are not included in the Settings backup —
+      that file is meant to stay small enough to email yourself.
+    </div>`}`;
+}
+
+async function capturePhoto(which){
+  const inp = document.getElementById(which === 'cam' ? 'file-cam' : 'file-lib');
+  inp.value = '';
+  inp.onchange = async () => {
+    const files = [...inp.files];
+    if (!files.length) return;
+    try{
+      for (const f of files){
+        const blob = await compress(f);
+        await addPhoto('physique', blob);
+      }
+      photoCache = null;
+      toast(files.length > 1 ? `${files.length} added` : 'Added');
+      render();
+    }catch(e){ toast(e.message || 'Could not save that photo'); }
+  };
+  inp.click();
+}
+
+function viewPhoto(id){
+  const sh = photoCache?.find(x => x.id === id);
+  if (!sh) return;
+  openSheet(`
+    <h2>${esc(fmtDayShort(dayKey(sh.t)))}</h2>
+    <p class="sub">Tap and hold the image to save or share it.</p>
+    <img src="${urlFor(sh)}" style="width:100%;border-radius:var(--r-md);display:block;box-shadow:var(--clay)">
+    <button class="btn btn-ghost block" style="margin-top:16px;color:var(--bad)" data-act="rm">Delete this photo</button>
+    <button class="btn btn-ghost block" data-act="close">Close</button>
+  `);
+  bindActions(document.querySelector('.sheet'), {
+    rm: async () => {
+      await deletePhoto(id);
+      photoCache = null;
+      closeSheet(); toast('Deleted'); render();
+    },
+    close: closeSheet,
+  });
+}
+
 /* ---------------- history ---------------- */
 function historyHTML(){
   const sess = Object.values(store.get().sessions).filter(s => s.done)
@@ -646,5 +756,8 @@ function bind(){
     finish: finishSession,
     advice: askAdvice,
     settings: openSettings,
+    shoot: () => capturePhoto('cam'),
+    pick: () => capturePhoto('lib'),
+    viewphoto: d => viewPhoto(d.id),
   });
 }

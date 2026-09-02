@@ -22,10 +22,48 @@ import { offlineMatch, offlineSuggest, looksBranded } from '../data/foods.js';
    target as a suggestion rather than silently overriding them. */
 const store = new Slice('fuel', {
   targets: { kcal:2800, p:150, c:340, f:90 },
+  cycle: true,     // carbs follow the training week — see todaysTargets()
   profile: { kg:75, cm:185, age:28, activity:1.5 },
   days: {},
   weights: {},   // dayKey -> kg
 });
+
+/* ---------------- cross-app: today's training ----------------
+   Fuel and Training were two silos describing the same body. A training
+   day and a rest day should not have identical macros: on a lean bulk
+   the carbs want to be where the work is.
+
+   Read-only look at Forge's own store rather than a shared module —
+   Fuel keeps working if Forge has never been opened. Protein and fat
+   hold steady; carbs take the swing, because that is the macro that
+   actually fuels the session. The multipliers are set so a 4-training /
+   3-rest week averages back to the target: 4(1.08) + 3(0.89) = 6.99. */
+const TRAIN_MULT = 1.08;
+const REST_MULT  = 0.89;
+
+function trainingToday(){
+  try{
+    const f = JSON.parse(localStorage.getItem('alexhq:forge') || '{}');
+    const t = today();
+    const sess = Object.values(f.sessions || {}).find(s => s.dayKey === t);
+    if (!sess) return null;
+    const days = ['Back + Biceps','Chest + Triceps','Legs + Core','Shoulders + Arms'];
+    const idx = { d1:0, d2:1, d3:2, d4:3 }[sess.day];
+    return { name: days[idx] || 'Session', done: !!sess.done };
+  }catch{ return null; }
+}
+
+/** Targets adjusted for whether today is a training day. */
+function todaysTargets(){
+  const T = store.get().targets;
+  if (!store.get().cycle) return { ...T, mode:'flat' };
+  const tr = trainingToday();
+  const mult = tr ? TRAIN_MULT : REST_MULT;
+  const kcal = Math.round(T.kcal * mult);
+  // Protein and fat hold; carbs absorb the difference.
+  const c = Math.max(0, Math.round((kcal - T.p*4 - T.f*9) / 4));
+  return { kcal, p:T.p, c, f:T.f, mode: tr ? 'training' : 'rest', session: tr?.name || null };
+}
 
 const ACTIVITY = [
   { v:1.375, l:'Light',    d:'Desk job, 2-3 sessions' },
@@ -115,7 +153,8 @@ function render(){
 
 /* ---------------- day view ---------------- */
 function dayHTML(d, isToday){
-  const t = totals(d), T = store.get().targets;
+  const t = totals(d);
+  const T = isToday ? todaysTargets() : store.get().targets;
   const es = entries(d);
   const p = pct(t.kcal, T.kcal);
   const rem = T.kcal - t.kcal;
@@ -138,6 +177,11 @@ function dayHTML(d, isToday){
       </div>
     </div>
     <div class="bar"><i style="width:${p}%"></i></div>
+    ${isToday && T.mode !== 'flat' ? `<div class="hero-cap" style="margin-top:9px;font-size:12.5px">
+      ${T.mode === 'training'
+        ? `Training day${T.session ? ' · ' + esc(T.session) : ''} — carbs up`
+        : 'Rest day — carbs down, protein holds'}
+    </div>` : ''}
   </div>
 
   <div class="card in in-2" style="margin-top:14px">

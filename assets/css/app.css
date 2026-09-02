@@ -14,7 +14,9 @@ body{
 }
 
 /* A soft coloured wash behind everything, so the clay has light to
-   catch rather than sitting on flat grey. Fixed, so it never scrolls. */
+   catch rather than sitting on flat grey. Fixed, so it never scrolls.
+   Pulled right back at night — at full strength it turns the background
+   muddy and fights the surfaces for attention. */
 body::before{
   content:""; position:fixed; inset:0; z-index:-1; pointer-events:none;
   background:
@@ -22,6 +24,8 @@ body::before{
     radial-gradient(55% 40% at 92% 8%,   hsl(291 85% 74% / .17), transparent 70%),
     radial-gradient(70% 45% at 50% 100%, hsl(28 95% 70% / .13),  transparent 72%);
 }
+:root[data-theme="dark"] body::before{ opacity:.30; }
+@media (prefers-color-scheme: dark){ :root[data-theme="auto"] body::before{ opacity:.30; } }
 
 .display{ font-family:'Sora','Inter',sans-serif; font-weight:800; letter-spacing:-.03em; }
 button{ font-family:inherit; font-size:inherit; color:inherit; cursor:pointer; border:none; background:none; }
@@ -79,7 +83,12 @@ canvas{ display:block; }
   box-shadow:var(--clay-tint-lg), var(--clay-on-colour);
 }
 /* Gloss: a soft highlight across the upper third, like light on a
-   rounded surface. */
+   rounded surface. Removed in dark, where it just washes the colour out. */
+:root[data-theme="dark"] .hero::before,
+:root[data-theme="dark"] .hero-num,
+:root[data-theme="dark"] .hero-side{ display:revert; text-shadow:none; }
+:root[data-theme="dark"] .hero::before{ opacity:.35; }
+@media (prefers-color-scheme: dark){ :root[data-theme="auto"] .hero::before{ opacity:.35; } }
 .hero::before{
   content:""; position:absolute; inset:0; pointer-events:none;
   background:

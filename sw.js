@@ -7,7 +7,7 @@
    Bump CACHE on every deploy or phones keep serving the old build.
    ============================================================ */
 
-const CACHE = 'alexhq-v14';
+const CACHE = 'alexhq-v15';
 
 const SHELL = [
   './',
@@ -18,6 +18,7 @@ const SHELL = [
   './assets/icon-maskable.png',
   './assets/js/main.js',
   './assets/js/core/icons.js',
+  './assets/js/core/photos.js',
   './assets/js/core/store.js',
   './assets/js/core/ui.js',
   './assets/js/core/ai.js',

@@ -63,6 +63,7 @@ export const RESETS = [
 ];
 
 const store = new Slice('day', {
+  medDoses: 3,     // he takes them three times a day
   anchors: DEFAULT_ANCHORS,
   done: {},        // dayKey -> { anchorId: true }
   sleep: {},       // dayKey -> { hours, quality }   quality 1-4
@@ -77,7 +78,26 @@ let root = null;
 /* ---------------- helpers ---------------- */
 const anchors    = () => store.get().anchors;
 const doneOn     = d => store.get().done[d] || {};
-const isDone     = (d, id) => !!doneOn(d)[id];
+
+/* Meds are a count, not a checkbox — three doses a day means a single
+   tick either lies about two of them or makes the day look failed when
+   two were taken. Everything else stays boolean. */
+const medDoses   = () => Math.max(1, store.get().medDoses || 1);
+const medsTaken  = d => {
+  const v = doneOn(d).meds;
+  return typeof v === 'number' ? v : (v ? medDoses() : 0);
+};
+const medsAllIn  = d => medsTaken(d) >= medDoses();
+const isDone     = (d, id) => id === 'meds' ? medsAllIn(d) : !!doneOn(d)[id];
+
+function bumpMeds(d, delta){
+  store.update(s => {
+    if (!s.done[d]) s.done[d] = {};
+    const cur = medsTaken(d);
+    const next = Math.min(medDoses(), Math.max(0, cur + delta));
+    if (next === 0) delete s.done[d].meds; else s.done[d].meds = next;
+  });
+}
 const isHeavy    = d => !!store.get().heavy[d];
 const sleepOn    = d => store.get().sleep[d] || null;
 
@@ -86,11 +106,18 @@ const visibleAnchors = d => isHeavy(d) ? anchors().filter(a => a.core) : anchors
 
 const doneCount = d => visibleAnchors(d).filter(a => isDone(d, a.id)).length;
 
+/* Any dose counts as engaging with meds for the fortnight view — the
+   question that view answers is "are you taking them", not "perfectly". */
+const medsAnyOn = d => medsTaken(d) > 0;
+
 /* Meds specifically — the one number worth being precise about. */
 function medsRate(n = 14){
   const days = lastNDays(n);
-  const taken = days.filter(d => isDone(d, 'meds')).length;
-  return { taken, of: days.length, pct: Math.round(taken / days.length * 100) };
+  const full = days.filter(d => medsAllIn(d)).length;
+  const any  = days.filter(d => medsAnyOn(d)).length;
+  const doses = days.reduce((a,d) => a + medsTaken(d), 0);
+  return { taken: full, any, of: days.length, doses, ofDoses: days.length * medDoses(),
+           pct: Math.round(full / days.length * 100) };
 }
 
 function sleepAvg(n = 7){
@@ -113,10 +140,35 @@ export async function summary(){
   const n = doneCount(d);
   const meds = isDone(d, 'meds');
   return {
-    headline: meds ? `${n} of ${vis.length} done` : 'Meds not logged',
-    detail: isHeavy(d) ? 'Heavy day — just the essentials' : `${medsRate(14).pct}% meds over a fortnight`,
-    badge: meds ? null : 'Meds',
+    headline: `${n} of ${vis.length} done`,
+    detail: isHeavy(d)
+      ? 'Heavy day — just the essentials'
+      : medsAllIn(d) ? 'Meds all in' : `Meds ${medsTaken(d)}/${medDoses()}`,
+    badge: medsAllIn(d) ? null : 'Meds',
+    // Tickable from the home screen. The whole point of an anchor is
+    // that logging it costs nothing — making him open an app first is
+    // exactly the friction that stopped the nicotine logging.
+    pips: vis.map(a => ({
+      id: a.id,
+      label: a.id === 'meds' ? `Meds ${medsTaken(d)}/${medDoses()}` : a.label,
+      on: isDone(d, a.id),
+      partial: a.id === 'meds' && medsTaken(d) > 0 && !medsAllIn(d),
+    })),
   };
+}
+
+/** Called from the HQ hero so anchors can be ticked without navigating. */
+export async function tickFromHome(id){
+  await store.load();
+  const d = today();
+  if (id === 'meds'){
+    bumpMeds(d, medsAllIn(d) ? -medDoses() : 1);   // step up, or reset if complete
+  } else {
+    store.update(s => {
+      if (!s.done[d]) s.done[d] = {};
+      if (s.done[d][id]) delete s.done[d][id]; else s.done[d][id] = true;
+    });
+  }
 }
 
 /* ---------------- mount ---------------- */
@@ -174,7 +226,7 @@ function todayHTML(){
   </div>
 
   <div class="stack" style="margin-top:12px;gap:9px">
-    ${vis.map(a => {
+    ${vis.map(a => a.id === 'meds' ? medsRowHTML(d) : (() => {
       const on = isDone(d, a.id);
       return `<button class="rowcard" data-act="toggle" data-id="${a.id}" style="width:100%;text-align:left">
         <span style="width:38px;height:38px;border-radius:99px;flex:none;display:grid;place-items:center;
@@ -187,7 +239,7 @@ function todayHTML(){
           ${a.note ? `<span class="sub">${esc(a.note)}</span>` : ''}
         </div>
       </button>`;
-    }).join('')}
+    })()).join('')}
   </div>
 
   <div class="sec">Last night</div>
@@ -223,6 +275,40 @@ function todayHTML(){
   </div>`;
 }
 
+/* Three doses a day needs three targets, not one checkbox. Each pip is
+   its own tap, so a partial day records as partial rather than failed. */
+function medsRowHTML(d){
+  const n = medsTaken(d), of = medDoses();
+  const all = n >= of;
+  const labels = of === 3 ? ['Morning','Midday','Night'] : of === 2 ? ['Morning','Night'] : ['Today'];
+  return `
+  <div class="rowcard" style="align-items:flex-start">
+    <span style="width:38px;height:38px;border-radius:99px;flex:none;display:grid;place-items:center;margin-top:2px;
+          background:${all ? 'var(--good)' : n ? 'var(--accent-tint)' : 'var(--bg-sunk)'};
+          color:${all ? '#fff' : n ? 'var(--accent-1)' : 'var(--faint)'};
+          box-shadow:${n ? 'var(--clay-sm)' : 'var(--clay-in)'}">
+      ${icon(all ? 'check' : 'pill', 19)}
+    </span>
+    <div class="grow">
+      <div class="spread" style="align-items:baseline">
+        <b>Meds</b>
+        <span class="tiny mono" style="color:${all ? 'var(--good)' : 'var(--muted)'};font-weight:700">${n}/${of}</span>
+      </div>
+      <span class="sub">${all ? 'All in for today.' : 'Tap each dose as you take it.'}</span>
+      <div class="row" style="gap:7px;margin-top:9px">
+        ${Array.from({length:of}, (_,i) => `
+          <button data-act="dose" data-i="${i}" aria-label="${esc(labels[i]||'Dose '+(i+1))}"
+            style="flex:1;padding:9px 4px;border-radius:14px;font-size:11px;font-weight:700;letter-spacing:.03em;
+                   background:${i < n ? 'var(--good)' : 'var(--bg-sunk)'};
+                   color:${i < n ? '#fff' : 'var(--faint)'};
+                   box-shadow:${i < n ? 'var(--clay-sm)' : 'var(--clay-in)'}">
+            ${esc(labels[i] || 'Dose ' + (i+1))}
+          </button>`).join('')}
+      </div>
+    </div>
+  </div>`;
+}
+
 /* ---------------- reset ---------------- */
 function resetHTML(){
   return `
@@ -255,7 +341,7 @@ function trendHTML(){
 
   return `
   <div class="grid2 in">
-    ${stat(m14.taken + `<small>/${m14.of}</small>`, 'Meds · last 14 days', 'var(--accent-1)')}
+    ${stat(m14.doses + `<small>/${m14.ofDoses}</small>`, 'Doses · last 14 days', 'var(--accent-1)')}
     ${stat(sl ? sl.hours + '<small>h</small>' : '—', 'Sleep · 7-night average')}
   </div>
 
@@ -263,12 +349,19 @@ function trendHTML(){
     <div class="card-title">Meds</div>
     <div class="card-note" style="margin:4px 0 14px">Fourteen days. Grey means not logged, which is not the same as not taken.</div>
     <div class="row" style="gap:5px">
-      ${days.map(d => `<div style="flex:1;height:34px;border-radius:8px;
-        background:${isDone(d,'meds') ? 'var(--good)' : 'var(--bg-sunk)'};
-        box-shadow:${isDone(d,'meds') ? 'var(--clay-sm)' : 'var(--clay-in)'}"
-        title="${esc(fmtDayShort(d))}"></div>`).join('')}
+      ${days.map(d => {
+        const t = medsTaken(d), of = medDoses();
+        // Partial days show partial fill rather than reading as a miss.
+        return `<div style="flex:1;height:34px;border-radius:8px;overflow:hidden;position:relative;
+          background:var(--bg-sunk);box-shadow:var(--clay-in)" title="${esc(fmtDayShort(d))} — ${t}/${of}">
+          <div style="position:absolute;inset:auto 0 0 0;height:${t/of*100}%;background:var(--good)"></div>
+        </div>`;
+      }).join('')}
     </div>
-    <div class="tiny muted" style="margin-top:10px">${m30.taken} of the last 30 days logged.</div>
+    <div class="tiny muted" style="margin-top:10px">
+      ${m14.taken} full days, ${m14.any - m14.taken} partial, ${m14.of - m14.any} with nothing logged.
+      Partial is still better than none — the bar fills to how far you got.
+    </div>
   </div>
 
   ${sl ? `
@@ -416,6 +509,17 @@ function bind(){
         if (s.done[day][d.id]) delete s.done[day][d.id];
         else s.done[day][d.id] = true;
       });
+      haptic();
+      render();
+    },
+    dose: d => {
+      const day = today(), i = +d.i, cur = medsTaken(day);
+      // Behaves like a star rating: tapping the Nth pip sets the count to
+      // N, except tapping the last filled one unticks it. So a mis-tap is
+      // always one tap to undo, and correcting 3 back to 1 does not wipe
+      // the lot — which is what the naive version did.
+      const target = (i + 1 === cur) ? i : i + 1;
+      bumpMeds(day, target - cur);
       haptic();
       render();
     },
