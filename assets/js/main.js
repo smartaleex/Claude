@@ -208,12 +208,14 @@ function tileHTML(c, i){
     <div style="display:flex;align-items:center;gap:12px;width:100%;min-width:0" data-go2="${c.id}">
       <div class="av" style="background:linear-gradient(135deg,${c1},${c2});width:36px;height:36px">${icon(a.icon, 18)}</div>
       <div class="grow" style="text-align:left;min-width:0">
-        <div class="spread" style="align-items:baseline;gap:8px">
-          <b style="font-size:14.5px">${a.name}</b>
-          ${c.badge ? `<span class="badge" style="background:color-mix(in srgb, ${c1} 15%, var(--surface));color:${c1}">${esc(c.badge)}</span>` : ''}
-        </div>
+        <b style="font-size:14.5px;display:block">${a.name}</b>
         <span class="sub trunc" style="margin-top:2px">${c.headline} · ${c.detail}</span>
       </div>
+      <!-- The badge is a sibling of the text block, not a child of it, so
+           every row's badge sits at the same distance from the caret no
+           matter how long the title is. Inside the text block it floated
+           to wherever that row's title ended, which read as misaligned. -->
+      ${c.badge ? `<span class="badge" style="background:color-mix(in srgb, ${c1} 15%, var(--surface));color:${c1}">${esc(c.badge)}</span>` : ''}
       <span class="caret">${icon('chevron',15)}</span>
     </div>
     ${c.chips?.length ? `
@@ -552,7 +554,21 @@ function doImport(){
   window.__booted?.();
 
   if ('serviceWorker' in navigator && location.protocol === 'https:'){
-    navigator.serviceWorker.register('./sw.js').catch(() => {});
+    /* updateViaCache:'none' matters more than it looks. By default the
+       browser may serve sw.js itself from the HTTP cache for up to 24
+       hours, so a new build can sit on the server all day while the phone
+       never notices. This forces a real byte-check every time. */
+    navigator.serviceWorker.register('./sw.js', { updateViaCache:'none' })
+      .then(reg => {
+        reg.update().catch(() => {});
+        /* An installed PWA resumed from the app switcher never performs a
+           navigation, so nothing would otherwise trigger an update check.
+           Check whenever it comes back to the foreground. */
+        document.addEventListener('visibilitychange', () => {
+          if (!document.hidden) reg.update().catch(() => {});
+        });
+      })
+      .catch(() => {});
 
     /* When a new build activates it takes over this already-running page.
        Reloading once is the only way to guarantee old and new code never
