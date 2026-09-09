@@ -14,6 +14,7 @@ import * as ledger from './apps/ledger.js';
 import * as shout  from './apps/shout.js';
 import * as clear  from './apps/clear.js';
 import * as vale   from './apps/vale.js';
+import * as cryptic from './apps/cryptic.js';
 
 /* ---------------- registry ----------------
    `accent` drives the whole page: hero gradients, primary buttons and
@@ -40,12 +41,15 @@ export const APPS = {
   vale:   { id:'vale',   name:'Spanish',  icon:'spanish',  mod:vale,
             blurb:'From rusty to fluent',
             accent:['#C026D3','#EC4899','#FBEAFB','rgba(192,38,211,.28)'] },
+  cryptic:{ id:'cryptic',name:'Cryptic',  icon:'puzzle',   mod:cryptic,
+            blurb:'One clue a day',
+            accent:['#0F766E','#0EA5A5','#E2F4F2','rgba(15,118,110,.28)'] },
 };
 
 /* Order is user-editable in Settings. The first four sit in the bottom
    bar, the rest live under More — frequency of use should decide that,
    and only the person using it knows their own. */
-const DEFAULT_ORDER = ['day','fuel','forge','clear','shout','ledger','vale'];
+const DEFAULT_ORDER = ['day','fuel','forge','clear','cryptic','shout','ledger','vale'];
 const BAR_SLOTS = 4;
 
 function appOrder(){
@@ -238,6 +242,7 @@ function bindHome(){
     },
     // Camera straight from HQ — Fuel opens with the shutter already up.
     'fuel-snap': () => navigate('fuel', 'snap'),
+    'cryptic-go': () => navigate('cryptic'),
     'day-anchor': async d => {
       await APPS.day.mod.tickFromHome(d.id);
       haptic();
