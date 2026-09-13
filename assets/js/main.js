@@ -238,7 +238,7 @@ async function homeHTML(){
   </div>
 
   ${dayCard ? `
-  <div class="hero in" style="
+  <div class="hero in" style="margin-top:11px;
        --accent-grad:linear-gradient(140deg,#0E9E9E 0%,#14B8A6 55%,#2FBF87 100%);
        --accent-glow:rgba(14,165,165,.38)">
     <div class="spread" style="align-items:flex-start" data-go2="day">

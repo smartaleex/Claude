@@ -483,9 +483,9 @@ canvas{ display:block; }
 /* ---------- home: bird's-eye row ---------- */
 .glance{ display:grid; grid-template-columns:repeat(4,1fr); gap:7px; margin-top:12px; }
 .gtile{
-  display:flex; flex-direction:column; align-items:flex-start; gap:3px;
-  padding:12px 10px; border-radius:var(--r-md); min-width:0;
-  background:var(--surface); box-shadow:var(--clay-sm); text-align:left;
+  display:flex; flex-direction:column; align-items:center; gap:3px;
+  padding:12px 8px; border-radius:var(--r-md); min-width:0;
+  background:var(--surface); box-shadow:var(--clay-sm); text-align:center;
   transition:transform var(--fast) var(--ease-squish), box-shadow var(--fast);
 }
 .gtile:active{ transform:translateY(2px) scale(.96); box-shadow:var(--clay-press); }

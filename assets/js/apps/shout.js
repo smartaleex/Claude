@@ -251,6 +251,27 @@ function openMate(id){
   });
 }
 
+/* Find the usable rows in whatever came back. Looks at the expected key
+   first, then any array of objects anywhere in the response. */
+function pickRows(data, kind){
+  if (!data) return [];
+  const want = kind === 'draft' ? 'text' : 'what';
+  const ok = r => r && typeof r === 'object' && typeof r[want] === 'string' && r[want].trim();
+
+  const candidates = [];
+  if (Array.isArray(data)) candidates.push(data);
+  else {
+    const key = kind === 'draft' ? 'options' : 'ideas';
+    if (Array.isArray(data[key])) candidates.push(data[key]);
+    for (const v of Object.values(data)) if (Array.isArray(v)) candidates.push(v);
+  }
+  for (const arr of candidates){
+    const rows = arr.filter(ok);
+    if (rows.length) return rows.slice(0, 6);
+  }
+  return [];
+}
+
 async function runAI(btn, kind, m){
   const label = btn.textContent;
   btn.disabled = true;
@@ -325,13 +346,26 @@ Respond with ONLY this JSON:
 
   try{
     const res = await ask({ prompt: P[kind], offline: O[kind] });
+
+    /* A model can return perfectly valid JSON in the wrong shape — an
+       array at the top level, a different key, or prose wrapped around
+       it. The old code read res.data.ideas straight out, so anything
+       unexpected rendered an empty panel or threw. Take whatever array
+       we can find, keep the entries that have the fields we need, and
+       fall back to the offline bank rather than showing nothing. */
+    const rows = pickRows(res.data, kind);
+    if (!rows.length){
+      const fb = O[kind]();
+      rows.push(...pickRows(fb, kind));
+      if (rows.length) toast('Used the built-in list');
+    }
     const out = document.getElementById('mate-ai');
     if (kind === 'draft'){
-      out.innerHTML = `<div style="margin-top:12px">${(res.data.options||[]).map(o => `
+      out.innerHTML = `<div style="margin-top:12px">${rows.map(o => `
         <div class="card tight sunk" style="margin-bottom:8px">
           <div class="spread" style="align-items:flex-start">
             <div class="grow">
-              <span class="badge accent">${esc(o.tone)}</span>
+              <span class="badge accent">${esc(o.tone || 'suggested')}</span>
               <div style="font-size:14.5px;margin-top:7px;line-height:1.5">${esc(o.text)}</div>
             </div>
           </div>
@@ -339,13 +373,13 @@ Respond with ONLY this JSON:
                   data-act="copy" data-t="${esc(o.text)}">Copy</button>
         </div>`).join('')}</div>`;
     } else {
-      out.innerHTML = `<div style="margin-top:12px">${(res.data.ideas||[]).map(i => `
+      out.innerHTML = `<div style="margin-top:12px">${rows.map(i => `
         <div class="card tight sunk" style="margin-bottom:8px">
           <div class="spread" style="align-items:baseline">
             <b style="font-size:14.5px">${esc(i.what)}</b>
-            <span class="badge ${i.effort==='low'?'good':i.effort==='high'?'warn':'neutral'}">${esc(i.effort)}</span>
+            <span class="badge ${i.effort==='low'?'good':i.effort==='high'?'warn':'neutral'}">${esc(i.effort || 'medium')}</span>
           </div>
-          <div class="tiny muted" style="margin-top:4px">${esc(i.why)}</div>
+          ${i.why ? `<div class="tiny muted" style="margin-top:4px">${esc(i.why)}</div>` : ''}
           <button class="btn btn-soft btn-sm block" style="margin-top:10px"
                   data-act="makeplan" data-w="${esc(i.what)}" data-m="${m.id}">Make it a plan</button>
         </div>`).join('')}</div>`;
