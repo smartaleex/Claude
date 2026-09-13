@@ -13,6 +13,7 @@ import {
   bindActions, empty, stat, haptic,
 } from '../core/ui.js';
 import { icon } from '../core/icons.js';
+import { swapsFor, GEAR_STYLE } from '../data/swaps.js';
 import { compress, addPhoto, listPhotos, deletePhoto, urlFor, releaseUrls } from '../core/photos.js';
 import {
   PHASES, WARMUPS, PROGRESSION, TAG_STYLE, PHYSIQUE,
@@ -111,7 +112,7 @@ export async function mount(el){
   render();
 }
 
-function render(){
+function paintView(){
   const active = store.get().activeId ? store.get().sessions[store.get().activeId] : null;
   const p = phase();
   root.innerHTML = `
@@ -138,6 +139,16 @@ function render(){
    : historyHTML() }`;
 
   bind();
+}
+
+/* Re-rendering swaps the whole view via innerHTML. For a moment the page
+   has no height, so the browser clamps scrollY to 0 and you get thrown to
+   the top — which is what happened every time a set or a number was
+   logged. Capture the offset, repaint, put it back. */
+function render(){
+  const y = window.scrollY;
+  paintView();
+  if (Math.abs(window.scrollY - y) > 1) window.scrollTo(0, y);
 }
 
 /* ---------------- plan ---------------- */
@@ -297,9 +308,15 @@ function exerciseHTML(ex, key, sess, d, hasNext){
           ${prev?.w != null ? ` · last ${prev.w}kg` : ''}
         </div>
       </div>
-      <button class="btn ${doneAll?'btn-plain':'btn-soft'} btn-sm nowrap" data-act="addset" data-k="${key}" data-n="${esc(ex.name)}">
-        ${doneAll ? '+ Extra' : '+ Set'}
-      </button>
+      <div style="display:flex;gap:7px;flex:none;align-items:center">
+        <!-- Machines get taken. One tap to a same-pattern alternate beats
+             standing around waiting or skipping the movement entirely. -->
+        <button class="btn btn-plain btn-sm" data-act="swap" data-n="${esc(ex.name)}"
+                aria-label="Swap ${esc(ex.name)}" style="padding:10px 12px">${icon('repeat',15)}</button>
+        <button class="btn ${doneAll?'btn-plain':'btn-soft'} btn-sm nowrap" data-act="addset" data-k="${key}" data-n="${esc(ex.name)}">
+          ${doneAll ? '+ Extra' : '+ Set'}
+        </button>
+      </div>
     </div>
 
     ${ex.notes ? `<div class="tiny" style="margin-top:9px;color:var(--ink-2);background:var(--surface-2);
@@ -370,9 +387,64 @@ function goalHTML(){
     <div class="card-note">Log your bodyweight in Fuel → Trends a couple of times and this will show whether you're gaining at the right speed.</div>
   </div>`}
 
+  ${whyHTML()}
+
   ${volumeHTML()}
 
   <button class="btn btn-plain block in" style="margin-top:14px" data-act="advice">${icon('spark',17)} Ask about form or a swap</button>`;
+}
+
+/* The reasoning, written down. "Trust the plan" is worth nothing when
+   you are tired and the mirror is arguing with you; being able to read
+   why each choice was made is what makes it survive a bad month. */
+function whyHTML(){
+  return `
+  <div class="card in" style="margin-top:14px">
+    <div class="card-title">Why this works</div>
+    <div class="card-note" style="margin-top:5px">
+      The swimmer look is a ratio, not a weight. Everything below serves one number.
+    </div>
+
+    <div class="card tight sunk" style="margin-top:13px">
+      <div class="tiny muted" style="line-height:1.6">
+        <b>Shoulder-to-waist.</b> A "V-taper" is just wide shoulders over a narrow waist,
+        and it is read as a <i>ratio</i> by the eye — around 1.6 is where a physique starts
+        looking athletic rather than simply lean. You can move that ratio two ways: widen
+        the top, or narrow the bottom. Narrowing has a floor, because your waist is mostly
+        skeleton. Widening does not.
+      </div>
+    </div>
+
+    <div class="stack" style="gap:11px;margin-top:13px">
+      ${[
+        ['Side delts are the highest-leverage muscle you own',
+         'They sit at the widest point of your frame, so a centimetre there changes the outline more than a centimetre anywhere else. They are also small, recover fast, and tolerate being trained three times a week. This is why the program hammers them and why lateral raises appear on more days than chest does.'],
+        ['Lats change the outline, not just the back',
+         'Width comes from the lats flaring out below the armpit. It reads from the front, which is the angle you actually see yourself from. Vertical pulling and straight-arm work drive it; rows build thickness, which is a different thing.'],
+        ['Upper chest, not chest',
+         'A full upper chest fills the line under the collarbone and continues the shoulder shelf across. A big lower chest does the opposite — it drops the line and reads heavy. So every press in this program is inclined.'],
+        ['Traps are deliberately kept light',
+         'Heavy shrugs build the slope between neck and shoulder, which visually narrows the shoulder line and works directly against the taper. The program keeps them at maintenance on purpose.'],
+        ['Arms are not a vanity block here',
+         'They are the part of you closest to the viewer in almost every photo, and they are currently your weakest link relative to the goal. Triceps are roughly two thirds of arm size, which is why they get more volume than biceps.'],
+        ['The waist is a kitchen problem',
+         'No amount of core work narrows a midsection — that is body fat and skeletal width. Training the core adds thickness, which is why it is kept to a few sets. What you eat decides that number.'],
+      ].map(([t,x]) => `
+        <div>
+          <b style="font-size:14.5px;line-height:1.4;display:block">${t}</b>
+          <div class="tiny muted" style="margin-top:4px;line-height:1.6">${x}</div>
+        </div>`).join('')}
+    </div>
+
+    <div class="card tight" style="margin-top:14px;background:var(--accent-tint);border-color:transparent">
+      <div class="tiny" style="line-height:1.6">
+        <b>The honest timeline.</b> Shoulder and arm width at your training age moves in
+        months, not weeks — expect a visible difference at around twelve weeks and a
+        clear one at six months, provided you are eating enough to build with. That last
+        clause is the one that decides it.
+      </div>
+    </div>
+  </div>`;
 }
 
 /* Weekly sets per muscle for the current phase — the honesty check that
@@ -571,6 +643,39 @@ function newSession(k){
 function startSession(k){ newSession(k); haptic(); render(); }
 
 /* One tap logs the set, carrying last session's weight if known. */
+/* Alternates for whatever is busy. Grouped by what you need rather than
+   by how good they are, because the question in the moment is always
+   "what is actually free right now". */
+function openSwap(exName){
+  const g = swapsFor(exName);
+  if (!g){ toast('No alternates for that one'); return; }
+  openSheet(`
+    <div class="tiny muted">${esc(exName)}</div>
+    <h2 style="margin:4px 0 2px">${esc(g.label)}</h2>
+    <p class="sub" style="margin-bottom:4px">${esc(g.why)}</p>
+    <div class="card tight sunk" style="margin:14px 0">
+      <div class="tiny muted" style="line-height:1.6">
+        Any of these trains the same pattern. Match the reps and the effort,
+        not the weight — the number will differ and that is fine.
+      </div>
+    </div>
+    <div class="stack" style="gap:9px">
+      ${g.options.map(o => {
+        const gs = GEAR_STYLE[o.gear];
+        return `<div class="card tight">
+          <div class="spread" style="align-items:flex-start;gap:10px">
+            <b style="font-size:14.5px">${esc(o.name)}</b>
+            <span class="badge" style="background:${gs.bg};color:${gs.fg}">${esc(gs.label)}</span>
+          </div>
+          <div class="tiny muted" style="margin-top:6px;line-height:1.55">${esc(o.note)}</div>
+        </div>`;
+      }).join('')}
+    </div>
+    <button class="btn btn-ghost block" style="margin-top:16px" data-act="close">Close</button>
+  `);
+  bindActions(document.querySelector('.sheet'), { close: closeSheet });
+}
+
 function addSet(key, exName){
   const prev = store.get().lastByEx[exName];
   store.update(s => {
@@ -750,6 +855,7 @@ function bind(){
     abandon: () => { store.update(s => { s.activeId = null; }); render(); },
     togglewu: () => { const e = document.getElementById('wu-body'); if (e) e.hidden = !e.hidden; },
     addset: d => addSet(d.k, d.n),
+    swap: d => openSwap(d.n),
     editset: d => editSet(d.k, +d.i, d.n),
     tick: d => quickComplete(d.d),
     undo: d => undoToday(d.d),

@@ -479,3 +479,15 @@ canvas{ display:block; }
              inset 0 -3px 7px -2px rgba(0,0,0,.20),
              inset 0 4px 8px -2px rgba(255,255,255,.40);
 }
+
+/* ---------- home: bird's-eye row ---------- */
+.glance{ display:grid; grid-template-columns:repeat(4,1fr); gap:7px; margin-top:12px; }
+.gtile{
+  display:flex; flex-direction:column; align-items:flex-start; gap:3px;
+  padding:12px 10px; border-radius:var(--r-md); min-width:0;
+  background:var(--surface); box-shadow:var(--clay-sm); text-align:left;
+  transition:transform var(--fast) var(--ease-squish), box-shadow var(--fast);
+}
+.gtile:active{ transform:translateY(2px) scale(.96); box-shadow:var(--clay-press); }
+.gtile > *{ max-width:100%; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+@media (max-width:360px){ .gtile{ padding:10px 8px; } .gtile b{ font-size:17px !important; } }

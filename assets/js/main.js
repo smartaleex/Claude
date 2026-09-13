@@ -7,6 +7,7 @@ import { exportAll, importAll, Slice, today } from './core/store.js';
 import { esc, $, toast, openSheet, closeSheet, sheetVal, bindActions, haptic } from './core/ui.js';
 import { icon } from './core/icons.js';
 import { openLift } from './core/lift.js';
+import { dailyLine } from './data/lift.js';
 
 import * as day    from './apps/day.js';
 import * as fuel   from './apps/fuel.js';
@@ -221,8 +222,22 @@ async function homeHTML(){
     ${todo.length > 6 ? `<div class="tiny muted center">and ${todo.length - 6} more</div>` : ''}
   </div>` : ''}
 
-  ${dayCard ? `
+  <!-- Bird's-eye row: the four numbers worth knowing before you decide
+       what to open, at a glance, without scrolling seven cards. -->
+  <div class="glance in in-2">
+    ${glanceHTML(cards)}
+  </div>
+
   <div class="sec">Today</div>
+  <div class="card in" data-act="daily" style="padding:17px 18px">
+    <div class="tiny muted" style="letter-spacing:.14em;text-transform:uppercase;font-weight:800">
+      Something to sit with
+    </div>
+    <div style="font-size:15.5px;line-height:1.6;margin-top:8px">${esc(dailyLine(today()).t)}</div>
+    <div class="tiny muted" style="margin-top:8px">— ${esc(dailyLine(today()).a)}</div>
+  </div>
+
+  ${dayCard ? `
   <div class="hero in" style="
        --accent-grad:linear-gradient(140deg,#0E9E9E 0%,#14B8A6 55%,#2FBF87 100%);
        --accent-glow:rgba(14,165,165,.38)">
@@ -261,6 +276,29 @@ async function homeHTML(){
   <div class="center tiny muted" style="margin:26px 0 8px">
     Everything saves to this device
   </div>`;
+}
+
+/* Four tiles, fixed order, always the same shape — so you learn where to
+   look instead of reading it fresh each time. Numbers only; anything that
+   needs a sentence belongs further down the page. */
+function glanceHTML(cards){
+  const get = id => cards.find(c => c.id === id) || {};
+  const fuel = get('fuel'), forge = get('forge'), clear = get('clear'), day = get('day');
+
+  const items = [
+    // One short word each — anything longer ellipsises at four across.
+    { label:'Eaten', value: (fuel.headline || '\u2014').split('/')[0].trim(), sub:'kcal',   go:'fuel',  c:'#5850EC' },
+    { label:'Gym',   value: (forge.badge || '\u2014'),                        sub:'wk',     go:'forge', c:'#2563EB' },
+    { label:'Done',  value: (day.headline || '\u2014').replace(' done','').replace(' of ','/'), sub:'anchors', go:'day', c:'#0EA5A5' },
+    { label:'Zyn',   value: (clear.detail || '').match(/(\d+)\s*pouch/)?.[1] ?? '\u2014', sub:'today', go:'clear', c:'#F97316' },
+  ];
+
+  return items.map(i => `
+    <button class="gtile" data-go2="${i.go}">
+      <span class="tiny" style="color:var(--faint);font-weight:800;letter-spacing:.1em;text-transform:uppercase">${esc(i.label)}</span>
+      <b style="font-family:'Sora',sans-serif;font-size:19px;letter-spacing:-.02em;color:${i.c}">${esc(i.value)}</b>
+      <span class="tiny muted">${esc(i.sub)}</span>
+    </button>`).join('');
 }
 
 function tileHTML(c, i){
@@ -355,6 +393,7 @@ function bindHome(){
     'cryptic-go': () => navigate('cryptic'),
     'cryptic-practice': () => navigate('cryptic', 'practice'),
     lift: () => openLift('joke'),
+    daily: () => openLift('line'),
 
     // The three next-action shortcuts open their sheet in place rather
     // than navigating away — one tap should finish the job, not start it.

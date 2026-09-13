@@ -89,6 +89,11 @@ const PROMPTS = [
 
 const store = new Slice('day', {
   medDoses: 3,     // he takes them three times a day
+  /* Off by default: he has a separate app that actually sends
+     notifications, and a second half-kept log is worse than none — it
+     makes adherence look terrible in the doctor summary when the doses
+     were taken, just recorded elsewhere. */
+  medTrack: false,
   anchors: DEFAULT_ANCHORS,
   done: {},        // dayKey -> { anchorId: true }
   sleep: {},       // dayKey -> { hours, quality }   quality 1-4
@@ -154,7 +159,10 @@ const moodMeta = v => MOOD_SCALE.find(x => x.v === v) || MOOD_SCALE[3];
 const ENERGY = ['Flat', 'Low', 'Okay', 'Wired'];
 
 /** On a heavy day only the core anchors are asked for. */
-const visibleAnchors = d => isHeavy(d) ? anchors().filter(a => a.core) : anchors();
+const visibleAnchors = d => {
+  const list = isHeavy(d) ? anchors().filter(a => a.core) : anchors();
+  return store.get().medTrack ? list : list.filter(a => a.id !== 'meds');
+};
 
 const doneCount = d => visibleAnchors(d).filter(a => isDone(d, a.id)).length;
 
@@ -191,17 +199,9 @@ function sleepAvg(n = 7){
    rather than quietly scrolling away. */
 function nextFromDay(){
   const d = today(), h = new Date().getHours();
-  const taken = medsTaken(d), of = medDoses();
-
-  if (taken < of){
-    // Roughly morning / midday / night. Only nag for doses actually due.
-    const due = h < 11 ? 1 : h < 17 ? 2 : of;
-    if (taken < due){
-      return { id:'meds', label:`Take your ${h < 11 ? 'morning' : h < 17 ? 'midday' : 'evening'} dose`,
-               sub:`${taken} of ${of} logged today`, act:'day-meds', icon:'pill',
-               urgency: h < 11 ? 70 : h < 17 ? 80 : 95 };
-    }
-  }
+  /* No medication nudge. He asked for it gone — a dedicated app already
+     sends those notifications, and two things reminding you about the
+     same dose is how you start ignoring both. */
   if (h >= 18 && !moodOn(d)){
     return { id:'mood', label:'How was today?', sub:'Ten seconds. It builds the picture.',
              act:'day-mood', icon:'spark', urgency:55 };
@@ -219,13 +219,19 @@ export async function summary(){
   const d = today();
   const vis = visibleAnchors(d);
   const n = doneCount(d);
-  const meds = isDone(d, 'meds');
+  const track = store.get().medTrack;
+  const sl = sleepOn(d), mo = moodOn(d);
   return {
     headline: `${n} of ${vis.length} done`,
+    /* With medication tracked elsewhere, the useful second line is what is
+       still unlogged here rather than a dose count he does not want. */
     detail: isHeavy(d)
       ? 'Heavy day — just the essentials'
-      : medsAllIn(d) ? 'Meds all in' : `Meds ${medsTaken(d)}/${medDoses()}`,
-    badge: medsAllIn(d) ? null : 'Meds',
+      : track && !medsAllIn(d) ? `Meds ${medsTaken(d)}/${medDoses()}`
+      : !mo ? 'Mood not logged yet'
+      : !sl ? 'Sleep not logged yet'
+      : 'Mood and sleep logged',
+    badge: track && !medsAllIn(d) ? 'Meds' : null,
     // Tickable from the home screen. The whole point of an anchor is
     // that logging it costs nothing — making him open an app first is
     // exactly the friction that stopped the nicotine logging.
@@ -268,7 +274,7 @@ export async function mount(el){
   render();
 }
 
-function render(){
+function paintView(){
   root.innerHTML = `
   <header class="in">
     <div class="spread">
@@ -287,6 +293,16 @@ function render(){
 
   ${tab==='today' ? todayHTML() : tab==='reset' ? resetHTML() : trendHTML()}`;
   bind();
+}
+
+/* Re-rendering swaps the whole view via innerHTML. For a moment the page
+   has no height, so the browser clamps scrollY to 0 and you get thrown to
+   the top — which is what happened every time a set or a number was
+   logged. Capture the offset, repaint, put it back. */
+function render(){
+  const y = window.scrollY;
+  paintView();
+  if (Math.abs(window.scrollY - y) > 1) window.scrollTo(0, y);
 }
 
 /* ---------------- today ---------------- */
@@ -582,8 +598,13 @@ function buildReport(n = 28){
   L.push('');
 
   L.push(`MEDICATION`);
-  L.push(`  ${rate.doses} of ${rate.ofDoses} doses logged (${Math.round(rate.doses / Math.max(1,rate.ofDoses) * 100)}%).`);
-  L.push(`  ${rate.taken} of ${rate.of} days complete.`);
+  if (store.get().medTrack){
+    L.push(`  ${rate.doses} of ${rate.ofDoses} doses logged (${Math.round(rate.doses / Math.max(1,rate.ofDoses) * 100)}%).`);
+    L.push(`  ${rate.taken} of ${rate.of} days complete.`);
+  } else {
+    // Reporting 0% would be a lie that a clinician would act on.
+    L.push('  Tracked in a separate app, not here. Figures not available.');
+  }
   L.push('');
 
   L.push(`SLEEP`);
@@ -623,7 +644,7 @@ function buildReport(n = 28){
   if (run >= 3) flags.push('Three or more consecutive nights under 6 hours.');
   if (moods.some(m => m.m >= 2) && moods.some(m => m.m <= -2))
     flags.push('Both elevated (+2 or more) and low (-2 or less) days inside this window.');
-  if (rate.ofDoses && rate.doses / rate.ofDoses < 0.8)
+  if (store.get().medTrack && rate.ofDoses && rate.doses / rate.ofDoses < 0.8)
     flags.push('Medication logged under 80% of doses.');
 
   if (flags.length){

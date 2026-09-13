@@ -185,7 +185,7 @@ export async function mount(el){
   }, 30000);
 }
 
-function render(){
+function paintView(){
   root.innerHTML = `
   <header class="in">
     <div class="spread">
@@ -206,6 +206,16 @@ function render(){
 
   if (tab === 'trend') drawTrend();
   bind();
+}
+
+/* Re-rendering swaps the whole view via innerHTML. For a moment the page
+   has no height, so the browser clamps scrollY to 0 and you get thrown to
+   the top — which is what happened every time a set or a number was
+   logged. Capture the offset, repaint, put it back. */
+function render(){
+  const y = window.scrollY;
+  paintView();
+  if (Math.abs(window.scrollY - y) > 1) window.scrollTo(0, y);
 }
 
 /* ---------------- today ---------------- */

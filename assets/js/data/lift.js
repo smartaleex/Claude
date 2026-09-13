@@ -104,3 +104,50 @@ export const TRUTHS = [
   'Nobody is keeping the scorecard you think they are keeping.',
   'If you are wondering whether to ring your doctor, that is usually the answer.',
 ];
+
+/* ============================================================
+   One philosophical line a day — fixed by the date, so it is the same
+   all day and there is something to actually sit with rather than a
+   slot machine you reroll until it flatters you.
+
+   Weighted toward Stoicism and absurdism because both are built for
+   exactly this situation: things outside your control going badly, for
+   a long time, with no resolution available. Neither asks you to
+   pretend it is fine.
+   ============================================================ */
+export const DAILY = [
+  { t:'You could leave life right now. Let that determine what you do and say and think.', a:'Marcus Aurelius', on:'Not morbid — clarifying. Most of what you are worried about does not survive that test.' },
+  { t:'We suffer more often in imagination than in reality.', a:'Seneca', on:'Count how many of today’s disasters actually happen.' },
+  { t:'It is not the man who has too little, but the man who craves more, that is poor.', a:'Seneca', on:'Applies to progress as much as money.' },
+  { t:'The impediment to action advances action. What stands in the way becomes the way.', a:'Marcus Aurelius', on:'The obstacle is the training, not an interruption to it.' },
+  { t:'Man is disturbed not by things, but by the views he takes of them.', a:'Epictetus', on:'The gap between the event and your reading of it is the only place you have leverage.' },
+  { t:'First say to yourself what you would be; and then do what you have to do.', a:'Epictetus', on:'Identity first, habits second. Not the other way round.' },
+  { t:'One must imagine Sisyphus happy.', a:'Albert Camus', on:'The repetition is not the punishment. Deciding it is meaningless is.' },
+  { t:'In the depth of winter, I finally learned that within me there lay an invincible summer.', a:'Albert Camus', on:'Written by someone who was not being metaphorical about the winter.' },
+  { t:'He who has a why to live can bear almost any how.', a:'Nietzsche, via Viktor Frankl', on:'The how is currently very heavy. Be clear with yourself about the why.' },
+  { t:'What is to give light must endure burning.', a:'Viktor Frankl', on:'Frankl wrote this having lost everything. He is not being poetic.' },
+  { t:'Everything can be taken from a man but the last of the human freedoms: to choose one’s attitude in any given set of circumstances.', a:'Viktor Frankl', on:'The smallest possible freedom, and the one nobody can reach.' },
+  { t:'Let everything happen to you: beauty and terror. Just keep going. No feeling is final.', a:'Rainer Maria Rilke', on:'No feeling is final. Including this one.' },
+  { t:'The only way out is through.', a:'Robert Frost', on:'There is no clever route around a hard year.' },
+  { t:'Nothing is more honourable than a grateful heart — but do not confuse gratitude with pretending.', a:'after Seneca', on:'You are allowed to be grateful and furious in the same week.' },
+  { t:'Waste no more time arguing what a good man should be. Be one.', a:'Marcus Aurelius', on:'Applies to bodies, businesses and sons.' },
+  { t:'You have power over your mind — not outside events. Realise this, and you will find strength.', a:'Marcus Aurelius', on:'Your dad’s illness is an outside event. How you show up is not.' },
+  { t:'Begin at once to live, and count each separate day as a separate life.', a:'Seneca', on:'Today does not have to be part of a run. It can just be today.' },
+  { t:'No man steps in the same river twice, for it is not the same river and he is not the same man.', a:'Heraclitus', on:'You are not the person who started this stretch. That cuts both ways.' },
+  { t:'The wound is the place where the light enters you.', a:'Rumi', on:'Widely quoted and easy to dismiss. Still true about who you become after.' },
+  { t:'Do not seek for things to happen as you wish, but wish for things to happen as they do, and your life will go well.', a:'Epictetus', on:'The hardest one on this list. Worth returning to.' },
+  { t:'A ship in harbour is safe, but that is not what ships are built for.', a:'John A. Shedd', on:'Applies to the business you keep not starting.' },
+  { t:'Courage is not the absence of fear, but the judgement that something else is more important.', a:'after Ambrose Redmoon', on:'You do not need to feel brave. You need to go anyway.' },
+  { t:'How long are you going to wait before you demand the best for yourself?', a:'Epictetus', on:'Not a productivity line. A dignity one.' },
+  { t:'It is not that we have a short time to live, but that we waste a lot of it.', a:'Seneca', on:'Also true of the hours spent deciding whether to start.' },
+  { t:'The best revenge is not to be like your enemy.', a:'Marcus Aurelius', on:'Works on jobs and people who have worn you down.' },
+  { t:'Be tolerant with others and strict with yourself.', a:'Marcus Aurelius', on:'Check which way round you currently have this.' },
+  { t:'To be everywhere is to be nowhere.', a:'Seneca', on:'You are running six things. Pick the two that matter this month.' },
+  { t:'Receive without pride, let go without attachment.', a:'Marcus Aurelius', on:'Applies to good weeks as much as bad ones.' },
+];
+
+/* Same date, same line, on every device — so it is worth sitting with. */
+export function dailyLine(dayKeyStr){
+  const n = Number(String(dayKeyStr).replaceAll('-', '')) || 0;
+  return DAILY[n % DAILY.length];
+}
