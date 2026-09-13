@@ -205,10 +205,11 @@ function dayHTML(d, isToday){
       </div>
     </div>
     <div class="bar"><i style="width:${p}%"></i></div>
-    ${isToday && T.mode !== 'flat' ? `<div class="hero-cap" style="margin-top:9px;font-size:12.5px">
+    ${isToday && T.mode !== 'flat' ? `<div class="hero-cap" style="margin-top:9px;font-size:12.5px;line-height:1.5">
       ${T.mode === 'training'
-        ? `Training day${T.session ? ' · ' + esc(T.session) : ''} — carbs up`
-        : 'Rest day — carbs down, protein holds'}
+        ? `Training day${T.session ? ' · ' + esc(T.session) : ''} — carbs up from your ${num(store.get().targets.kcal)} base`
+        : `Rest day — carbs down from your ${num(store.get().targets.kcal)} base. Protein holds.`}
+      <span style="opacity:.75"> Tap the cog to turn cycling off.</span>
     </div>` : ''}
   </div>
 
@@ -672,6 +673,29 @@ function openTargets(){
       <button class="btn btn-soft btn-sm block" style="margin-top:12px" data-act="auto">Use the suggested numbers</button>
     </div>
 
+    <!-- The flag existed from the start but had no control, so a shifting
+         target looked like a bug rather than a setting. -->
+    <div class="card tight sunk" style="margin-bottom:16px">
+      <div class="spread" style="align-items:flex-start;gap:12px">
+        <div class="grow">
+          <div class="card-title" style="font-size:14.5px">Carb cycling</div>
+          <div class="tiny muted" style="margin-top:4px;line-height:1.55">
+            Training days ${num(Math.round(T.kcal*TRAIN_MULT))} kcal, rest days ${num(Math.round(T.kcal*REST_MULT))}.
+            Protein and fat hold; carbs take the swing. Averages back to ${num(T.kcal)} over a 4/3 week.
+          </div>
+        </div>
+        <button class="chip ${store.get().cycle?'on':''}" data-act="cycle" style="flex:none">
+          ${store.get().cycle ? 'On' : 'Off'}
+        </button>
+      </div>
+      ${store.get().cycle ? `
+        <div class="tiny muted" style="margin-top:10px;line-height:1.55;padding-top:10px;border-top:1px solid var(--line-soft)">
+          It reads a <b>logged</b> session. Train without logging it in Training and today
+          reads as a rest day. If eating enough is the current problem, turn this off — a
+          flat ${num(T.kcal)} every day is one less thing to think about.
+        </div>` : ''}
+    </div>
+
     <label class="label">Daily targets</label>
     <div class="grid2">
       ${[['k','Kcal',T.kcal],['p','Protein (g)',T.p],['c','Carbs (g)',T.c],['f','Fat (g)',T.f]].map(([k,l,v]) =>
@@ -704,6 +728,14 @@ function openTargets(){
   });
 
   bindActions(document.querySelector('.sheet'), {
+    cycle: () => {
+      persistProfile();
+      store.update(st => { st.cycle = !st.cycle; });
+      haptic();
+      toast(store.get().cycle ? 'Carb cycling on' : `Flat ${num(store.get().targets.kcal)} every day`);
+      openTargets();   // reopen so the panel reflects the change
+      render();
+    },
     act: (d, el) => {
       act = +d.v;
       el.parentElement.querySelectorAll('.chip').forEach(c => c.classList.toggle('on', c === el));
