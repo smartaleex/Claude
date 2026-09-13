@@ -102,6 +102,27 @@ const autoMeal = () => {
 };
 
 /* ---------------- home summary ---------------- */
+/* Under-eating is the problem to catch, not over-eating, so this only
+   ever pushes toward food. It gets louder as the day runs out, because
+   2,800 calories is a very different ask at 9pm than at noon. */
+function nextFromFuel(t, T){
+  const h = new Date().getHours();
+  if (h >= 10 && t.kcal < 200){
+    return { id:'eat', label:'Eat something', sub:'Nothing logged yet today.',
+             act:'fuel-snap', icon:'food', urgency: h >= 15 ? 92 : 75 };
+  }
+  if (h >= 15 && t.kcal < T.kcal * 0.45){
+    return { id:'eat', label:'You are well behind on food',
+             sub:`${num(t.kcal)} of ${num(T.kcal)} kcal so far.`,
+             act:'fuel-snap', icon:'food', urgency:85 };
+  }
+  if (h >= 19 && t.p < T.p * 0.7){
+    return { id:'protein', label:'Protein is short', sub:`${num(T.p - t.p)}g still to go.`,
+             act:'fuel-snap', icon:'food', urgency:50 };
+  }
+  return null;
+}
+
 export async function summary(){
   await store.load();
   const t = totals(today()), T = store.get().targets;
@@ -112,6 +133,7 @@ export async function summary(){
     detail: pLeft > 0 ? `${num(pLeft)}g protein still to go` : 'Protein target hit ✓',
     badge: left > 0 ? `${num(left)} left` : 'Done',
     chips: [{ label:'Snap a meal', act:'fuel-snap' }],
+    next: nextFromFuel(t, T),
   };
 }
 

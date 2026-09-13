@@ -6,6 +6,7 @@ import { initAI, aiStatus, setKey, aiSettings, setTabOrder, testKey, discoverMod
 import { exportAll, importAll, Slice, today } from './core/store.js';
 import { esc, $, toast, openSheet, closeSheet, sheetVal, bindActions, haptic } from './core/ui.js';
 import { icon } from './core/icons.js';
+import { openLift } from './core/lift.js';
 
 import * as day    from './apps/day.js';
 import * as fuel   from './apps/fuel.js';
@@ -61,6 +62,13 @@ function appOrder(){
 const barApps  = () => appOrder().slice(0, BAR_SLOTS);
 const moreApps = () => appOrder().slice(BAR_SLOTS);
 const TABS = () => ['home', ...barApps(), 'more'];
+
+/* Brain dump. "I'm forgetting things" is a symptom, not a to-do list
+   problem, so this is deliberately not a task manager — no due dates, no
+   priorities, no projects. Somewhere to put a thought in four seconds so
+   it stops taking up room. Ticked items disappear on their own. */
+const capture = new Slice('capture', { items: [] });
+const openItems = () => capture.get().items.filter(i => !i.done);
 
 const view = $('#view');
 let current = 'home';
@@ -129,6 +137,7 @@ $('#tabbar').addEventListener('click', e => {
    The point of HQ is answering "what needs me today" in one glance,
    so each tool exports summary() and we show only what's live. */
 async function homeHTML(){
+  await capture.load();
   const cards = [];
   for (const id of appOrder()){
     try{ cards.push({ id, ...(await APPS[id].mod.summary()) }); }
@@ -140,10 +149,16 @@ async function homeHTML(){
   const greet = hour < 5 ? 'Still up' : hour < 12 ? 'Morning' : hour < 17 ? 'Afternoon' : 'Evening';
   const ai = aiStatus();
 
-  // Day leads. Everything else is a tool you open when you want it —
-  // a wall of six scoreboards is the last thing that helps on a bad day.
-  const dayCard  = cards.find(c => c.id === 'day');
+  const dayCard   = cards.find(c => c.id === 'day');
   const restCards = cards.filter(c => c.id !== 'day');
+
+  /* One instruction, not six dashboards. Every tool nominates what it
+     would most like done and how loudly; the loudest wins and the rest
+     stay quiet. On a flat day a single sentence is actionable where a
+     wall of numbers is just evidence that you are behind. */
+  const nexts = cards.map(c => c.next).filter(Boolean).sort((a,b) => b.urgency - a.urgency);
+  const top = nexts[0];
+  const todo = openItems();
 
   return `
   <header class="in">
@@ -156,14 +171,64 @@ async function homeHTML(){
     </div>
   </header>
 
+  ${top ? `
+  <div class="nowcard in" style="margin-top:16px" data-act="${esc(top.act)}">
+    <div class="nowcard-ico">${icon(top.icon || 'spark', 22)}</div>
+    <div class="grow" style="min-width:0">
+      <div class="tiny" style="opacity:.75;letter-spacing:.16em;text-transform:uppercase;font-weight:800">Right now</div>
+      <div style="font-family:'Sora',sans-serif;font-weight:800;font-size:19px;letter-spacing:-.02em;margin-top:3px">
+        ${esc(top.label)}
+      </div>
+      <div style="font-size:13px;opacity:.85;margin-top:3px" class="trunc">${esc(top.sub || '')}</div>
+    </div>
+    <span style="opacity:.8;flex:none">${icon('chevron',18)}</span>
+  </div>` : `
+  <div class="nowcard in calm" style="margin-top:16px" data-act="lift">
+    <div class="nowcard-ico">${icon('check',22)}</div>
+    <div class="grow">
+      <div class="tiny" style="opacity:.75;letter-spacing:.16em;text-transform:uppercase;font-weight:800">Right now</div>
+      <div style="font-family:'Sora',sans-serif;font-weight:800;font-size:19px;margin-top:3px">Nothing needs you</div>
+      <div style="font-size:13px;opacity:.85;margin-top:3px">Everything due today is logged.</div>
+    </div>
+  </div>`}
+
+  <!-- Three things within reach at all times. These are the ones that
+       fall over first in a bad stretch: eating, remembering, and mood. -->
+  <div class="quickrow in in-2">
+    <button class="quick" data-act="lift">
+      <span class="qi" style="background:linear-gradient(135deg,#F97316,#FBBF24)">${icon('spark',19)}</span>
+      <span>Lift me</span>
+    </button>
+    <button class="quick" data-act="fuel-snap">
+      <span class="qi" style="background:linear-gradient(135deg,#5850EC,#8B5CF6)">${icon('camera',19)}</span>
+      <span>Snap food</span>
+    </button>
+    <button class="quick" data-act="dump">
+      <span class="qi" style="background:linear-gradient(135deg,#0EA5A5,#14B8A6)">${icon('note',19)}</span>
+      <span>Brain dump</span>
+    </button>
+  </div>
+
+  ${todo.length ? `
+  <div class="sec">On your mind</div>
+  <div class="stack" style="gap:8px">
+    ${todo.slice(0, 6).map(i => `
+      <button class="rowcard" data-act="tick" data-id="${i.id}" style="width:100%;text-align:left;padding:12px 15px">
+        <span style="width:24px;height:24px;border-radius:99px;flex:none;background:var(--bg-sunk);
+                     box-shadow:var(--clay-in)"></span>
+        <span class="grow" style="font-size:14.5px">${esc(i.text)}</span>
+      </button>`).join('')}
+    ${todo.length > 6 ? `<div class="tiny muted center">and ${todo.length - 6} more</div>` : ''}
+  </div>` : ''}
+
   ${dayCard ? `
-  <div class="hero in" style="margin-top:14px;
+  <div class="sec">Today</div>
+  <div class="hero in" style="
        --accent-grad:linear-gradient(140deg,#0E9E9E 0%,#14B8A6 55%,#2FBF87 100%);
        --accent-glow:rgba(14,165,165,.38)">
     <div class="spread" style="align-items:flex-start" data-go2="day">
       <div class="grow">
-        <div class="eyebrow" style="color:rgba(255,255,255,.82)">Today</div>
-        <div style="font-family:'Sora',sans-serif;font-weight:800;font-size:26px;letter-spacing:-.03em;margin-top:5px">
+        <div style="font-family:'Sora',sans-serif;font-weight:800;font-size:26px;letter-spacing:-.03em">
           ${esc(dayCard.headline)}
         </div>
         <div class="hero-cap" style="font-size:13.5px">${esc(dayCard.detail)}</div>
@@ -182,13 +247,13 @@ async function homeHTML(){
   </div>` : ''}
 
   ${ai.tier === 3 ? `
-  <div class="card in in-2" style="margin-top:12px;background:var(--warn-tint);border-color:transparent">
+  <div class="card in" style="margin-top:12px;background:var(--warn-tint);border-color:transparent">
     <div class="card-title" style="color:var(--warn)">AI features are off</div>
     <div class="card-note" style="margin-top:4px">A free Gemini key turns on food photos, suggestions and Spanish feedback.</div>
     <button class="btn btn-sm block" style="margin-top:12px;background:var(--warn);color:#fff" data-act="setup-ai">Set it up</button>
   </div>` : ''}
 
-  <div class="sec">The rest</div>
+  <div class="sec">Everything else</div>
   <div class="stack" style="gap:9px">
     ${restCards.map((c,i) => tileHTML(c, i)).join('')}
   </div>
@@ -231,6 +296,51 @@ function tileHTML(c, i){
   </div>`;
 }
 
+/* Four seconds from thought to written down, or it will not get used on
+   the days it matters most. One field, one button, keyboard already up. */
+function openDump(){
+  const list = openItems();
+  openSheet(`
+    <h2>Brain dump</h2>
+    <p class="sub">Get it out of your head. No dates, no priorities.</p>
+    <input class="input" id="dump-in" placeholder="What is rattling around?" autocomplete="off">
+    <button class="btn btn-primary block" style="margin-top:12px" data-act="add">Add it</button>
+
+    ${list.length ? `
+      <div class="sec">Open</div>
+      <div class="stack" style="gap:8px">
+        ${list.map(i => `
+          <button class="rowcard" data-act="done" data-id="${i.id}" style="width:100%;text-align:left;padding:12px 15px">
+            <span style="width:22px;height:22px;border-radius:99px;flex:none;background:var(--bg-sunk);box-shadow:var(--clay-in)"></span>
+            <span class="grow" style="font-size:14.5px">${esc(i.text)}</span>
+            <span class="tiny faint">done</span>
+          </button>`).join('')}
+      </div>` : ''}
+
+    <button class="btn btn-ghost block" style="margin-top:14px" data-act="close">Close</button>
+  `);
+
+  const add = () => {
+    const v = sheetVal('dump-in').trim();
+    if (!v) return;
+    capture.update(c => c.items.unshift({ id: Date.now().toString(36), text:v, done:false, t:Date.now() }));
+    haptic(); closeSheet(); navigate('home', { keepScroll:true });
+  };
+
+  bindActions(document.querySelector('.sheet'), {
+    add,
+    done: d => {
+      capture.update(c => { const it = c.items.find(x => x.id === d.id); if (it) it.done = true; });
+      haptic(); closeSheet(); navigate('home', { keepScroll:true });
+    },
+    close: closeSheet,
+  });
+
+  const inp = document.getElementById('dump-in');
+  inp?.focus();
+  inp?.addEventListener('keydown', e => { if (e.key === 'Enter') add(); });
+}
+
 function bindHome(){
   bindActions(view, {
     settings: openSettings,
@@ -243,6 +353,26 @@ function bindHome(){
     // Camera straight from HQ — Fuel opens with the shutter already up.
     'fuel-snap': () => navigate('fuel', 'snap'),
     'cryptic-go': () => navigate('cryptic'),
+    'cryptic-practice': () => navigate('cryptic', 'practice'),
+    lift: () => openLift('joke'),
+
+    // The three next-action shortcuts open their sheet in place rather
+    // than navigating away — one tap should finish the job, not start it.
+    'day-meds':  async () => { await APPS.day.mod.openFromHome('meds');
+                               toast('Dose logged'); navigate('home', { keepScroll:true }); },
+    'day-mood':  () => APPS.day.mod.openFromHome('mood'),
+    'day-sleep': () => APPS.day.mod.openFromHome('sleep'),
+
+    dump: openDump,
+    tick: async d => {
+      await capture.load();
+      capture.update(c => {
+        const it = c.items.find(x => x.id === d.id);
+        if (it) it.done = true;
+      });
+      haptic();
+      navigate('home', { keepScroll:true });
+    },
     'day-anchor': async d => {
       await APPS.day.mod.tickFromHome(d.id);
       haptic();

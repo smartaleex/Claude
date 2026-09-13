@@ -92,6 +92,7 @@ const store = new Slice('day', {
   anchors: DEFAULT_ANCHORS,
   done: {},        // dayKey -> { anchorId: true }
   sleep: {},       // dayKey -> { hours, quality }   quality 1-4
+  mood: {},        // dayKey -> { m, e }  m -3..+3 (low..elevated), e 0..3 energy
   notes: {},       // dayKey -> string
   heavy: {},       // dayKey -> true  (heavy day mode)
   medTime: '',     // optional reminder time, e.g. "21:00"
@@ -133,6 +134,24 @@ function bumpMeds(d, delta){
 }
 const isHeavy    = d => !!store.get().heavy[d];
 const sleepOn    = d => store.get().sleep[d] || null;
+const moodOn     = d => store.get().mood[d] || null;
+
+/* Mood is bipolar, not a happiness score. A 1-to-5 "how good was today"
+   cannot represent being wired at 3am, which is the state that actually
+   needs catching. So it runs low to elevated through a true middle, and
+   energy is a separate axis — low mood with high energy is a mixed state
+   and the most dangerous square on the board. */
+const MOOD_SCALE = [
+  { v:-3, label:'Very low',  tone:'#3B5BDB' },
+  { v:-2, label:'Low',       tone:'#5C7CFA' },
+  { v:-1, label:'A bit flat',tone:'#91A7FF' },
+  { v: 0, label:'Level',     tone:'#51CF66' },
+  { v: 1, label:'Lifted',    tone:'#FFD43B' },
+  { v: 2, label:'High',      tone:'#FF922B' },
+  { v: 3, label:'Very high', tone:'#F03E3E' },
+];
+const moodMeta = v => MOOD_SCALE.find(x => x.v === v) || MOOD_SCALE[3];
+const ENERGY = ['Flat', 'Low', 'Okay', 'Wired'];
 
 /** On a heavy day only the core anchors are asked for. */
 const visibleAnchors = d => isHeavy(d) ? anchors().filter(a => a.core) : anchors();
@@ -165,6 +184,35 @@ function sleepAvg(n = 7){
   };
 }
 
+/* What this app would most like you to do right now, and how loudly.
+   Home collects these from every tool and shows only the winner — one
+   clear instruction beats six dashboards when you are running on empty.
+   Urgency rises through the day so a missed morning dose gets louder
+   rather than quietly scrolling away. */
+function nextFromDay(){
+  const d = today(), h = new Date().getHours();
+  const taken = medsTaken(d), of = medDoses();
+
+  if (taken < of){
+    // Roughly morning / midday / night. Only nag for doses actually due.
+    const due = h < 11 ? 1 : h < 17 ? 2 : of;
+    if (taken < due){
+      return { id:'meds', label:`Take your ${h < 11 ? 'morning' : h < 17 ? 'midday' : 'evening'} dose`,
+               sub:`${taken} of ${of} logged today`, act:'day-meds', icon:'pill',
+               urgency: h < 11 ? 70 : h < 17 ? 80 : 95 };
+    }
+  }
+  if (h >= 18 && !moodOn(d)){
+    return { id:'mood', label:'How was today?', sub:'Ten seconds. It builds the picture.',
+             act:'day-mood', icon:'spark', urgency:55 };
+  }
+  if (h < 12 && !sleepOn(d)){
+    return { id:'sleep', label:'How did you sleep?', sub:'The earliest warning sign there is.',
+             act:'day-sleep', icon:'moon', urgency:45 };
+  }
+  return null;
+}
+
 /* ---------------- summary (HQ) ---------------- */
 export async function summary(){
   await store.load();
@@ -181,6 +229,7 @@ export async function summary(){
     // Tickable from the home screen. The whole point of an anchor is
     // that logging it costs nothing — making him open an app first is
     // exactly the friction that stopped the nicotine logging.
+    next: nextFromDay(),
     pips: vis.map(a => ({
       id: a.id,
       label: a.id === 'meds' ? `Meds ${medsTaken(d)}/${medDoses()}` : a.label,
@@ -191,6 +240,14 @@ export async function summary(){
 }
 
 /** Called from the HQ hero so anchors can be ticked without navigating. */
+/* Home opens these directly so a one-tap instruction stays one tap. */
+export async function openFromHome(what){
+  await store.load();
+  if (what === 'mood')  return openMood();
+  if (what === 'sleep') return openSleep();
+  if (what === 'meds')  { bumpMeds(today(), 1); haptic(); return true; }
+}
+
 export async function tickFromHome(id){
   await store.load();
   const d = today();
@@ -233,6 +290,95 @@ function render(){
 }
 
 /* ---------------- today ---------------- */
+function moodCardHTML(d){
+  const mo = moodOn(d);
+  if (!mo) return `
+    <button class="card in" data-act="mood" style="width:100%;text-align:left">
+      <div class="spread">
+        <div class="grow">
+          <div class="card-title">Not logged</div>
+          <div class="card-note" style="margin-top:3px">
+            Ten seconds. Over weeks it becomes the thing a doctor can actually read.
+          </div>
+        </div>
+        <span style="color:var(--accent-1)">${icon('spark',22)}</span>
+      </div>
+    </button>`;
+
+  const m = moodMeta(mo.m);
+  return `
+  <button class="card in" data-act="mood" style="width:100%;text-align:left">
+    <div class="spread">
+      <div class="grow">
+        <div class="card-title" style="color:${m.tone}">${esc(m.label)}</div>
+        <div class="card-note" style="margin-top:3px">Energy: ${esc(ENERGY[mo.e ?? 2])} — tap to change</div>
+      </div>
+      <span style="width:40px;height:40px;border-radius:99px;flex:none;background:${m.tone};
+                   box-shadow:var(--clay-sm)"></span>
+    </div>
+  </button>`;
+}
+
+function openMood(){
+  const d = today();
+  const cur = moodOn(d) || { m:0, e:2 };
+  let m = cur.m, e = cur.e ?? 2;
+
+  const paint = () => {
+    const meta = moodMeta(m);
+    const lab = document.getElementById('mo-label');
+    if (lab){ lab.textContent = meta.label; lab.style.color = meta.tone; }
+    document.querySelectorAll('[data-act="mo"]').forEach(el => {
+      const on = +el.dataset.v === m;
+      el.style.transform = on ? 'scale(1.28)' : 'scale(1)';
+      el.style.boxShadow = on ? '0 0 0 3px var(--surface), 0 0 0 5.5px currentColor' : 'var(--clay-sm)';
+    });
+    document.querySelectorAll('[data-act="en"]').forEach(el =>
+      el.classList.toggle('on', +el.dataset.v === e));
+  };
+
+  openSheet(`
+    <h2>How are you today?</h2>
+    <p class="sub">Low to high through a level middle — not good to bad.</p>
+
+    <div class="center" style="margin:20px 0 6px">
+      <b id="mo-label" style="font-family:'Sora',sans-serif;font-size:22px"></b>
+    </div>
+    <div class="row" style="justify-content:space-between;gap:6px;margin-top:10px">
+      ${MOOD_SCALE.map(x => `
+        <button data-act="mo" data-v="${x.v}" aria-label="${esc(x.label)}"
+          style="width:34px;height:34px;border-radius:99px;flex:none;color:${x.tone};
+                 background:${x.tone};box-shadow:var(--clay-sm);transition:transform .16s"></button>`).join('')}
+    </div>
+    <div class="spread tiny muted" style="margin-top:8px">
+      <span>Very low</span><span>Level</span><span>Very high</span>
+    </div>
+
+    <label class="label" style="margin-top:22px">Energy</label>
+    <div class="chips" id="mo-energy">
+      ${ENERGY.map((l, i) => `<button class="chip" data-act="en" data-v="${i}">${l}</button>`).join('')}
+    </div>
+    <div class="tiny muted" style="margin-top:8px;line-height:1.55">
+      Worth splitting out: feeling low but wired is a different state from feeling
+      low and flat, and it is the one to mention to a doctor.
+    </div>
+
+    <button class="btn btn-primary block" style="margin-top:20px" data-act="save">Save</button>
+    <button class="btn btn-ghost block" data-act="close">Cancel</button>
+  `);
+
+  bindActions(document.querySelector('.sheet'), {
+    mo: dd => { m = +dd.v; haptic(6); paint(); },
+    en: dd => { e = +dd.v; haptic(6); paint(); },
+    save: () => {
+      store.update(st => { st.mood[d] = { m, e }; });
+      closeSheet(); haptic(); toast('Logged'); render();
+    },
+    close: closeSheet,
+  });
+  paint();
+}
+
 function todayHTML(){
   const d = today();
   const heavy = isHeavy(d);
@@ -274,6 +420,9 @@ function todayHTML(){
       </button>`;
     })()).join('')}
   </div>
+
+  <div class="sec">How are you today</div>
+  ${moodCardHTML(d)}
 
   <div class="sec">Last night</div>
   <button class="card in" data-act="sleep" style="width:100%;text-align:left">
@@ -375,13 +524,152 @@ function resetHTML(){
 }
 
 /* ---------------- patterns ---------------- */
+/* Mood over the last 28 days as a column either side of a centre line —
+   above the line is elevated, below is low. A single rising or falling
+   trace is how you actually see a cycle turning, which a list of numbers
+   never shows you. */
+function moodChartHTML(){
+  const days = lastNDays(28);
+  const any = days.some(d => moodOn(d));
+  if (!any) return `
+    <div class="card in">
+      <div class="card-title">Mood chart</div>
+      <div class="card-note" style="margin-top:4px;line-height:1.6">
+        Log a few days and a shape appears here — the rise and fall over weeks is
+        the thing worth seeing, and the thing worth showing someone.
+      </div>
+    </div>`;
+
+  const H = 96, mid = H / 2;
+  return `
+  <div class="card in">
+    <div class="card-title">Mood · last 28 days</div>
+    <div class="card-note" style="margin-top:3px">Above the line is elevated, below is low.</div>
+    <div style="display:flex;align-items:stretch;gap:2px;height:${H}px;margin-top:14px;position:relative">
+      <div style="position:absolute;left:0;right:0;top:${mid}px;height:1.5px;background:var(--line);"></div>
+      ${days.map(d => {
+        const mo = moodOn(d);
+        if (!mo) return `<div style="flex:1"></div>`;
+        const meta = moodMeta(mo.m);
+        const h = Math.abs(mo.m) / 3 * (mid - 4);
+        const up = mo.m > 0;
+        return `<div style="flex:1;position:relative">
+          <div style="position:absolute;left:0;right:0;border-radius:3px;background:${meta.tone};
+            ${mo.m === 0
+              ? `top:${mid-2.5}px;height:5px`
+              : up ? `bottom:${H-mid}px;height:${h}px` : `top:${mid}px;height:${h}px`}"></div>
+        </div>`;
+      }).join('')}
+    </div>
+    <div class="spread tiny muted" style="margin-top:8px">
+      <span>4 weeks ago</span><span>Today</span>
+    </div>
+  </div>`;
+}
+
+/* What a psychiatrist actually asks at an appointment, answered from the
+   log instead of from memory — memory being exactly what is unreliable
+   during a mood episode. Sleep gets the most weight because for bipolar
+   it is the earliest reliable warning sign there is. */
+function buildReport(n = 28){
+  const days = lastNDays(n);
+  const moods = days.map(moodOn).filter(Boolean);
+  const sleeps = days.map(sleepOn).filter(s => s && s.hours > 0);
+  const rate = medsRate(n);
+
+  const L = [];
+  L.push(`ALEX HQ — ${n}-day summary to ${fmtDayShort(today())}`);
+  L.push('');
+
+  L.push(`MEDICATION`);
+  L.push(`  ${rate.doses} of ${rate.ofDoses} doses logged (${Math.round(rate.doses / Math.max(1,rate.ofDoses) * 100)}%).`);
+  L.push(`  ${rate.taken} of ${rate.of} days complete.`);
+  L.push('');
+
+  L.push(`SLEEP`);
+  if (sleeps.length){
+    const hrs = sleeps.map(s => s.hours);
+    const avg = hrs.reduce((a,b) => a+b, 0) / hrs.length;
+    const lo = Math.min(...hrs), hi = Math.max(...hrs);
+    const short = hrs.filter(h => h < 6).length;
+    L.push(`  Average ${avg.toFixed(1)}h across ${sleeps.length} logged nights (range ${lo}–${hi}h).`);
+    L.push(`  ${short} night${short===1?'':'s'} under 6 hours.`);
+    if (hi - lo >= 4) L.push(`  Spread of ${hi - lo}h between shortest and longest night.`);
+  } else L.push('  No nights logged.');
+  L.push('');
+
+  L.push(`MOOD (scale -3 very low to +3 very high)`);
+  if (moods.length){
+    const vals = moods.map(m => m.m);
+    const avg = vals.reduce((a,b) => a+b, 0) / vals.length;
+    const lo = Math.min(...vals), hi = Math.max(...vals);
+    const low = vals.filter(v => v <= -2).length;
+    const high = vals.filter(v => v >= 2).length;
+    L.push(`  ${moods.length} day${moods.length===1?'':'s'} logged. Average ${avg.toFixed(1)}, range ${lo} to ${hi}.`);
+    L.push(`  ${low} day${low===1?'':'s'} at or below -2; ${high} day${high===1?'':'s'} at or above +2.`);
+    const mixed = moods.filter(m => m.m <= -1 && (m.e ?? 2) >= 3).length;
+    if (mixed) L.push(`  ${mixed} day${mixed===1?'':'s'} logged as low mood with high energy (mixed features).`);
+  } else L.push('  No days logged.');
+  L.push('');
+
+  /* Three or more short nights in a row sitting next to elevated mood is
+     the pattern worth putting in front of a clinician by name. */
+  const flags = [];
+  let run = 0;
+  for (const d of days){
+    const sl = sleepOn(d);
+    if (sl && sl.hours > 0 && sl.hours < 6){ run++; if (run >= 3) break; } else run = 0;
+  }
+  if (run >= 3) flags.push('Three or more consecutive nights under 6 hours.');
+  if (moods.some(m => m.m >= 2) && moods.some(m => m.m <= -2))
+    flags.push('Both elevated (+2 or more) and low (-2 or less) days inside this window.');
+  if (rate.ofDoses && rate.doses / rate.ofDoses < 0.8)
+    flags.push('Medication logged under 80% of doses.');
+
+  if (flags.length){
+    L.push('WORTH RAISING');
+    flags.forEach(f => L.push(`  - ${f}`));
+    L.push('');
+  }
+
+  L.push('Self-reported, logged daily on a phone. Not a clinical instrument.');
+  return L.join('\n');
+}
+
+function openReport(){
+  const text = buildReport(28);
+  openSheet(`
+    <h2>Summary for your doctor</h2>
+    <p class="sub">Built from what you have logged. Copy it, or read it off the screen.</p>
+    <div class="card tight sunk" style="margin-top:14px">
+      <pre style="margin:0;white-space:pre-wrap;font-size:12.5px;line-height:1.6;
+                  font-family:ui-monospace,SFMono-Regular,Menlo,monospace">${esc(text)}</pre>
+    </div>
+    <button class="btn btn-primary block" style="margin-top:16px" data-act="copy">Copy it</button>
+    <button class="btn btn-ghost block" data-act="close">Close</button>
+  `);
+  bindActions(document.querySelector('.sheet'), {
+    copy: async () => {
+      try{ await navigator.clipboard.writeText(text); toast('Copied ✓'); }
+      catch{ toast('Select the text and copy it manually'); }
+    },
+    close: closeSheet,
+  });
+}
+
 function trendHTML(){
   const m14 = medsRate(14), m30 = medsRate(30);
   const sl = sleepAvg(7);
   const days = lastNDays(14);
 
   return `
-  <div class="grid2 in">
+  ${moodChartHTML()}
+
+  <button class="btn btn-plain block in" style="margin-top:12px" data-act="report">
+    ${icon('note',17)} Summary for your doctor
+  </button>
+
+  <div class="grid2 in" style="margin-top:14px">
     ${stat(m14.doses + `<small>/${m14.ofDoses}</small>`, 'Doses · last 14 days', 'var(--accent-1)')}
     ${stat(sl ? sl.hours + '<small>h</small>' : '—', 'Sleep · 7-night average')}
   </div>
@@ -565,6 +853,8 @@ function bind(){
       render();
     },
     sleep: openSleep,
+    mood: openMood,
+    report: openReport,
     reset: d => openReset(d.id),
     savenote: () => {
       const v = document.getElementById('day-note').value;

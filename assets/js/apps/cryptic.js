@@ -1,26 +1,25 @@
 /* ============================================================
-   Cryptic — one clue a day.
+   Cryptic — one clue a day, plus as much practice as you want.
 
-   The brief was a puzzle like Wordle or Connections: small, finishable,
-   the same for everyone, and over in a couple of minutes. One cryptic
-   clue is a better fit than a whole crossword — a grid is a thirty
-   minute commitment and turns into another thing you are behind on.
+   Two rules shape it:
 
-   Two rules shape the whole thing:
+   1. Hints are free and un-penalised, and a revealed clue gets the same
+      full explanation as a solved one. A ladder that charges you for
+      help teaches you to sit there feeling stupid; the explanation is
+      the reward, not the consolation prize.
+   2. The daily is the daily, but running out of puzzle at 7am when you
+      need something to do with your head is a failure of the app, not a
+      feature. Practice serves unlimited clues and touches no streak.
 
-   1. It ends. One clue, and when it is done it is done. There is no
-      "next" button dragging you into a second session.
-   2. Hints are free and un-penalised. Every hint ladder that punishes
-      you for taking help teaches you to sit there feeling stupid
-      instead. The point is learning how the wordplay works, so the
-      explanation is the reward, not the consolation prize.
-
-   Which is also why a solved clue and a revealed clue both show the
-   full parsing. Understanding why DESSERTS is STRESSED backwards is
-   the thing worth keeping.
+   On the keyboard: this used to borrow the phone's, with a hidden input
+   under the letter boxes. Mobile keyboards fight that arrangement —
+   autocapitalise, predictive text and composition events all write to
+   the field behind your back, and reassigning .value on every keystroke
+   to force uppercase is what broke Backspace. Owning the keyboard means
+   delete is just an array pop, and it can't break again.
    ============================================================ */
 
-import { Slice, today, dayKey, shiftDay, daysBetween, fmtDayShort } from '../core/store.js';
+import { Slice, today, shiftDay, fmtDayShort } from '../core/store.js';
 import {
   esc, num, toast, bindActions, empty, stat, haptic, openSheet, closeSheet,
 } from '../core/ui.js';
@@ -28,13 +27,19 @@ import { icon } from '../core/icons.js';
 import { CLUES, DEVICES, SHORTHAND, clueFor, clueIndexFor } from '../data/cryptic.js';
 
 const store = new Slice('cryptic', {
-  plays: {},        // dayKey -> { answer, solved, revealed, hints, tries }
+  plays: {},        // dayKey -> { solved, revealed, hints, tries }
+  practice: {},     // clue index -> { solved, revealed }
+  practiceDone: 0,
 });
 
 let tab = 'today';
 let root = null;
-let draft = '';           // what is typed but not yet checked
-let shake = false;        // one-shot wrong-answer animation
+let draft = '';
+let shake = false;
+let mode = 'daily';      // 'daily' | 'practice'
+let practiceIdx = null;
+let pHints = 0;          // hints taken on the current practice clue
+let pShown = false;      // answer revealed on the current practice clue
 
 /* ---------------- helpers ---------------- */
 const playOn = d => store.get().plays[d] || null;
@@ -42,15 +47,15 @@ const isDone = d => { const p = playOn(d); return !!p && (p.solved || p.revealed
 
 function recordPlay(d, patch){
   store.update(s => {
-    s.plays[d] = { answer:'', solved:false, revealed:false, hints:0, tries:0,
+    s.plays[d] = { solved:false, revealed:false, hints:0, tries:0,
                    ...(s.plays[d] || {}), ...patch };
   });
 }
 
 const solvedCount = () => Object.values(store.get().plays).filter(p => p.solved).length;
 
-/* Played days, not calendar days. Skipping a Tuesday you never opened
-   should not read as a failure — there was nothing to fail. */
+/* Played days, not calendar days. A Tuesday you never opened should not
+   read as a failure — there was nothing to fail. */
 function streak(){
   let n = 0, d = today();
   if (!playOn(d)?.solved) d = shiftDay(d, -1);
@@ -58,17 +63,45 @@ function streak(){
   return n;
 }
 
+/* Prefer a clue that is neither today's nor already practised. Once the
+   bank is exhausted it just goes random rather than refusing to play. */
+function pickPractice(){
+  const done = store.get().practice;
+  const todayIdx = clueIndexFor(today());
+  const fresh = CLUES.map((_, i) => i).filter(i => i !== todayIdx && !done[i]);
+  const pool = fresh.length ? fresh : CLUES.map((_, i) => i).filter(i => i !== todayIdx);
+  return pool[Math.floor(Math.random() * pool.length)];
+}
+
+function startPractice(){
+  mode = 'practice';
+  practiceIdx = pickPractice();
+  pHints = 0; pShown = false; draft = '';
+  render();
+}
+
+/* The clue on screen right now, whichever mode we are in. */
+const activeClue = () => mode === 'practice' ? CLUES[practiceIdx] : clueFor(today());
+const activeDone = () => mode === 'practice'
+  ? (pShown || !!store.get().practice[practiceIdx]?.solved)
+  : isDone(today());
+const activeHints = () => mode === 'practice' ? pHints : (playOn(today())?.hints || 0);
+
 /* ---------------- summary ---------------- */
 export async function summary(){
   await store.load();
   const d = today(), p = playOn(d), c = clueFor(d);
-  if (p?.solved)  return { headline:'Solved', detail:`${c.answer} · ${DEVICES[c.device].name.toLowerCase()}`, badge:null };
-  if (p?.revealed)return { headline:'Answer shown', detail:`It was ${c.answer}`, badge:null };
+  if (p?.solved)   return { headline:'Solved', detail:`${c.answer} · ${DEVICES[c.device].name.toLowerCase()}`,
+                            chips:[{ label:'Practice another', act:'cryptic-practice' }] };
+  if (p?.revealed) return { headline:'Answer shown', detail:`It was ${c.answer}`,
+                            chips:[{ label:'Practice another', act:'cryptic-practice' }] };
   return {
     headline: "Today's clue",
-    detail: `${c.clue}`,
+    detail: c.clue,
     badge: 'New',
     chips: [{ label:'Solve it', act:'cryptic-go' }],
+    next: { id:'cryptic', label:"Today's cryptic clue", sub:c.clue,
+            act:'cryptic-go', icon:'puzzle', urgency:25 },
   };
 }
 
@@ -76,8 +109,9 @@ export async function summary(){
 export async function mount(el, sub){
   root = el;
   await store.load();
-  if (sub === 'learn') tab = 'learn';
   draft = '';
+  if (sub === 'learn') tab = 'learn';
+  if (sub === 'practice'){ tab = 'today'; startPractice(); return; }
   render();
 }
 
@@ -87,7 +121,7 @@ function render(){
     <div class="spread">
       <div>
         <div class="eyebrow">Cryptic</div>
-        <h1 class="page-h1">${tab==='today' ? 'One clue' : tab==='archive' ? 'Past clues' : 'How it works'}</h1>
+        <h1 class="page-h1">${tab==='today' ? (mode==='practice'?'Practice':'One clue') : tab==='archive' ? 'Past clues' : 'How it works'}</h1>
       </div>
       <button class="chip" data-act="tab" data-v="learn" aria-label="How it works">${icon('note',18)}</button>
     </div>
@@ -98,22 +132,21 @@ function render(){
       `<button class="${tab===v?'on':''}" data-act="tab" data-v="${v}">${l}</button>`).join('')}
   </div>
 
-  ${tab==='today' ? todayHTML() : tab==='archive' ? archiveHTML() : learnHTML()}`;
+  ${tab==='today' ? playHTML() : tab==='archive' ? archiveHTML() : learnHTML()}`;
   bind();
-  if (tab === 'today' && !isDone(today())) focusInput();
 }
 
-/* ---------------- today ---------------- */
-function todayHTML(){
-  const d = today(), c = clueFor(d), p = playOn(d) || {};
-  const done = isDone(d);
+/* ---------------- the clue ---------------- */
+function playHTML(){
+  const c = activeClue();
+  const done = activeDone();
   const n = c.answer.length;
   const shown = (done ? c.answer : draft).padEnd(n, ' ');
 
   return `
-  <div class="card in" style="text-align:center;padding:26px 20px">
-    <div class="tiny muted" style="letter-spacing:.1em;text-transform:uppercase;margin-bottom:12px">
-      ${esc(fmtDayShort(d))}
+  <div class="card in" style="text-align:center;padding:24px 20px">
+    <div class="tiny muted" style="letter-spacing:.1em;text-transform:uppercase;margin-bottom:11px">
+      ${mode === 'practice' ? 'Practice' : esc(fmtDayShort(today()))}
     </div>
     <div style="font-family:'Sora',sans-serif;font-size:21px;font-weight:700;line-height:1.45;letter-spacing:-.01em">
       ${esc(c.clue.replace(c.enumeration, '').trim())}
@@ -121,39 +154,35 @@ function todayHTML(){
     <div class="badge accent" style="margin-top:12px">${esc(c.enumeration)}</div>
   </div>
 
-  ${done ? '' : `
-  <!-- A real input sits under the boxes so the phone keyboard opens and
-       autocorrect stays off; the boxes are just its display. -->
-  <div class="cx-wrap in in-2" data-act="focus">
-    <input id="cx-input" class="cx-input" maxlength="${n}" autocomplete="off"
-           autocapitalize="characters" autocorrect="off" spellcheck="false"
-           inputmode="text" aria-label="Your answer">
-    <div class="cx-grid ${shake?'shake':''}" id="cx-grid">
-      ${[...Array(n)].map((_, i) => `
-        <span class="cx-box ${shown[i].trim() ? 'filled' : ''}">${esc(shown[i].trim())}</span>`).join('')}
-    </div>
+  <div class="cx-grid ${shake?'shake':''} in in-2" id="cx-grid" style="margin-top:18px">
+    ${[...Array(n)].map((_, i) => `
+      <span class="cx-box ${shown[i].trim() ? 'filled' : ''}">${esc(shown[i].trim())}</span>`).join('')}
   </div>
 
-  <div class="row in in-2" style="margin-top:14px">
-    <button class="btn btn-primary grow" data-act="check">Check</button>
-    <button class="btn btn-plain" data-act="hint">${icon('spark',16)} Hint</button>
-  </div>`}
+  ${hintsHTML(c, activeHints())}
 
-  ${hintsHTML(c, p)}
-
-  ${done ? solvedHTML(c, p) : `
-    <button class="btn btn-ghost block" style="margin-top:18px;color:var(--muted)" data-act="reveal">
-      Show me the answer
-    </button>`}
-
-  <div class="grid2" style="margin-top:20px">
-    ${stat(num(solvedCount()), 'Solved')}
-    ${stat(num(streak()), 'In a row', streak() ? 'var(--good)' : undefined)}
-  </div>`;
+  ${done ? doneHTML(c) : keyboardHTML()}`;
 }
 
-/* The ladder: what kind of clue → where the definition is → a nudge at
-   the mechanism. Never the answer; that is its own button. */
+/* Our own keyboard. Three rows, with delete and enter flanking the last
+   one exactly where a thumb expects them. */
+const ROWS = ['QWERTYUIOP', 'ASDFGHJKL', 'ZXCVBNM'];
+
+function keyboardHTML(){
+  return `
+  <div class="cx-kb in in-3">
+    ${ROWS.map((row, i) => `
+      <div class="cx-kbrow">
+        ${i === 2 ? `<button class="cx-key wide" data-act="hint" aria-label="Hint">${icon('spark',17)}</button>` : ''}
+        ${[...row].map(k => `<button class="cx-key" data-act="k" data-k="${k}">${k}</button>`).join('')}
+        ${i === 2 ? `<button class="cx-key wide" data-act="del" aria-label="Delete">${icon('back',19)}</button>` : ''}
+      </div>`).join('')}
+  </div>
+
+  <button class="btn btn-primary block in in-3" style="margin-top:14px" data-act="check">Check</button>
+  <button class="btn btn-ghost block" style="color:var(--muted)" data-act="reveal">Show me the answer</button>`;
+}
+
 function hintList(c){
   return [
     { label:'What kind of clue is this?',
@@ -162,17 +191,14 @@ function hintList(c){
       body: c.def === 'both halves'
         ? 'Both halves of the clue define the answer independently. There is no wordplay to unpick.'
         : `The definition is <b>&ldquo;${esc(c.def)}&rdquo;</b>. Everything else is wordplay.` },
-    { label:'Nudge me',
-      body: esc(c.nudge) },
+    { label:'Nudge me', body: esc(c.nudge) },
   ];
 }
 
-function hintsHTML(c, p){
-  const taken = p.hints || 0;
+function hintsHTML(c, taken){
   if (!taken) return '';
-  const list = hintList(c);
   return `<div class="stack" style="gap:9px;margin-top:14px">
-    ${list.slice(0, taken).map((h, i) => `
+    ${hintList(c).slice(0, taken).map((h, i) => `
       <div class="card tight sunk">
         <div class="tiny muted" style="margin-bottom:5px">Hint ${i+1} · ${esc(h.label)}</div>
         <div style="font-size:14px;line-height:1.6">${h.body}</div>
@@ -180,9 +206,11 @@ function hintsHTML(c, p){
   </div>`;
 }
 
-function solvedHTML(c, p){
+function doneHTML(c){
   const dev = DEVICES[c.device];
-  const good = p.solved;
+  const good = mode === 'practice'
+    ? !!store.get().practice[practiceIdx]?.solved
+    : !!playOn(today())?.solved;
   return `
   <div class="card in" style="margin-top:16px;background:${good?'var(--good-tint)':'var(--surface-2)'};border-color:transparent">
     <div class="spread" style="align-items:center">
@@ -200,32 +228,45 @@ function solvedHTML(c, p){
     <span class="badge accent">${esc(dev.name)}</span>
     <div style="font-size:14.5px;line-height:1.65;margin-top:11px">${esc(c.wordplay)}</div>
     ${c.def === 'both halves' ? '' : `
-      <div class="tiny muted" style="margin-top:10px;line-height:1.6">
-        Definition: &ldquo;${esc(c.def)}&rdquo;
-      </div>`}
+      <div class="tiny muted" style="margin-top:10px;line-height:1.6">Definition: &ldquo;${esc(c.def)}&rdquo;</div>`}
   </div>
 
   <div class="card tight sunk" style="margin-top:10px">
     <div class="tiny muted" style="line-height:1.6"><b>${esc(dev.name)}:</b> ${esc(dev.tell)}</div>
   </div>
 
-  <button class="btn btn-plain block" style="margin-top:16px" data-act="tab" data-v="learn">
-    See all nine devices
+  <button class="btn btn-primary block" style="margin-top:16px" data-act="practice">
+    ${icon('puzzle',17)} ${mode === 'practice' ? 'Another one' : 'Practice another'}
   </button>
-  <div class="center tiny muted" style="margin-top:14px">Next clue tomorrow.</div>`;
+  ${mode === 'practice' ? `
+    <button class="btn btn-plain block" style="margin-top:9px" data-act="backtoday">Back to today's clue</button>` : ''}
+
+  <div class="grid2" style="margin-top:18px">
+    ${stat(num(solvedCount()), 'Daily solved')}
+    ${stat(num(store.get().practiceDone), 'Practice solved', 'var(--accent-1)')}
+  </div>`;
 }
 
 /* ---------------- archive ---------------- */
 function archiveHTML(){
   const plays = store.get().plays;
   const days = Object.keys(plays).sort().reverse();
-  if (!days.length) return empty(icon('puzzle',34), "Nothing played yet.<br>Today's clue is on the first tab.");
+  const streakN = streak();
 
   return `
-  <div class="grid2 in" style="margin-bottom:16px">
-    ${stat(num(solvedCount()), 'Solved')}
-    ${stat(num(days.filter(d => plays[d].revealed).length), 'Revealed', 'var(--muted)')}
+  <div class="grid2 in" style="margin-bottom:14px">
+    ${stat(num(solvedCount()), 'Daily solved')}
+    ${stat(num(streakN), 'In a row', streakN ? 'var(--good)' : undefined)}
   </div>
+  <button class="btn btn-primary block in" data-act="practice">
+    ${icon('puzzle',17)} Practice a clue
+  </button>
+  <div class="center tiny muted" style="margin-top:9px">
+    ${num(CLUES.length)} clues in the bank. Practice never touches the streak.
+  </div>
+
+  ${!days.length ? empty(icon('puzzle',34), "No dailies played yet.<br>Today's clue is on the first tab.") : `
+  <div class="sec">Your dailies</div>
   <div class="stack" style="gap:9px">
     ${days.map(d => {
       const p = plays[d], c = clueFor(d);
@@ -237,10 +278,9 @@ function archiveHTML(){
           <span class="sub">${esc(fmtDayShort(d))} · ${esc(DEVICES[c.device].name)}</span>
         </div>
         <span class="badge ${tone}">${label}</span>
-        <span class="caret">${icon('chevron',15)}</span>
       </button>`;
     }).join('')}
-  </div>`;
+  </div>`}`;
 }
 
 function openPast(d){
@@ -271,7 +311,6 @@ function learnHTML(){
     that builds the same answer a second way</b>. The whole skill is spotting where
     one stops and the other starts.
   </p>
-
   <div class="stack" style="gap:10px">
     ${Object.entries(DEVICES).map(([k, dv]) => `
       <div class="card">
@@ -297,69 +336,88 @@ function learnHTML(){
   </div>`;
 }
 
-/* ---------------- input ---------------- */
-function focusInput(){
-  const inp = document.getElementById('cx-input');
-  if (!inp) return;
-  inp.value = draft;
-  inp.oninput = () => {
-    draft = inp.value.toUpperCase().replace(/[^A-Z]/g, '');
-    inp.value = draft;
-    paintBoxes();
-  };
-  inp.onkeydown = e => { if (e.key === 'Enter'){ e.preventDefault(); check(); } };
-}
-
-/* Repainting the boxes directly rather than re-rendering — a full render
-   would drop the keyboard on every keystroke. */
+/* ---------------- typing ----------------
+   Repaint the boxes directly rather than re-rendering the view: a full
+   render on every keystroke would rebuild the keyboard under the thumb. */
 function paintBoxes(){
   const grid = document.getElementById('cx-grid');
   if (!grid) return;
-  const boxes = [...grid.children];
-  boxes.forEach((b, i) => {
+  [...grid.children].forEach((b, i) => {
     const ch = draft[i] || '';
     b.textContent = ch;
     b.classList.toggle('filled', !!ch);
   });
 }
 
+function typeLetter(k){
+  const n = activeClue().answer.length;
+  if (draft.length >= n) return;
+  draft += k;
+  haptic(6);
+  paintBoxes();
+}
+
+function deleteLetter(){
+  if (!draft) return;
+  draft = draft.slice(0, -1);
+  haptic(6);
+  paintBoxes();
+}
+
 function check(){
-  const d = today(), c = clueFor(d);
+  const c = activeClue();
   if (draft.length < c.answer.length){ toast(`${c.answer.length} letters`); return; }
 
-  const tries = (playOn(d)?.tries || 0) + 1;
-  if (draft === c.answer){
-    recordPlay(d, { answer:draft, solved:true, tries });
-    haptic(30);
-    toast('Got it ✓');
-    draft = '';
-    render();
+  const right = draft === c.answer;
+
+  if (mode === 'practice'){
+    if (right){
+      store.update(s => { s.practice[practiceIdx] = { solved:true }; s.practiceDone++; });
+      haptic(30); toast('Got it ✓'); draft = ''; render();
+    } else { wrong(); }
     return;
   }
 
-  recordPlay(d, { tries });
+  const d = today();
+  const tries = (playOn(d)?.tries || 0) + 1;
+  if (right){
+    recordPlay(d, { solved:true, tries });
+    haptic(30); toast('Got it ✓'); draft = ''; render();
+  } else {
+    recordPlay(d, { tries });
+    wrong();
+  }
+}
+
+function wrong(){
   haptic();
   shake = true;
   render();
-  setTimeout(() => { shake = false; const g = document.getElementById('cx-grid'); g?.classList.remove('shake'); }, 500);
+  setTimeout(() => {
+    shake = false;
+    document.getElementById('cx-grid')?.classList.remove('shake');
+  }, 500);
 }
 
 /* ---------------- binding ---------------- */
 function bind(){
   bindActions(root, {
-    tab: d => { tab = d.v; render(); },
-    focus: () => document.getElementById('cx-input')?.focus(),
+    tab: d => { tab = d.v; if (d.v === 'today' && mode === 'practice'){ /* stay in practice */ } render(); },
+    k: d => typeLetter(d.k),
+    del: deleteLetter,
     check,
+    practice: startPractice,
+    backtoday: () => { mode = 'daily'; practiceIdx = null; draft = ''; render(); },
     hint: () => {
-      const d = today(), c = clueFor(d);
-      const taken = playOn(d)?.hints || 0;
+      const c = activeClue();
+      const taken = activeHints();
       if (taken >= hintList(c).length){ toast('That is all of them'); return; }
-      recordPlay(d, { hints: taken + 1 });
+      if (mode === 'practice') pHints = taken + 1;
+      else recordPlay(today(), { hints: taken + 1 });
       haptic();
       render();
     },
     reveal: () => {
-      const d = today(), c = clueFor(d);
       openSheet(`
         <h2>Show the answer?</h2>
         <p class="sub">You will still get the full explanation — that is the useful part either way.</p>
@@ -368,9 +426,25 @@ function bind(){
       `);
       bindActions(document.querySelector('.sheet'), {
         close: closeSheet,
-        yes: () => { recordPlay(d, { revealed:true }); closeSheet(); draft=''; render(); },
+        yes: () => {
+          if (mode === 'practice') pShown = true;
+          else recordPlay(today(), { revealed:true });
+          closeSheet(); draft = ''; render();
+        },
       });
     },
     openpast: d => openPast(d.d),
   });
+
+  /* A physical keyboard should still work when this is open on a laptop. */
+  if (!root.__keyBound){
+    root.__keyBound = true;
+    document.addEventListener('keydown', e => {
+      if (document.querySelector('.sheet')) return;
+      if (tab !== 'today' || activeDone()) return;
+      if (e.key === 'Backspace'){ e.preventDefault(); deleteLetter(); }
+      else if (e.key === 'Enter'){ e.preventDefault(); check(); }
+      else if (/^[a-zA-Z]$/.test(e.key)) typeLetter(e.key.toUpperCase());
+    });
+  }
 }
