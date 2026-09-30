@@ -7,7 +7,8 @@ import { exportAll, importAll, Slice, today } from './core/store.js';
 import { esc, $, toast, openSheet, closeSheet, sheetVal, bindActions, haptic } from './core/ui.js';
 import { icon } from './core/icons.js';
 import { openLift } from './core/lift.js';
-import { dailyLine } from './data/lift.js';
+import { DAILY } from './data/lift.js';
+import { readContext, dailyFor } from './core/mind.js';
 
 import * as day    from './apps/day.js';
 import * as fuel   from './apps/fuel.js';
@@ -17,6 +18,18 @@ import * as shout  from './apps/shout.js';
 import * as clear  from './apps/clear.js';
 import * as vale   from './apps/vale.js';
 import * as cryptic from './apps/cryptic.js';
+
+/* The line of the day leans on last night's sleep and yesterday's mood
+   and food (see core/mind.js), then holds still for the date. */
+function todaysLine(){
+  try{
+    const read = k => { try { return JSON.parse(localStorage.getItem('alexhq:' + k) || 'null'); } catch { return null; } };
+    const d = new Date(), y = new Date(d.getTime() - 864e5);
+    const key = x => `${x.getFullYear()}-${String(x.getMonth()+1).padStart(2,'0')}-${String(x.getDate()).padStart(2,'0')}`;
+    const ctx = readContext({ day:read('day'), fuel:read('fuel'), todayKey:key(d), yesterdayKey:key(y), hour:d.getHours() });
+    return dailyFor(DAILY, today(), ctx);
+  }catch{ return DAILY[0]; }
+}
 
 /* ---------------- registry ----------------
    `accent` drives the whole page: hero gradients, primary buttons and
@@ -252,8 +265,9 @@ async function homeHTML(){
     <div class="tiny muted" style="letter-spacing:.14em;text-transform:uppercase;font-weight:800">
       Something to sit with
     </div>
-    <div style="font-size:15.5px;line-height:1.6;margin-top:8px">${esc(dailyLine(today()).t)}</div>
-    <div class="tiny muted" style="margin-top:8px">— ${esc(dailyLine(today()).a)}</div>
+    <div style="font-size:15.5px;line-height:1.6;margin-top:8px">${esc(todaysLine().t)}</div>
+    <div class="tiny muted" style="margin-top:8px">— ${esc(todaysLine().a)}</div>
+    ${todaysLine().on ? `<div class="tiny" style="margin-top:8px;line-height:1.55;opacity:.85">${esc(todaysLine().on)}</div>` : ''}
   </div>
 
   ${dayCard ? `

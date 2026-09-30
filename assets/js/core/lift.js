@@ -15,54 +15,111 @@
 
 import { esc, openSheet, closeSheet, bindActions, haptic, toast } from './ui.js';
 import { icon } from './icons.js';
+import { ask, aiSettings, initAI } from './ai.js';
 import { JOKES, LINES, TRUTHS } from '../data/lift.js';
+import { readContext, quoteWeight, truthWeight, choose, hide, loadMem, saveMem, vetJoke } from './mind.js';
 
-const pick = arr => arr[Math.floor(Math.random() * arr.length)];
-
-/* Avoid serving the same joke twice running — the one thing that makes
-   a bank feel small. */
-let lastJoke = -1, lastLine = -1, lastTruth = -1;
-function pickFresh(arr, lastRef){
-  if (arr.length < 2) return { i:0, v:arr[0] };
-  let i;
-  do { i = Math.floor(Math.random() * arr.length); } while (i === lastRef);
-  return { i, v:arr[i] };
+/* What the app already knows, read straight from saved data so this
+   works from any screen. Anything missing just means "unknown", and the
+   selection falls back to a fair shuffle. */
+function liveContext(){
+  const read = k => { try { return JSON.parse(localStorage.getItem('alexhq:' + k) || 'null'); } catch { return null; } };
+  const d = new Date(), y = new Date(d.getTime() - 864e5);
+  const key = x => `${x.getFullYear()}-${String(x.getMonth()+1).padStart(2,'0')}-${String(x.getDate()).padStart(2,'0')}`;
+  return readContext({ day:read('day'), fuel:read('fuel'), todayKey:key(d), yesterdayKey:key(y), hour:d.getHours() });
 }
 
 let mode = 'joke';
+let current = null;        // what is on screen: { kind, text, ai? }
+let busyAI = false;
+let aiJokes = [];          // this session's vetted AI jokes, never persisted
+const hasKey = () => { const s = aiSettings?.(); return !!(s && s.aiEnabled && s.geminiKey); };
 
 export function openLift(startMode = 'joke'){
   mode = startMode;
-  paint();
+  paint(true);
+}
+
+function next(kind){
+  const mem = loadMem();
+  let item;
+  if (kind === 'joke'){
+    item = choose(JOKES, { kind, mem });
+    current = { kind, text:item };
+  } else if (kind === 'line'){
+    const ctx = liveContext();
+    item = choose(LINES, { kind, mem, textOf:q => q.t, weightOf:q => quoteWeight(q, ctx) });
+    current = { kind, text:item.t, by:item.a };
+  } else {
+    const ctx = liveContext();
+    item = choose(TRUTHS, { kind, mem, textOf:t => t.t, weightOf:t => truthWeight(t, ctx) });
+    current = { kind, text:item.t };
+  }
+  saveMem(mem);
+}
+
+/* An AI joke is a bonus, never a dependency. It is written to a strict
+   brief, then screened by a program (no illness, death, food, mood or
+   medicine; not a copy of a stored joke; one line). If it fails the
+   screen the caller gets a curated joke instead. */
+async function aiJoke(){
+  const samples = [...JOKES].sort(() => Math.random() - .5).slice(0, 5);
+  const bank = [...JOKES, ...aiJokes];
+  for (let i = 0; i < 2; i++){
+    try{
+      const res = await ask({
+        maxTokens: 200,
+        prompt: `Write ONE short, clean, original joke in the style of these, a pun or dry one-liner. One or two sentences.
+Never about: illness, death, hospitals, medicine, mental health, moods, food or dieting, family conflict, politics, or anyone's body.
+
+Style examples:
+${samples.map(j => '- ' + j).join('\n')}
+
+Return ONLY JSON: {"joke":"..."}`,
+      });
+      const j = String(res?.data?.joke || '').trim();
+      const v = vetJoke(j, bank);
+      if (v.ok){ aiJokes.push(j); return j; }
+    }catch{ return null; }
+  }
+  return null;
 }
 
 function body(){
+  if (!current || current.kind !== mode) next(mode);
+  const c = current;
+  const acts = (extra = '') => `
+    <button class="btn btn-primary block" style="margin-top:14px" data-act="again">Another one</button>
+    ${extra}`;
+
   if (mode === 'joke'){
-    const { i, v } = pickFresh(JOKES, lastJoke); lastJoke = i;
     return `
       <div class="card tight sunk" style="margin-top:6px">
-        <div style="font-size:17px;line-height:1.55;font-weight:600">${esc(v)}</div>
+        <div style="font-size:17px;line-height:1.55;font-weight:600">${esc(c.text)}</div>
+        ${c.ai ? '<div class="tiny muted" style="margin-top:8px">Written by the AI. Hit or miss.</div>' : ''}
       </div>
-      <button class="btn btn-primary block" style="margin-top:14px" data-act="again">Another one</button>`;
+      ${acts(`
+      <div style="display:flex;gap:9px;margin-top:9px">
+        ${hasKey() ? `<button class="btn btn-plain" style="flex:1" data-act="aijoke" ${busyAI?'disabled':''}>${busyAI?'Thinking…':'Try a fresh one (AI)'}</button>` : ''}
+        <button class="btn btn-ghost" style="flex:1" data-act="nofunny">Not funny, drop it</button>
+      </div>`)}`;
   }
 
   if (mode === 'line'){
-    const { i, v } = pickFresh(LINES, lastLine); lastLine = i;
     return `
       <div class="card tight sunk" style="margin-top:6px">
-        <div style="font-size:16.5px;line-height:1.65">${esc(v.t)}</div>
-        <div class="tiny muted" style="margin-top:10px">— ${esc(v.a)}</div>
+        <div style="font-size:16.5px;line-height:1.65">${esc(c.text)}</div>
+        <div class="tiny muted" style="margin-top:10px">— ${esc(c.by)}</div>
       </div>
-      <button class="btn btn-primary block" style="margin-top:14px" data-act="again">Another one</button>`;
+      ${acts(`<button class="btn btn-ghost block" style="margin-top:9px" data-act="nofunny">Not for me, drop it</button>`)}`;
   }
 
   if (mode === 'truth'){
-    const { i, v } = pickFresh(TRUTHS, lastTruth); lastTruth = i;
     return `
       <div class="card tight sunk" style="margin-top:6px">
-        <div style="font-size:16px;line-height:1.65">${esc(v)}</div>
+        <div style="font-size:16px;line-height:1.65">${esc(c.text)}</div>
       </div>
-      <button class="btn btn-primary block" style="margin-top:14px" data-act="again">Another one</button>`;
+      ${acts(`<button class="btn btn-ghost block" style="margin-top:9px" data-act="nofunny">Not true for me, drop it</button>`)}`;
   }
 
   /* The bottom of the ladder. No jokes here, no reframing, and the
@@ -93,7 +150,8 @@ function body(){
     </div>`;
 }
 
-function paint(){
+function paint(fresh){
+  if (fresh) current = null;
   const tabs = [
     ['joke',  'Joke'],
     ['line',  'A line'],
@@ -119,8 +177,21 @@ function paint(){
   `);
 
   bindActions(document.querySelector('.sheet'), {
-    m: d => { mode = d.v; haptic(6); paint(); },
-    again: () => { haptic(6); paint(); },
+    m: d => { mode = d.v; haptic(6); paint(true); },
+    again: () => { haptic(6); paint(true); },
+    nofunny: () => {
+      if (current){ const m = loadMem(); hide(m, current.text); saveMem(m); }
+      haptic(6); paint(true);
+    },
+    aijoke: async () => {
+      if (busyAI) return;
+      busyAI = true; paint();
+      const j = await aiJoke();
+      busyAI = false;
+      if (j) current = { kind:'joke', text:j, ai:true };
+      else { next('joke'); toast('Nothing usable came back, so here is one from the bank.'); }
+      paint();
+    },
     close: closeSheet,
   });
 }
