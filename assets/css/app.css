@@ -270,20 +270,26 @@ canvas{ display:block; }
 /* ---------- bottom sheet ---------- */
 .scrim{
   position:fixed; inset:0; background:hsl(var(--clay-hue) / .42); backdrop-filter:blur(4px);
-  opacity:0; pointer-events:none; transition:opacity var(--base); z-index:60;
+  opacity:0; pointer-events:none; visibility:hidden;
+  transition:opacity var(--base), visibility 0s linear var(--base); z-index:60;
 }
-.scrim.on{ opacity:1; pointer-events:auto; }
+.scrim.on{ opacity:1; pointer-events:auto; visibility:visible; transition-delay:0s; }
 .sheet{
   position:fixed; left:0; right:0; bottom:0; z-index:61;
   background:var(--surface); border-radius:var(--r-xl) var(--r-xl) 0 0;
   padding:12px 22px calc(var(--sab) + 26px);
-  transform:translateY(102%); transition:transform var(--base) var(--ease-out);
+  /* A closed sheet must be truly gone, not just translated off-screen: on iOS
+     the visual viewport shifts after the keyboard closes and a fixed element
+     that is only translated can be left peeking above the tab bar. Hidden
+     visibility (after the slide-out finishes) guarantees it cannot. */
+  transform:translateY(110%); visibility:hidden; pointer-events:none;
+  transition:transform var(--base) var(--ease-out), visibility 0s linear var(--base);
   max-height:90dvh; overflow-y:auto;
   box-shadow:0 -22px 50px -18px hsl(var(--clay-hue) / .38),
              inset 0 9px 18px -8px rgba(255,255,255,.95);
   max-width:var(--shell-w); margin:0 auto;
 }
-.sheet.on{ transform:translateY(0); }
+.sheet.on{ transform:translateY(0); visibility:visible; pointer-events:auto; transition-delay:0s; }
 .sheet-grip{
   width:44px; height:5px; border-radius:99px; background:var(--bg-sunk); margin:0 auto 18px;
   box-shadow:var(--clay-in);

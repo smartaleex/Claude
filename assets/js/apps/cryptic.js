@@ -24,12 +24,19 @@ import {
   esc, num, toast, bindActions, empty, stat, haptic, openSheet, closeSheet,
 } from '../core/ui.js';
 import { icon } from '../core/icons.js';
-import { CLUES, DEVICES, SHORTHAND, clueFor, clueIndexFor } from '../data/cryptic.js';
+import { ALL, DEVICES, SHORTHAND, clueFor } from '../data/cryptic.js';
+import { levelOf, recommendLevel } from '../data/cryptic-verify.js';
+import { generateClue } from '../core/cryptic-ai.js';
+import { aiStatus } from '../core/ai.js';
 
 const store = new Slice('cryptic', {
   plays: {},        // dayKey -> { solved, revealed, hints, tries }
   practice: {},     // clue index -> { solved, revealed }
   practiceDone: 0,
+  aiBank: [],       // machine-made clues that passed the verifier (newest first)
+  banned: {},       // answer -> true: flagged as broken, never shown again
+  perf: [],         // recent results { level, solved, hints, revealed } — drives the auto level
+  levelPref: 'auto',
 });
 
 let tab = 'today';
@@ -37,7 +44,8 @@ let root = null;
 let draft = '';
 let shake = false;
 let mode = 'daily';      // 'daily' | 'practice'
-let practiceIdx = null;
+let pClue = null;         // the practice clue on screen (a clue object, so machine-made ones fit)
+let busyAI = false;
 let pHints = 0;          // hints taken on the current practice clue
 let pShown = false;      // answer revealed on the current practice clue
 
@@ -63,27 +71,63 @@ function streak(){
   return n;
 }
 
-/* Prefer a clue that is neither today's nor already practised. Once the
-   bank is exhausted it just goes random rather than refusing to play. */
+/* ---- difficulty ----
+   "Auto" reads how the last few clues actually went and steps up when you
+   are solving cleanly, down when you are struggling. You can pin a level. */
+const LEVELS = { 1:'Easy', 2:'Medium', 3:'Hard' };
+const effectiveLevel = () => {
+  const pref = store.get().levelPref;
+  return pref === 'auto' ? recommendLevel(store.get().perf) : (+pref || 1);
+};
+const bank = () => [...ALL, ...store.get().aiBank].filter(c => !store.get().banned[c.answer]);
+
+function logPerf(c, patch){
+  store.update(s => { s.perf = [...(s.perf || []), { level: levelOf(c), t: Date.now(), ...patch }].slice(-30); });
+}
+
+/* Prefer a clue at your level that is neither today's nor already
+   practised. If a level runs dry, widen rather than refuse to play. */
 function pickPractice(){
-  const done = store.get().practice;
-  const todayIdx = clueIndexFor(today());
-  const fresh = CLUES.map((_, i) => i).filter(i => i !== todayIdx && !done[i]);
-  const pool = fresh.length ? fresh : CLUES.map((_, i) => i).filter(i => i !== todayIdx);
+  const done = store.get().practice, lv = effectiveLevel();
+  const todayA = clueFor(today()).answer;
+  const ok = c => c.answer !== todayA;
+  let pool = bank().filter(c => ok(c) && levelOf(c) === lv && !done[c.answer]);
+  if (!pool.length) pool = bank().filter(c => ok(c) && levelOf(c) === lv);
+  if (!pool.length) pool = bank().filter(ok);
   return pool[Math.floor(Math.random() * pool.length)];
 }
 
 function startPractice(){
-  mode = 'practice';
-  practiceIdx = pickPractice();
+  mode = 'practice'; tab = 'today';      // the puzzle lives on Today — Archive's button used to set the mode and stay put
+  pClue = pickPractice();
   pHints = 0; pShown = false; draft = '';
   render();
 }
 
+/* Ask the model for a fresh clue at your level. It only reaches the screen
+   if it passes the letter-by-letter check; otherwise you are told plainly. */
+async function makeAI(){
+  if (busyAI) return;
+  busyAI = true; render();
+  try{
+    const avoid = [...bank().map(c => c.answer), ...Object.keys(store.get().banned)];
+    const c = await generateClue({ level: effectiveLevel(), avoid });
+    store.update(s => { s.aiBank = [c, ...(s.aiBank || [])].slice(0, 40); });
+    mode = 'practice'; pClue = c; pHints = 0; pShown = false; draft = ''; tab = 'today';
+  }catch(e){
+    toast(e.rejected ? e.message : (String(e.message || '').length > 120 ? 'Could not reach the AI.' : (e.message || 'Could not reach the AI.')));
+  }finally{ busyAI = false; render(); }
+}
+
+function flagClue(c){
+  store.update(s => { s.banned = { ...(s.banned || {}), [c.answer]: true }; s.aiBank = (s.aiBank || []).filter(x => x.answer !== c.answer); });
+  toast('Removed — thanks'); startPractice();
+}
+
 /* The clue on screen right now, whichever mode we are in. */
-const activeClue = () => mode === 'practice' ? CLUES[practiceIdx] : clueFor(today());
+const activeClue = () => mode === 'practice' ? pClue : clueFor(today());
 const activeDone = () => mode === 'practice'
-  ? (pShown || !!store.get().practice[practiceIdx]?.solved)
+  ? (pShown || !!store.get().practice[pClue?.answer]?.solved)
   : isDone(today());
 const activeHints = () => mode === 'practice' ? pHints : (playOn(today())?.hints || 0);
 
@@ -162,6 +206,9 @@ function playHTML(){
       ${esc(c.clue.replace(c.enumeration, '').trim())}
     </div>
     <div class="badge accent" style="margin-top:12px">${esc(c.enumeration)}</div>
+    <div class="tiny muted" style="margin-top:11px">
+      ${esc(LEVELS[levelOf(c)])}${c.ai ? ' · made by AI, wordplay machine-checked' : ''}
+    </div>
   </div>
 
   <div class="cx-grid ${shake?'shake':''} in in-2" id="cx-grid" style="margin-top:18px">
@@ -219,7 +266,7 @@ function hintsHTML(c, taken){
 function doneHTML(c){
   const dev = DEVICES[c.device];
   const good = mode === 'practice'
-    ? !!store.get().practice[practiceIdx]?.solved
+    ? !!store.get().practice[pClue?.answer]?.solved
     : !!playOn(today())?.solved;
   return `
   <div class="card in" style="margin-top:16px;background:${good?'var(--good-tint)':'var(--surface-2)'};border-color:transparent">
@@ -248,12 +295,25 @@ function doneHTML(c){
   <button class="btn btn-primary block" style="margin-top:16px" data-act="practice">
     ${icon('puzzle',17)} ${mode === 'practice' ? 'Another one' : 'Practice another'}
   </button>
+  ${aiButtonHTML()}
+  ${c.ai ? `<button class="btn btn-ghost block" style="color:var(--muted)" data-act="flag">This clue is broken — remove it</button>` : ''}
   ${mode === 'practice' ? `
     <button class="btn btn-plain block" style="margin-top:9px" data-act="backtoday">Back to today's clue</button>` : ''}
 
   <div class="grid2" style="margin-top:18px">
     ${stat(num(solvedCount()), 'Daily solved')}
     ${stat(num(store.get().practiceDone), 'Practice solved', 'var(--accent-1)')}
+  </div>`;
+}
+
+/* The AI button is only offered when there is a key, and says what it does. */
+function aiButtonHTML(){
+  if (aiStatus().tier === 3) return '';
+  return `<button class="btn btn-plain block" style="margin-top:9px" data-act="makeai" ${busyAI?'disabled':''}>
+    ${busyAI ? '<span class="spin"></span> Setting a clue…' : `${icon('spark',17)} Make me a new one (AI)`}
+  </button>
+  <div class="tiny muted center" style="margin-top:6px;line-height:1.5">
+    The AI proposes it; a program then checks every letter of the wordplay before you see it.
   </div>`;
 }
 
@@ -268,11 +328,20 @@ function archiveHTML(){
     ${stat(num(solvedCount()), 'Daily solved')}
     ${stat(num(streakN), 'In a row', streakN ? 'var(--good)' : undefined)}
   </div>
+  <div class="sec" style="margin-top:6px">Practice level</div>
+  <div class="chips">
+    ${[['auto', `Auto · ${LEVELS[recommendLevel(store.get().perf)]}`], ['1','Easy'], ['2','Medium'], ['3','Hard']].map(([v, l]) =>
+      `<button class="chip ${String(store.get().levelPref)===v?'on':''}" data-act="level" data-v="${v}">${l}</button>`).join('')}
+  </div>
+  <div class="tiny muted" style="margin:8px 4px 14px;line-height:1.55">
+    Auto steps up when you solve cleanly and down when you are struggling.
+  </div>
   <button class="btn btn-primary block in" data-act="practice">
     ${icon('puzzle',17)} Practice a clue
   </button>
+  ${aiButtonHTML()}
   <div class="center tiny muted" style="margin-top:9px">
-    ${num(CLUES.length)} clues in the bank. Practice never touches the streak.
+    ${num(bank().length)} clues in the bank. Practice never touches the streak.
   </div>
 
   ${!days.length ? empty(icon('puzzle',34), "No dailies played yet.<br>Today's clue is on the first tab.") : `
@@ -382,7 +451,8 @@ function check(){
 
   if (mode === 'practice'){
     if (right){
-      store.update(s => { s.practice[practiceIdx] = { solved:true }; s.practiceDone++; });
+      store.update(s => { s.practice[c.answer] = { solved:true }; s.practiceDone++; });
+      logPerf(c, { solved:true, hints:pHints, revealed:false });
       haptic(30); toast('Got it ✓'); draft = ''; render();
     } else { wrong(); }
     return;
@@ -392,6 +462,7 @@ function check(){
   const tries = (playOn(d)?.tries || 0) + 1;
   if (right){
     recordPlay(d, { solved:true, tries });
+    logPerf(c, { solved:true, hints: playOn(d)?.hints || 0, revealed:false });
     haptic(30); toast('Got it ✓'); draft = ''; render();
   } else {
     recordPlay(d, { tries });
@@ -417,7 +488,10 @@ function bind(){
     del: deleteLetter,
     check,
     practice: startPractice,
-    backtoday: () => { mode = 'daily'; practiceIdx = null; draft = ''; render(); },
+    makeai: makeAI,
+    flag: () => { if (pClue?.ai) flagClue(pClue); },
+    level: d => { store.update(s => { s.levelPref = d.v; }); haptic(6); render(); },
+    backtoday: () => { mode = 'daily'; pClue = null; draft = ''; render(); },
     hint: () => {
       const c = activeClue();
       const taken = activeHints();
@@ -437,6 +511,8 @@ function bind(){
       bindActions(document.querySelector('.sheet'), {
         close: closeSheet,
         yes: () => {
+          const cc = activeClue();
+          logPerf(cc, { solved:false, hints: activeHints(), revealed:true });
           if (mode === 'practice') pShown = true;
           else recordPlay(today(), { revealed:true });
           closeSheet(); draft = ''; render();

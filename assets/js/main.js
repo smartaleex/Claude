@@ -172,6 +172,25 @@ async function homeHTML(){
     </div>
   </header>
 
+  ${(() => {
+    // Today's cryptic, front and centre: the clue itself, so it can be read
+    // (and mulled over) without opening anything.
+    const cx = cards.find(c => c.id === 'cryptic');
+    if (!cx) return '';
+    const done = cx.headline === 'Solved' || cx.headline === 'Answer shown';
+    return `
+  <div class="card in" data-go2="cryptic" style="margin-top:14px;padding:17px 18px;cursor:pointer">
+    <div class="spread">
+      <div class="tiny muted" style="letter-spacing:.14em;text-transform:uppercase;font-weight:800">Today's cryptic</div>
+      <span class="badge ${done ? 'good' : 'accent'}">${done ? esc(cx.headline) : 'Unsolved'}</span>
+    </div>
+    <div style="font-family:'Sora',sans-serif;font-weight:700;font-size:18px;line-height:1.4;margin-top:9px;letter-spacing:-.01em">
+      ${done ? esc(cx.detail) : esc(cx.detail)}
+    </div>
+    <div class="tiny" style="margin-top:9px;color:var(--accent-1);font-weight:700">${done ? 'Practise another →' : 'Tap to solve →'}</div>
+  </div>`;
+  })()}
+
   ${top ? `
   <div class="nowcard in" style="margin-top:16px" data-act="${esc(top.act)}">
     <div class="nowcard-ico">${icon(top.icon || 'spark', 22)}</div>

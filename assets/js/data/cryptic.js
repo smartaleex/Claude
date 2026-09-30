@@ -21,6 +21,8 @@
      nudge     the middle hint — points at the mechanism, stops short
    ============================================================ */
 
+import { MORE } from './cryptic-more.js';
+
 export const DEVICES = {
   anagram: {
     name: 'Anagram',
@@ -69,6 +71,18 @@ export const DEVICES = {
     idea: 'Take a letter or two off a longer word.',
     tell: 'Losing, without, dropping, unfinished, endless, headless, almost.',
     example: '"A world losing time takes to the air (5)" — PLANET without T is PLANE.',
+  },
+  initials: {
+    name: 'Initial letters',
+    idea: 'The first letters of a run of words spell the answer.',
+    tell: 'Indicators like initially, at first, to begin with, heads of, leaders of, openers of.',
+    example: '"Side: initially tea\'s enjoyed at mealtimes (4)" — the first letters of Tea\'s Enjoyed At Mealtimes spell TEAM.',
+  },
+  compound: {
+    name: 'Two devices in one',
+    idea: 'A clue that chains two tricks: reverse or rearrange one piece, then add more letters to it.',
+    tell: 'Nothing single gives it away. Solve the piece you can see first, then use its letters to work out the rest.',
+    example: '"Fisherman: angel, wildly, with right (6)" — ANGEL rearranged is ANGLE, plus R makes ANGLER.',
   },
   alternate: {
     name: 'Alternate letters',
@@ -318,15 +332,26 @@ export const CLUES = [
     wordplay:'Every other letter of C-o-A-s-T-s gives CAT.' },
 ];
 
+/* The full bank: the original 52, then the harder ones. */
+export const ALL = [...CLUES, ...MORE];
+
 /* One clue a day, fixed by the date so it is the same all day and the
-   same on every device. It cycles once you reach the end — a repeat in
-   two months is a fair test of whether you actually learned the trick. */
+   same on every device.
+
+   The bank grew from 52 to 83 clues. Re-deriving every date from the new
+   length would have changed clues people had already seen (and today's,
+   mid-day), so dates up to the cutoff keep the ORIGINAL mapping, and the
+   sequence simply carries on from there through the enlarged bank. The
+   harder clues arrive naturally when the old ones run out. */
 const EPOCH = '2026-01-01';
+const CUTOFF = '2026-09-30';
+const dayNum = k => { const [y,m,d] = k.split('-').map(Number); return Math.round(Date.UTC(y, m-1, d) / 86400000); };
+const legacyIndex = k => (((dayNum(k) - dayNum(EPOCH)) % CLUES.length) + CLUES.length) % CLUES.length;
 
 export function clueIndexFor(dayKeyStr){
-  const d = n => { const [y,m,dd] = n.split('-').map(Number); return Date.UTC(y, m-1, dd); };
-  const days = Math.round((d(dayKeyStr) - d(EPOCH)) / 86400000);
-  return ((days % CLUES.length) + CLUES.length) % CLUES.length;
+  if (dayKeyStr <= CUTOFF) return legacyIndex(dayKeyStr);
+  const n = dayNum(dayKeyStr) - dayNum(CUTOFF);
+  return (legacyIndex(CUTOFF) + n) % ALL.length;
 }
 
-export const clueFor = dayKeyStr => CLUES[clueIndexFor(dayKeyStr)];
+export const clueFor = dayKeyStr => ALL[clueIndexFor(dayKeyStr)];
