@@ -124,23 +124,41 @@ function render(){
    picture: distance from the middle is how far through each person's own
    cadence you are, so the eye finds the drifters without reading. The
    maths lives in core/orbit.js. */
+/* Past this many people the pills go compact. Full-size pills are nicer to
+   look at and to tap, but a crowded orbit that overlaps is worse than a
+   slightly denser one that does not. */
+const COMPACT_ABOVE = 8;
 const firstName = n => String(n).trim().split(/\s+/)[0];
 
 function orbitHTML(){
   const ms = store.get().mates;
   if (!ms.length) return rosterHTML();          // same empty state as the roster
 
-  const pts = layoutOrbit(ms.map(m => ({ id:m.id, ratio:overdueRatio(m), seeing:isSeeing(m) })));
-  const byId = Object.fromEntries(ms.map(m => [m.id, m]));
   const drifting = overdue();
   const seeing = ms.filter(isSeeing);
   const calm = ms.length - drifting.length - seeing.length;
-  const reduce = typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches;
   const ring = r => `style="width:${r * 2}%"`;
   const worst = drifting[0];
 
+  /* One pill per person, name inside — nothing to read twice. The dot is
+     the only colour and it means one thing (status). Days since appear
+     only once someone is due, so a fresh pill stays quiet and an overdue
+     one says how overdue at a glance. Positions are filled in after the
+     pills are on screen, because a pill is as wide as the name in it and
+     the layout has to use the real width, not a guess. */
+  const pill = m => {
+    const r = overdueRatio(m), sn = isSeeing(m);
+    const tone = sn ? 'seeing' : r >= 1.6 ? 'bad' : r >= 1 ? 'warn' : 'good';
+    const suffix = sn || r < 1 ? '' : (m.lastSeen ? `<b class="dy">${sinceDays(m)}d</b>` : `<b class="dy">?</b>`);
+    return `<button class="orb-pill ${tone}" data-act="openmate" data-id="${m.id}"
+      data-ratio="${r}" data-seeing="${sn ? 1 : 0}"
+      aria-label="${esc(m.name)}, ${m.lastSeen ? sinceDays(m) + ' days since you saw them' : 'not logged yet'}">
+      <i></i><span class="nm">${esc(firstName(m.name))}</span>${suffix}
+    </button>`;
+  };
+
   return `
-  <div class="orbit in" id="orbit">
+  <div class="orbit in${ms.length > COMPACT_ABOVE ? ' compact' : ''}" id="orbit">
     <span class="orb-ring" ${ring(RING.fresh)}></span>
     <span class="orb-ring due" ${ring(RING.due)}></span>
     <span class="orb-ring" ${ring(RING.edge)}></span>
@@ -149,17 +167,7 @@ function orbitHTML(){
       ${drifting.length ? `<div><b>${drifting.length}</b><small>due</small></div>` : icon('check', 22)}
     </div>
 
-    ${pts.map((pt, i) => {
-      const m = byId[pt.id];
-      const never = !m.lastSeen && !isSeeing(m);
-      return `<button class="orb-dot ${pt.tone}${pt.up ? ' up' : ''}" data-act="openmate" data-id="${m.id}"
-        data-x="${pt.x.toFixed(2)}" data-y="${pt.y.toFixed(2)}" data-i="${i}"
-        aria-label="${esc(m.name)}, ${m.lastSeen ? sinceDays(m) + ' days since you saw them' : 'not logged yet'}"
-        style="${avatarStyle(m.name)};${reduce ? `left:${pt.x.toFixed(2)}%;top:${pt.y.toFixed(2)}%` : ''}${never ? ';opacity:.8' : ''}">
-        ${esc(initials(m.name)[0] || '?')}
-        <span class="orb-name">${esc(firstName(m.name))}</span>
-      </button>`;
-    }).join('')}
+    ${ms.map(pill).join('')}
   </div>
 
   <div class="orb-legend">
@@ -171,6 +179,7 @@ function orbitHTML(){
   <div class="center tiny muted" style="margin-top:10px;line-height:1.55">
     ${drifting.length} to reach out to · ${calm} in orbit${seeing.length ? ` · ${seeing.length} you are seeing, who stay in close` : ''}
   </div>
+  <div class="center tiny muted" style="margin-top:4px;opacity:.75">The number is days since you saw them, shown once someone is due.</div>
 
   ${worst ? `
   <div class="sec">Reach out to</div>
@@ -188,18 +197,43 @@ function orbitHTML(){
   </div>`}`;
 }
 
-/* Dots start at the centre and settle out to their place. Set on the
-   next frame so the browser has a starting position to transition from. */
-function settleOrbit(){
-  const dots = [...root.querySelectorAll('.orb-dot')];
-  if (!dots.length) return;
-  requestAnimationFrame(() => requestAnimationFrame(() => {
-    dots.forEach(el => {
-      el.style.transitionDelay = `${(+el.dataset.i || 0) * 45}ms`;
-      el.style.left = el.dataset.x + '%';
-      el.style.top  = el.dataset.y + '%';
-    });
-  }));
+/* Measure the real pills, lay them out, then place them. They start at the
+   centre and settle out (unless reduced motion is on, when they simply
+   appear in place). Re-run without the flourish when the webfont arrives
+   or the screen rotates, since both change how wide a name is. */
+let orbitWatching = false;
+function settleOrbit(first = true){
+  const box = root?.querySelector('#orbit');
+  if (!box) return;
+  const W = box.clientWidth;
+  const pills = [...box.querySelectorAll('.orb-pill')];
+  if (!W || !pills.length) return;
+
+  const pts = layoutOrbit(pills.map(el => ({
+    id: el.dataset.id, ratio: +el.dataset.ratio, seeing: el.dataset.seeing === '1',
+    // Reserve a little more than the visible pill (8px each way): that keeps a
+    // gap between neighbours and leaves the invisible 44px tap area from
+    // ever reaching into another pill's body.
+    w: (el.offsetWidth + 8) / W * 100, h: (el.offsetHeight + 8) / W * 100,
+  })));
+
+  const reduce = typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const place = () => pills.forEach((el, i) => {
+    el.style.transitionDelay = (reduce || !first) ? '0ms' : `${i * 45}ms`;
+    el.style.left = pts[i].x.toFixed(2) + '%';
+    el.style.top  = pts[i].y.toFixed(2) + '%';
+  });
+  if (reduce || !first) place();
+  else requestAnimationFrame(() => requestAnimationFrame(place));
+
+  if (!orbitWatching){
+    orbitWatching = true;
+    // resize fires in bursts (rotation, the browser bar collapsing); lay out once it settles
+    let timer = 0;
+    const again = () => { if (tab === 'orbit') settleOrbit(false); };
+    window.addEventListener('resize', () => { clearTimeout(timer); timer = setTimeout(again, 140); });
+    document.fonts?.ready?.then(again);
+  }
 }
 
 /* ---------------- roster ---------------- */

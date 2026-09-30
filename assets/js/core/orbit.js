@@ -11,26 +11,30 @@
      the outer edge         twice the cadence or more, or never logged
 
    Someone you are seeing is deliberately pinned to the inner ring and
-   never drifts. A dot sliding outward as the days pass is precisely the
+   never drifts. A pill sliding outward as the days pass is precisely the
    pressure that turns "I want to see her" into "I should text her", so
    the picture does not apply it to them.
 
+   Each person is a pill with their name inside, so a pill is as wide as
+   the name is long. That is why the caller passes real measured sizes:
+   guessing "roughly a circle" is what hid labels behind neighbours in
+   the first version. Sizes are in percent of the container width.
+
    Positions are stable — derived from the person's id, not their index —
-   so a dot doesn't jump to a new spot every time data changes. Then a
-   short relaxation pass pushes apart any that landed too close.
+   so a pill doesn't jump to a new spot every time data changes. Then a
+   relaxation pass separates any that overlap.
 
    Pure: no DOM, so the layout can be tested without a browser.
    ============================================================ */
 
 /* Radii as a percentage of the container width (centre is 50,50). */
 export const RING = { inner: 15, fresh: 23.5, due: 32, edge: 41 };
+export const PAD = 1.2;                 // breathing room around every pill, in %
+/* The "N due" bubble in the middle is 17% wide and never moves. Pills must
+   treat it as a wall, or a wide one on the inner ring slides underneath. */
+export const CORE = { hw: 8.8, hh: 8.8 };          // the bubble is 15% wide, plus a margin
+export const DEFAULT_SIZE = { w: 20, h: 9.5 };
 
-/* A dot is not just a circle: it carries a name under it. Collision uses
-   the whole footprint — dot plus label — as a box, all in percent of the
-   container width. Labels go on the OUTWARD side (up for dots in the top
-   half, down for the bottom), because the middle is where everything else
-   is, and a label pointing inward is what got hidden behind a neighbour. */
-export const BOX = { hw: 7.2, dot: 6.9, label: 6.6 };   // dot = half the dot PLUS its status ring
 /** Ratio (days since / cadence) -> radius, as a percentage of container width. */
 export function radiusFor(ratio){
   const r = Number.isFinite(ratio) ? Math.max(0, ratio) : 2;
@@ -54,44 +58,44 @@ export function toneFor(ratio, seeing){
 }
 
 /**
- * items: [{ id, ratio, seeing }]
- * returns: [{ id, x, y, r, tone }]  with x/y in 0..100 (percent of container)
+ * items: [{ id, ratio, seeing, w, h }]   (w, h = measured pill size, % of container width)
+ * returns: [{ id, x, y, r, tone }]       x/y = pill CENTRE, 0..100
  */
 export function layoutOrbit(items){
-  /* Each dot may drift within its own zone but never across the due ring —
+  /* Each pill may drift within its own zone but never across the due ring —
      that line is the one thing the picture promises, so an on-track person
      must never be drawn as overdue, nor the reverse. */
   const pts = items.map((it, idx) => {
     const onTrack = it.seeing || !(it.ratio >= 1);
+    const w = (Number.isFinite(it.w) ? it.w : DEFAULT_SIZE.w) + PAD;
+    const h = (Number.isFinite(it.h) ? it.h : DEFAULT_SIZE.h) + PAD;
     const r0 = it.seeing ? RING.inner + 1.5 : radiusFor(it.ratio);
     const a = hash01(String(it.id)) * Math.PI * 2;
-    const x = 50 + r0 * Math.cos(a), y = 50 + r0 * Math.sin(a);
     return {
       id: it.id, idx, r0, tone: toneFor(it.ratio, it.seeing),
+      hw: w / 2, hh: h / 2,
       lo: onTrack ? 14 : RING.due + 2,
       hi: onTrack ? RING.due - 2 : RING.edge,
-      x, y,
-      up: y < 50,                 // label side, fixed from the starting position so it cannot flip-flop
+      x: 50 + r0 * Math.cos(a), y: 50 + r0 * Math.sin(a),
     };
   });
 
   const radius = p => Math.hypot(p.x - 50, p.y - 50);
-  const box = p => ({
-    l: p.x - BOX.hw, r: p.x + BOX.hw,
-    t: p.up ? p.y - BOX.dot - BOX.label : p.y - BOX.dot,
-    b: p.up ? p.y + BOX.dot : p.y + BOX.dot + BOX.label,
-  });
+  const box = p => ({ l: p.x - p.hw, r: p.x + p.hw, t: p.y - p.hh, b: p.y + p.hh });
+
+  const overlap = (A, B) => {
+    const a = box(A), b = box(B);
+    return [Math.min(a.r, b.r) - Math.max(a.l, b.l), Math.min(a.b, b.b) - Math.max(a.t, b.t)];
+  };
 
   /* Separate overlapping footprints along whichever axis needs the least
-     movement, then pull each dot back inside its zone and gently toward
-     its true radius. Deterministic: same input, same output. */
+     movement. Returns whether anything moved. */
   const separate = () => {
     let moved = false;
     for (let i = 0; i < pts.length; i++){
       for (let j = i + 1; j < pts.length; j++){
-        const A = pts[i], B = pts[j], a = box(A), b = box(B);
-        const ox = Math.min(a.r, b.r) - Math.max(a.l, b.l);
-        const oy = Math.min(a.b, b.b) - Math.max(a.t, b.t);
+        const A = pts[i], B = pts[j];
+        const [ox, oy] = overlap(A, B);
         if (ox <= 0 || oy <= 0) continue;
         moved = true;
         if (ox < oy){
@@ -103,61 +107,89 @@ export function layoutOrbit(items){
         }
       }
     }
+    // ...and off the fixed core, which cannot move out of the way.
+    for (const P of pts){
+      const b = box(P);
+      const ox = Math.min(b.r, 50 + CORE.hw) - Math.max(b.l, 50 - CORE.hw);
+      const oy = Math.min(b.b, 50 + CORE.hh) - Math.max(b.t, 50 - CORE.hh);
+      if (ox <= 0 || oy <= 0) continue;
+      moved = true;
+      if (ox < oy) P.x += (P.x >= 50 ? 1 : -1) * (ox + 0.05);
+      else         P.y += (P.y >= 50 ? 1 : -1) * (oy + 0.05);
+    }
     return moved;
   };
-  const clampZone = spring => {
+
+  /* Keep each pill inside its zone, gently toward its true radius, and
+     entirely inside the container: a wide pill at the far left or right
+     would otherwise run off the edge of the screen.
+
+     When the wall is what stops it, slide the pill up or down the wall at
+     the SAME radius. Pulling it toward the centre instead would drag an
+     overdue person inside the due ring, which is the one thing this
+     picture must never do. */
+  const constrain = spring => {
     for (const p of pts){
-      const r = radius(p) || 0.001;
-      const want = Math.min(p.hi, Math.max(p.lo, r + (p.r0 - r) * spring));
-      const k = want / r;
+      const r0 = radius(p) || 0.001;
+      const r = Math.min(p.hi, Math.max(p.lo, r0 + (p.r0 - r0) * spring));
+      const k = r / r0;
       p.x = 50 + (p.x - 50) * k;
       p.y = 50 + (p.y - 50) * k;
+
+      const reachX = 50 - p.hw;                       // furthest the centre may sit from the middle, horizontally
+      if (Math.abs(p.x - 50) > reachX){
+        const sx = p.x >= 50 ? 1 : -1, sy = p.y >= 50 ? 1 : -1;
+        p.x = 50 + sx * reachX;
+        // stay on the ring: whatever horizontal room is lost is made up vertically
+        p.y = 50 + sy * Math.sqrt(Math.max(0, r * r - reachX * reachX));
+      }
+      p.x = Math.min(100 - p.hw, Math.max(p.hw, p.x));
+      p.y = Math.min(100 - p.hh, Math.max(p.hh, p.y));
     }
   };
 
-  // Phase 1: separate while gently holding each dot near its true radius.
-  for (let pass = 0; pass < 1500; pass++){
-    const moved = separate();
-    clampZone(0.02);
-    if (!moved) break;
-  }
-  // Phase 2: settle with no spring at all, so nothing is pulled back INTO
-  // an overlap. Only the zone limits (the due ring's promise) still apply.
-  for (let pass = 0; pass < 3000; pass++){
-    const moved = separate();
-    clampZone(0);
-    if (!moved) break;
-  }
-
-  /* Phase 3: whatever is still touching is usually a pair pressed against
-     a zone wall, where an axis-aligned nudge is undone by the clamp every
-     pass. Slide such dots ALONG their ring instead — the wall cannot
-     undo a move that keeps the radius. */
-  for (let pass = 0; pass < 600; pass++){
-    let moved = false;
-    for (let i = 0; i < pts.length; i++){
-      for (let j = i + 1; j < pts.length; j++){
-        const A = pts[i], B = pts[j], a = box(A), b = box(B);
-        const ox = Math.min(a.r, b.r) - Math.max(a.l, b.l);
-        const oy = Math.min(a.b, b.b) - Math.max(a.t, b.t);
-        if (ox <= 0 || oy <= 0) continue;
-        moved = true;
-        const need = Math.min(ox, oy) / 2 + 0.05;
-        for (const [P, sgn] of [[A, 1], [B, -1]]){
-          const r = radius(P) || 1, th = Math.atan2(P.y - 50, P.x - 50);
-          // which way round the ring takes this dot away from the other one?
-          const O = P === A ? B : A;
-          const cross = (P.x - 50) * (O.y - P.y) - (P.y - 50) * (O.x - P.x);
-          const dir = cross > 0 ? -1 : 1;
-          const d = dir * need / Math.max(r, 10);
-          P.x = 50 + r * Math.cos(th + d);
-          P.y = 50 + r * Math.sin(th + d);
+  /* The three phases occasionally leave a small residue that the next
+     phase would resolve, so run them as a few short rounds. */
+  for (let round = 0; round < 4; round++){
+    // Phase 1: separate while gently holding each pill near its true radius.
+    for (let pass = 0; pass < 1500; pass++){
+      const moved = separate();
+      constrain(0.02);
+      if (!moved) break;
+    }
+    // Phase 2: settle with no spring, so nothing is pulled back INTO an overlap.
+    for (let pass = 0; pass < 3000; pass++){
+      const moved = separate();
+      constrain(0);
+      if (!moved) break;
+    }
+    /* Phase 3: whatever is still touching is usually a pair pressed against
+       a zone wall, where an axis-aligned nudge is undone by the constraint
+       every pass. Slide such pills ALONG their ring instead — the wall
+       cannot undo a move that keeps the radius. */
+    for (let pass = 0; pass < 600; pass++){
+      let moved = false;
+      for (let i = 0; i < pts.length; i++){
+        for (let j = i + 1; j < pts.length; j++){
+          const A = pts[i], B = pts[j];
+          const [ox, oy] = overlap(A, B);
+          if (ox <= 0 || oy <= 0) continue;
+          moved = true;
+          const need = Math.min(ox, oy) / 2 + 0.05;
+          for (const [P, O] of [[A, B], [B, A]]){
+            const r = radius(P) || 1, th = Math.atan2(P.y - 50, P.x - 50);
+            // which way round the ring takes this pill away from the other one?
+            const cross = (P.x - 50) * (O.y - P.y) - (P.y - 50) * (O.x - P.x);
+            const d = (cross > 0 ? -1 : 1) * need / Math.max(r, 10);
+            P.x = 50 + r * Math.cos(th + d);
+            P.y = 50 + r * Math.sin(th + d);
+          }
         }
       }
+      constrain(0);
+      if (!moved) break;
     }
-    clampZone(0);
-    if (!moved) break;
   }
 
-  return pts.map(p => ({ id: p.id, x: p.x, y: p.y, r: radius(p), tone: p.tone, up: p.up }));
+  return pts.map(p => ({ id: p.id, x: p.x, y: p.y, r: radius(p), tone: p.tone }));
 }

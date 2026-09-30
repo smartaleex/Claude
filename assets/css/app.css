@@ -584,37 +584,44 @@ canvas{ display:block; }
 }
 .orb-ring.due{ border-style:dashed; border-color:color-mix(in srgb, var(--warn) 60%, transparent); }
 .orb-core{
-  position:absolute; left:50%; top:50%; width:17%; aspect-ratio:1; border-radius:50%;
+  position:absolute; left:50%; top:50%; width:15%; aspect-ratio:1; border-radius:50%;
   transform:translate(-50%,-50%); display:grid; place-items:center; text-align:center;
   background:var(--accent-grad, var(--brand-grad)); color:#fff; line-height:1;
   box-shadow:var(--clay-tint), var(--clay-on-colour);
 }
 .orb-core b{ font-family:'Sora',sans-serif; font-weight:800; font-size:clamp(15px,5vw,21px); display:block; }
 .orb-core small{ font-size:8.5px; letter-spacing:.1em; text-transform:uppercase; font-weight:800; opacity:.85; display:block; margin-top:1px; }
-.orb-dot{
-  position:absolute; width:11%; aspect-ratio:1; transform:translate(-50%,-50%);
-  left:50%; top:50%; border-radius:50%; padding:0;
-  display:grid; place-items:center; color:#fff;
-  font-family:'Sora',sans-serif; font-weight:800; font-size:clamp(11px,3.4vw,14px);
-  box-shadow:0 0 0 2.5px var(--surface), 0 0 0 4.5px var(--tone, var(--line)), var(--clay-sm);
+.orb-pill{
+  --tone:var(--line);
+  position:absolute; left:50%; top:50%; transform:translate(-50%,-50%);
+  display:inline-flex; align-items:center; gap:6px;
+  width:max-content; max-width:36%; height:32px; padding:0 12px 0 10px;
+  border-radius:999px; white-space:nowrap;
+  font-family:'Inter',sans-serif; font-size:12px; font-weight:700; line-height:1; color:var(--ink);
+  background:color-mix(in srgb, var(--tone) 12%, var(--surface));
+  box-shadow:0 0 0 1.5px color-mix(in srgb, var(--tone) 65%, transparent), var(--clay-sm);
   transition:left .8s var(--ease-squish), top .8s var(--ease-squish), transform var(--fast) var(--ease-squish);
 }
-/* The dot stays compact so a full roster fits, but the tappable area is
-   larger than it looks: an invisible ring brings it past the ~44px touch
-   target guideline without touching the layout. */
-.orb-dot::before{ content:""; position:absolute; inset:-5px; border-radius:50%; }
-.orb-dot:active{ transform:translate(-50%,-50%) scale(.92); }
-.orb-dot.good{ --tone:var(--good); } .orb-dot.mid{ --tone:var(--accent-1); }
-.orb-dot.warn{ --tone:var(--warn); } .orb-dot.bad{ --tone:var(--bad); }
-.orb-dot.seeing{ --tone:#EC4899; }
-.orb-name{
-  position:absolute; top:100%; left:50%; transform:translateX(-50%); margin-top:6px;
-  font-family:'Inter',sans-serif; font-size:10.5px; font-weight:700; color:var(--ink-2);
-  white-space:nowrap; max-width:56px; overflow:hidden; text-overflow:ellipsis; pointer-events:none;
+/* The pill is only 32px tall, so an invisible ring widens the tappable
+   area to 44px without changing how it looks. The layout reserves that
+   full area (see settleOrbit), so neighbours never steal each other's taps. */
+.orb-pill::before{ content:""; position:absolute; inset:-6px -4px; border-radius:999px; }
+.orb-pill:active{ transform:translate(-50%,-50%) scale(.94); }
+.orb-pill i{
+  flex:none; width:9px; height:9px; border-radius:50%; background:var(--tone);
+  box-shadow:0 0 0 2.5px color-mix(in srgb, var(--tone) 22%, transparent);
 }
-.orb-dot.up .orb-name{ top:auto; bottom:100%; margin-top:0; margin-bottom:6px; }
-.orbit{ margin-top:24px; }     /* room for the labels above the top dots */
+.orb-pill .nm{ min-width:0; overflow:hidden; text-overflow:ellipsis; }
+.orb-pill .dy{ flex:none; font:inherit; font-weight:700; color:var(--muted); font-variant-numeric:tabular-nums; }
+/* Crowded orbit: same design, a touch smaller. */
+.orbit.compact .orb-pill{ height:28px; font-size:11px; padding:0 10px 0 8px; gap:5px; }
+.orbit.compact .orb-pill i{ width:7px; height:7px; box-shadow:0 0 0 2px color-mix(in srgb, var(--tone) 22%, transparent); }
+.orbit.compact .orb-pill::before{ inset:-8px -4px; }
+.orb-pill.good{ --tone:var(--good); } .orb-pill.warn{ --tone:var(--warn); }
+.orb-pill.bad{  --tone:var(--bad);
+  box-shadow:0 0 0 1.5px var(--tone), 0 0 0 5px color-mix(in srgb, var(--tone) 15%, transparent), var(--clay-sm); }
+.orb-pill.seeing{ --tone:#EC4899; }
 .orb-legend{ display:flex; justify-content:center; gap:16px; flex-wrap:wrap; margin-top:14px; font-size:11.5px; color:var(--muted); }
 .orb-legend i{ display:inline-block; width:10px; height:10px; border-radius:99px; margin-right:6px; vertical-align:-1px; background:var(--tone); }
 .orb-legend i.dash{ background:none; border:1.5px dashed var(--warn); }
-@media (prefers-reduced-motion:reduce){ .orb-dot{ transition:none; } }
+@media (prefers-reduced-motion:reduce){ .orb-pill{ transition:none; } }
