@@ -257,3 +257,77 @@ export function swapsFor(name){
     }),
   };
 }
+
+/* ============================================================
+   Load equivalence.
+
+   Swapping a machine for a dumbbell should not mean guessing the weight.
+   Each option carries a load index: the working weight you would typically
+   use relative to the other options in its pattern (index 1 = the pattern's
+   reference movement). DB and single-arm entries are per hand or per side,
+   which is why they are well under 1. null means no weight carries over
+   (bodyweight, bands, assisted machines whose number runs backwards).
+
+   These are population averages, not physics: stack numbering differs
+   between brands and cables have different pulley ratios. So they are an
+   opening estimate, always labelled "est.", and the first real set
+   replaces them.
+   ============================================================ */
+const K = {
+  'Lat pulldown (any grip)':1, 'Assisted pull-up machine':null, 'Single-arm cable pulldown':0.5,
+  'Band-assisted pull-up':null, 'Straight-arm pulldown + row':null,
+  'Chest-supported machine row':1, 'Seated cable row':0.9, 'Single-arm DB row':0.4,
+  'Single-arm cable row':0.45, 'Inverted row (bar or rings)':null,
+  'Incline machine chest press':1, 'Incline DB press (30–45°)':0.4, 'Low-to-high cable press':0.35,
+  'Incline push-up (feet low)':null,
+  'Machine chest press':1, 'Flat DB press':0.42, 'Chest dip (lean forward)':null,
+  'Cable press (mid pulley)':0.35, 'Push-up (feet elevated)':null,
+  'Pec deck':1, 'Cable crossover (high to low)':0.45, 'Low-to-high cable fly':0.35, 'Incline DB fly':0.25,
+  'Machine shoulder press':1, 'Seated DB press (back support)':0.4, 'Landmine press':0.5, 'Arnold press (light)':0.3,
+  'Cable lateral raise (one arm)':1, 'DB lateral raise':1, 'Machine lateral raise':2,
+  'Band lateral raise':null, 'Lean-away DB raise':0.9,
+  'Face pull (rope, high pulley)':1, 'Reverse pec deck':1.2, 'Rear delt cable fly':0.5,
+  'Bent-over DB reverse fly':0.4, 'Band pull-apart':null,
+  'Incline DB curl':1, 'Bayesian cable curl':0.9, 'Preacher curl (machine or EZ)':1.3,
+  'Hammer curl':1.3, 'EZ-bar curl':1.7, 'Cable curl (straight bar)':1.5,
+  'Rope pushdown':1, 'Straight bar pushdown':1.15, 'Overhead cable extension':0.8,
+  'Machine dip / triceps machine':2.5, 'DB skull crusher':0.6, 'Close-grip push-up':null,
+  'Rope straight-arm pulldown':1, 'Straight bar straight-arm':1.1, 'DB pullover':0.9,
+  'Band straight-arm pulldown':null,
+  'Leg press':1, 'Hack squat':0.7, 'Bulgarian split squat':0.2, 'Goblet squat':0.25, 'Leg extension':0.35,
+  'Lying leg curl':1, 'Seated leg curl':1.1, 'Nordic curl (assisted)':null, 'Cable / band leg curl':0.6,
+  'Romanian deadlift (DB or bar)':1, 'Single-leg RDL':0.35, 'Back extension (45°)':null, 'Cable pull-through':0.5,
+  'Standing calf raise':1, 'Seated calf raise':0.7, 'Leg press calf raise':1.2, 'Single-leg raise off a step':null,
+  'Cable crunch':1, 'Hanging knee / leg raise':null, 'Ab wheel rollout':null, 'Machine crunch':1, 'Pallof press':0.5,
+  'DB shrug':1, 'Cable shrug':1.3, 'Trap bar / barbell shrug':2,
+};
+export const LOAD_INDEX = K;
+
+const words = s => new Set((String(s).toLowerCase().match(/[a-z]{2,}/g) || []));
+
+/** Load index for ANY exercise name, including the program's own wording
+    ("Close/neutral-grip lat pulldown"): the closest option by shared words.
+    undefined = unknown (treated as the pattern reference, index 1). */
+export function loadIndex(name){
+  if (name in K) return K[name];
+  const grp = SWAPS[patternOf(name)];
+  if (!grp) return undefined;
+  const w = words(name);
+  let best = null, bestScore = 0;
+  for (const o of grp.options){
+    const score = [...words(o.name)].filter(x => w.has(x)).length;
+    if (score > bestScore){ best = o; bestScore = score; }
+  }
+  return best ? K[best.name] : 1;
+}
+
+const step = kg => kg >= 20 ? Math.round(kg / 2.5) * 2.5 : Math.max(1, Math.round(kg));
+
+/** Working weight to open with on `toName`, given `kg` on `fromName`.
+    null when either side has no transferable weight. */
+export function convertWeight(fromName, toName, kg){
+  const a = loadIndex(fromName), b = loadIndex(toName);
+  const w = Number(kg);
+  if (!Number.isFinite(w) || w <= 0 || a == null || b == null) return null;
+  return step(w * b / a);
+}

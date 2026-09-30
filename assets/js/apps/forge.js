@@ -13,7 +13,7 @@ import {
   bindActions, empty, stat, haptic,
 } from '../core/ui.js';
 import { icon } from '../core/icons.js';
-import { swapsFor, GEAR_STYLE } from '../data/swaps.js';
+import { swapsFor, GEAR_STYLE, convertWeight, loadIndex } from '../data/swaps.js';
 import { compress, addPhoto, listPhotos, deletePhoto, updatePhoto, blobToImage, urlFor, releaseUrls } from '../core/photos.js';
 import * as timer from '../core/timer.js';
 import * as coach from '../core/coach.js';
@@ -26,7 +26,8 @@ const store = new Slice('forge', {
   blockIndex: 1,          // Phase 2 was current in the original artifact
   blockStart: today(),
   sessions: {},           // id -> { day, dayKey, sets:{ exKey:[{w}] }, done }
-  lastByEx: {},           // exercise name -> { w }
+  lastByEx: {},           // exercise name -> { w, est? }  (est = converted from another machine, not lifted yet)
+  swaps: {},              // 'dayKey|program exercise' -> the alternative you chose; applies everywhere until reverted
   activeId: null,
   timer: { auto:true, awake:true, beep:true },   // rest timer behaviour
   focus: {},              // muscle -> extra weekly sets, applied from a goal benchmark
@@ -170,6 +171,16 @@ function render(){
   if (Math.abs(window.scrollY - y) > 1) window.scrollTo(0, y);
 }
 
+/* The exercise as it should appear right now: your chosen alternative if
+   you picked one, else the program's own. The original name is kept in
+   `orig` because the program's structure (focus boosts, swap keys) is
+   defined by it. */
+const swapKey = (dk, name) => `${dk}|${name}`;
+const resolve = (ex, dk) => {
+  const alt = store.get().swaps?.[swapKey(dk, ex.name)];
+  return alt ? { ...ex, name: alt, orig: ex.name } : { ...ex, orig: ex.name };
+};
+
 /* ---------------- plan ---------------- */
 function planHTML(){
   const p = phase();
@@ -307,9 +318,11 @@ function sessionHTML(sess){
   <button class="btn btn-primary block" style="margin:20px 0 8px" data-act="finish">Finish session ✓</button>`;
 }
 
-function exerciseHTML(ex, key, sess, d, hasNext){
+function exerciseHTML(ex0, key, sess, d, hasNext){
+  const ex = resolve(ex0, d.key);
+  const swapped = ex.name !== ex.orig;
   const logged = sess.sets[key] || [];
-  const bonus = coach.bonusFor(BONUS, d.key, ex.name);
+  const bonus = coach.bonusFor(BONUS, d.key, ex.orig);
   const target = (parseInt(ex.sets, 10) || 1) + bonus;
   const prev = store.get().lastByEx[ex.name];
   const doneAll = logged.length >= target;
@@ -323,16 +336,17 @@ function exerciseHTML(ex, key, sess, d, hasNext){
         <span class="badge" style="background:${ts.bg};color:${ts.fg}">${esc(ex.tag)}</span>
         ${bonus ? `<span class="badge accent" style="margin-left:6px" title="Added from your goal benchmark">+${bonus} focus</span>` : ''}
         <div style="font-weight:700;font-size:15px;margin-top:6px;${doneAll?'opacity:.55':''}">${esc(ex.name)}</div>
+        ${swapped ? `<div class="tiny" style="margin-top:2px;color:var(--accent-1);font-weight:700">Swapped from ${esc(ex.orig)}</div>` : ''}
         <div class="tiny muted mono" style="margin-top:3px">
           ${logged.length}/${target} sets · ${esc(ex.reps)} reps ·
           ${straightInto ? `<span style="color:${d.color};font-weight:700">→ straight into next</span>` : `${esc(ex.rest)} rest`}
-          ${prev?.w != null ? ` · last ${prev.w}kg` : ''}
+          ${prev?.w != null ? ` · ${prev.est ? 'try ' : 'last '}${prev.w}kg${prev.est ? ' (est.)' : ''}` : ''}
         </div>
       </div>
       <div style="display:flex;gap:7px;flex:none;align-items:center">
         <!-- Machines get taken. One tap to a same-pattern alternate beats
              standing around waiting or skipping the movement entirely. -->
-        <button class="btn btn-plain btn-sm" data-act="swap" data-n="${esc(ex.name)}"
+        <button class="btn btn-plain btn-sm" data-act="swap" data-n="${esc(ex.name)}" data-o="${esc(ex.orig)}" data-dk="${d.key}"
                 aria-label="Swap ${esc(ex.name)}" style="padding:10px 12px">${icon('repeat',15)}</button>
         <button class="btn ${doneAll?'btn-plain':'btn-soft'} btn-sm nowrap" data-act="addset" data-k="${key}" data-n="${esc(ex.name)}">
           ${doneAll ? '+ Extra' : '+ Set'}
@@ -1084,34 +1098,76 @@ function startSession(k){ newSession(k); haptic(); render(); }
 /* Alternates for whatever is busy. Grouped by what you need rather than
    by how good they are, because the question in the moment is always
    "what is actually free right now". */
-function openSwap(exName){
-  const g = swapsFor(exName);
+function openSwap(exName, orig, dk){
+  const g = swapsFor(orig);
   if (!g){ toast('No alternates for that one'); return; }
+  const key = swapKey(dk, orig);
+  const chosen = store.get().swaps?.[key];
+  const last = store.get().lastByEx;
+  const cur = last[exName]?.w;             // what you lift on the exercise showing now
+
+  /* Options exclude only the original; when you are already on an
+     alternative, the alternatives (and a way back) are all on offer. */
+  const opts = g.options.filter(o => o.name !== exName);
+  const est = name => {
+    if (last[name]?.w != null) return { kg: last[name].w, own: true };
+    const kg = convertWeight(exName, name, cur);
+    return kg == null ? null : { kg, own: false };
+  };
+
   openSheet(`
-    <div class="tiny muted">${esc(exName)}</div>
+    <div class="tiny muted">${chosen ? `Now: ${esc(exName)}` : esc(orig)}</div>
     <h2 style="margin:4px 0 2px">${esc(g.label)}</h2>
     <p class="sub" style="margin-bottom:4px">${esc(g.why)}</p>
     <div class="card tight sunk" style="margin:14px 0">
       <div class="tiny muted" style="line-height:1.6">
-        Any of these trains the same pattern. Match the reps and the effort,
-        not the weight — the number will differ and that is fine.
+        Tap one to swap it in — it replaces the exercise on the Plan and in your
+        session, and stays until you go back. Weights are converted from what you
+        lift now (${cur != null ? `${cur}kg` : 'nothing logged yet'}); treat them as a
+        starting point and correct after your first set.
       </div>
     </div>
+    ${chosen ? `<button class="card tight" data-act="pickswap" data-o="" style="width:100%;text-align:left;margin-bottom:9px;border:1.5px solid var(--accent-1)">
+        <b style="font-size:14.5px">Back to ${esc(orig)}</b>
+        <div class="tiny muted" style="margin-top:4px">${(() => { const e = est(orig); return e ? `${e.own ? 'Your last' : 'About'} ${e.kg}kg${e.own ? '' : ' (est.)'}` : 'The program\'s own exercise'; })()}</div>
+      </button>` : ''}
     <div class="stack" style="gap:9px">
-      ${g.options.map(o => {
-        const gs = GEAR_STYLE[o.gear];
-        return `<div class="card tight">
+      ${opts.map((o, i) => {
+        const gs = GEAR_STYLE[o.gear], e = est(o.name);
+        return `<button class="card tight" data-act="pickswap" data-o="${esc(o.name)}" style="width:100%;text-align:left">
           <div class="spread" style="align-items:flex-start;gap:10px">
             <b style="font-size:14.5px">${esc(o.name)}</b>
             <span class="badge" style="background:${gs.bg};color:${gs.fg}">${esc(gs.label)}</span>
           </div>
           <div class="tiny muted" style="margin-top:6px;line-height:1.55">${esc(o.note)}</div>
-        </div>`;
+          <div class="tiny" style="margin-top:7px;font-weight:700;color:var(--accent-1)">
+            ${e ? `${e.own ? 'Your last: ' : 'Start around '}${e.kg}kg${e.own ? '' : ' (est.)'}`
+                : cur != null ? 'No weight carries over — start light' : ''}
+          </div>
+        </button>`;
       }).join('')}
     </div>
     <button class="btn btn-ghost block" style="margin-top:16px" data-act="close">Close</button>
   `);
-  bindActions(document.querySelector('.sheet'), { close: closeSheet });
+
+  bindActions(document.querySelector('.sheet'), {
+    close: closeSheet,
+    pickswap: d => {
+      const alt = d.o;                                   // '' = back to the original
+      const target = alt || orig;
+      const e = alt ? est(alt) : est(orig);
+      store.update(st => {
+        st.swaps = { ...(st.swaps || {}) };
+        if (alt) st.swaps[key] = alt; else delete st.swaps[key];
+        // Seed a starting weight only if there is none for it yet, and mark it
+        // an estimate so it is never mistaken for something you actually lifted.
+        if (e && !e.own && st.lastByEx[target]?.w == null) st.lastByEx[target] = { w: e.kg, est: true };
+      });
+      haptic(); closeSheet();
+      toast(alt ? `Swapped to ${alt}` : `Back to ${orig}`);
+      render();
+    },
+  });
 }
 
 function addSet(key, exName){
@@ -1312,7 +1368,7 @@ function bind(){
     abandon: () => { store.update(s => { s.activeId = null; }); timer.stop(); render(); },
     togglewu: () => { const e = document.getElementById('wu-body'); if (e) e.hidden = !e.hidden; },
     addset: d => addSet(d.k, d.n),
-    swap: d => openSwap(d.n),
+    swap: d => openSwap(d.n, d.o, d.dk),
     editset: d => editSet(d.k, +d.i, d.n),
     tick: d => quickComplete(d.d),
     undo: d => undoToday(d.d),
