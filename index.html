@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="auto">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no">
+<meta name="description" content="Alex HQ — macros, training, money, mates, nicotine and Spanish in one place.">
+<meta name="theme-color" content="#F4F5FA">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Alex HQ">
+<title>Alex HQ</title>
+<link rel="manifest" href="./manifest.webmanifest">
+<link rel="apple-touch-icon" href="./assets/icon-180.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@600;700;800&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="./assets/css/tokens.css">
+<link rel="stylesheet" href="./assets/css/app.css">
+</head>
+<body>
+  <div class="statusbar-scrim"></div>
+  <div id="app">
+    <main id="view" class="shell"></main>
+  </div>
+
+  <nav class="tabbar" id="tabbar" aria-label="Sections">
+    <div class="tabbar-inner" id="tabbar-inner"></div>
+  </nav>
+
+  <!-- shared file inputs, reused by any tool that wants a photo -->
+  <input type="file" id="file-cam" accept="image/*" capture="environment" hidden>
+  <input type="file" id="file-lib" accept="image/*" multiple hidden>
+
+  <!-- Boot watchdog.
+       A phone has no console. If the module graph fails — a bad deploy, a
+       half-cached update, no signal on first load — the page just sits
+       there blank and unresponsive with nothing to tap. That happened, so
+       now there is always a way out. -->
+  <script>
+  (function(){
+    var booted = false;
+    window.__booted = function(){ booted = true; };
+
+    function recover(reason){
+      if (booted) return;
+      document.getElementById('view').innerHTML =
+        '<div style="max-width:420px;margin:14vh auto;padding:26px;text-align:center;font-family:system-ui,sans-serif">'
+        + '<div style="font-size:19px;font-weight:700;color:#191A28">Alex HQ didn\'t start</div>'
+        + '<p style="color:#767A96;font-size:14.5px;line-height:1.6;margin:10px 0 22px">'
+        + 'Usually a half-finished update. Reloading fixes it. Your data is stored separately and is not affected.</p>'
+        + '<button id="rb1" style="display:block;width:100%;padding:15px;border:0;border-radius:999px;'
+        + 'background:linear-gradient(140deg,#5B6CF6,#8B5CF6);color:#fff;font-size:15.5px;font-weight:700">Reload</button>'
+        + '<button id="rb2" style="display:block;width:100%;margin-top:10px;padding:14px;border:0;border-radius:999px;'
+        + 'background:#EDEEF8;color:#43465C;font-size:14.5px;font-weight:600">Clear the app cache and reload</button>'
+        + '<div style="color:#A6AAC6;font-size:11.5px;margin-top:18px">' + (reason||'') + '</div></div>';
+
+      document.getElementById('rb1').onclick = function(){ location.reload(); };
+      document.getElementById('rb2').onclick = function(){
+        // Caches and service workers only — never touch localStorage,
+        // that is where everything he has logged actually lives.
+        var done = function(){ location.reload(true); };
+        var jobs = [];
+        if (window.caches) jobs.push(caches.keys().then(function(k){
+          return Promise.all(k.map(function(n){ return caches.delete(n); })); }));
+        if (navigator.serviceWorker) jobs.push(
+          navigator.serviceWorker.getRegistrations().then(function(rs){
+            return Promise.all(rs.map(function(r){ return r.unregister(); })); }));
+        Promise.all(jobs).then(done, done);
+      };
+    }
+
+    window.addEventListener('error', function(e){
+      if (!booted && e.filename && /\.js/.test(e.filename)) recover('Script error');
+    }, true);
+    setTimeout(function(){ recover('Timed out'); }, 7000);
+  })();
+  </script>
+
+  <script type="module" src="./assets/js/main.js"></script>
+</body>
+</html>
