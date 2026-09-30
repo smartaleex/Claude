@@ -491,3 +491,130 @@ canvas{ display:block; }
 .gtile:active{ transform:translateY(2px) scale(.96); box-shadow:var(--clay-press); }
 .gtile > *{ max-width:100%; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
 @media (max-width:360px){ .gtile{ padding:10px 8px; } .gtile b{ font-size:17px !important; } }
+
+/* ---------- workout timer dock ----------
+   Fixed and outside the view, so re-rendering a tool never destroys it.
+   Sits just above the floating tab bar, in thumb reach. */
+#tmdock{
+  position:fixed; left:0; right:0; z-index:45;
+  bottom:calc(var(--tabbar-h) + var(--sab) + 22px);
+  padding:0 14px; display:flex; justify-content:center; pointer-events:none;
+}
+#tmdock[hidden]{ display:none; }
+.has-dock #app{ padding-bottom:calc(var(--tabbar-h) + var(--sab) + 108px); }
+.tm-in{
+  pointer-events:auto; position:relative; overflow:hidden;
+  width:100%; max-width:calc(var(--shell-w) - 28px);
+  display:flex; align-items:center; gap:10px;
+  padding:8px 9px 8px 16px; border-radius:var(--r-pill);
+  background:var(--surface); color:var(--ink);
+  box-shadow:var(--clay), 0 14px 30px -14px rgba(0,0,0,.4);
+  transition:background var(--base);
+}
+/* The rest bar fills as the rest elapses. */
+#tmdock[data-mode="run"] .tm-in{
+  background:linear-gradient(90deg, var(--accent-tint) var(--p,0%), var(--surface) var(--p,0%));
+}
+#tmdock[data-mode="done"] .tm-in{
+  background:var(--good); color:#fff; animation:tmpulse 1.05s ease-in-out infinite;
+}
+@keyframes tmpulse{ 50%{ transform:scale(1.02); } }
+@media (prefers-reduced-motion:reduce){ #tmdock[data-mode="done"] .tm-in{ animation:none; } }
+
+.tm-clock{ display:flex; flex-direction:column; align-items:flex-start; line-height:1.1; flex:none; text-align:left; }
+.tm-clock b{ font-family:'Sora',sans-serif; font-weight:800; font-size:19px; letter-spacing:-.02em; font-variant-numeric:tabular-nums; }
+.tm-label{ font-size:9.5px; letter-spacing:.14em; text-transform:uppercase; font-weight:800; opacity:.6; }
+.tm-sub{ font-size:10px; opacity:.55; margin-top:1px; }
+.tm-right{ flex:1; min-width:0; display:flex; justify-content:flex-end; align-items:center; gap:8px; }
+.tm-rest{ display:flex; flex-direction:column; align-items:flex-end; line-height:1.1; margin-right:2px; }
+.tm-rest b{ font-family:'Sora',sans-serif; font-weight:800; font-size:24px; letter-spacing:-.03em; font-variant-numeric:tabular-nums; }
+.tm-btns{ display:flex; gap:5px; }
+.tm-btns button{
+  height:34px; min-width:38px; padding:0 10px; border-radius:99px;
+  background:var(--surface-2); box-shadow:var(--clay-sm);
+  font-size:12.5px; font-weight:800; color:var(--ink);
+}
+.tm-btns button:active{ transform:scale(.94); box-shadow:var(--clay-press); }
+.tm-go{
+  display:inline-flex; align-items:center; gap:7px;
+  padding:11px 16px; border-radius:99px; font-weight:800; font-size:13.5px;
+  background:var(--accent-grad, var(--brand-grad)); color:#fff;
+  box-shadow:var(--clay-tint), var(--clay-on-colour);
+}
+.tm-go.done{ background:#fff; color:var(--good); box-shadow:0 6px 16px -8px rgba(0,0,0,.4); }
+.tm-go:active{ transform:scale(.96); }
+@media (max-width:360px){ .tm-btns button{ min-width:34px; padding:0 8px; } .tm-rest b{ font-size:21px; } }
+
+/* ---------- before / after slider ---------- */
+.cmp{ position:relative; aspect-ratio:3/4; overflow:hidden; background:var(--bg-sunk); }
+.cmp img{ position:absolute; inset:0; width:100%; height:100%; object-fit:cover; display:block; }
+.cmp-before{ clip-path:inset(0 calc(100% - var(--pos)) 0 0); }
+.cmp-line{
+  position:absolute; top:0; bottom:0; left:var(--pos); width:2px; margin-left:-1px;
+  background:#fff; box-shadow:0 0 0 1px rgba(0,0,0,.16), 0 0 14px rgba(0,0,0,.35);
+}
+.cmp-tag{
+  position:absolute; bottom:10px; padding:5px 10px; border-radius:99px;
+  font-size:11px; font-weight:800; color:#fff; background:rgba(13,14,20,.58);
+  -webkit-backdrop-filter:blur(6px); backdrop-filter:blur(6px);
+}
+.cmp-tag.l{ left:10px; } .cmp-tag.r{ right:10px; }
+.cmp-range{
+  -webkit-appearance:none; appearance:none; width:100%; height:12px; border-radius:99px;
+  background:var(--bg-sunk); box-shadow:var(--clay-in); outline:none; margin:6px 0;
+}
+.cmp-range::-webkit-slider-thumb{
+  -webkit-appearance:none; appearance:none; width:34px; height:34px; border-radius:99px; border:none;
+  background:var(--accent-grad, var(--brand-grad)); box-shadow:var(--clay-tint), var(--clay-on-colour);
+}
+.cmp-range::-moz-range-thumb{
+  width:34px; height:34px; border-radius:99px; border:none;
+  background:var(--accent-grad, var(--brand-grad)); box-shadow:var(--clay-tint);
+}
+
+/* ---------- people: the orbit ---------- */
+.orbit{
+  position:relative; width:100%; aspect-ratio:1; border-radius:50%; margin:8px 0 4px;
+  background:radial-gradient(circle at 50% 50%, var(--surface-2) 0%, var(--bg-sunk) 100%);
+  box-shadow:var(--clay-in);
+}
+.orb-ring{
+  position:absolute; left:50%; top:50%; aspect-ratio:1; border-radius:50%;
+  transform:translate(-50%,-50%); border:1.5px solid var(--line-soft); pointer-events:none;
+}
+.orb-ring.due{ border-style:dashed; border-color:color-mix(in srgb, var(--warn) 60%, transparent); }
+.orb-core{
+  position:absolute; left:50%; top:50%; width:17%; aspect-ratio:1; border-radius:50%;
+  transform:translate(-50%,-50%); display:grid; place-items:center; text-align:center;
+  background:var(--accent-grad, var(--brand-grad)); color:#fff; line-height:1;
+  box-shadow:var(--clay-tint), var(--clay-on-colour);
+}
+.orb-core b{ font-family:'Sora',sans-serif; font-weight:800; font-size:clamp(15px,5vw,21px); display:block; }
+.orb-core small{ font-size:8.5px; letter-spacing:.1em; text-transform:uppercase; font-weight:800; opacity:.85; display:block; margin-top:1px; }
+.orb-dot{
+  position:absolute; width:11%; aspect-ratio:1; transform:translate(-50%,-50%);
+  left:50%; top:50%; border-radius:50%; padding:0;
+  display:grid; place-items:center; color:#fff;
+  font-family:'Sora',sans-serif; font-weight:800; font-size:clamp(11px,3.4vw,14px);
+  box-shadow:0 0 0 2.5px var(--surface), 0 0 0 4.5px var(--tone, var(--line)), var(--clay-sm);
+  transition:left .8s var(--ease-squish), top .8s var(--ease-squish), transform var(--fast) var(--ease-squish);
+}
+/* The dot stays compact so a full roster fits, but the tappable area is
+   larger than it looks: an invisible ring brings it past the ~44px touch
+   target guideline without touching the layout. */
+.orb-dot::before{ content:""; position:absolute; inset:-5px; border-radius:50%; }
+.orb-dot:active{ transform:translate(-50%,-50%) scale(.92); }
+.orb-dot.good{ --tone:var(--good); } .orb-dot.mid{ --tone:var(--accent-1); }
+.orb-dot.warn{ --tone:var(--warn); } .orb-dot.bad{ --tone:var(--bad); }
+.orb-dot.seeing{ --tone:#EC4899; }
+.orb-name{
+  position:absolute; top:100%; left:50%; transform:translateX(-50%); margin-top:6px;
+  font-family:'Inter',sans-serif; font-size:10.5px; font-weight:700; color:var(--ink-2);
+  white-space:nowrap; max-width:56px; overflow:hidden; text-overflow:ellipsis; pointer-events:none;
+}
+.orb-dot.up .orb-name{ top:auto; bottom:100%; margin-top:0; margin-bottom:6px; }
+.orbit{ margin-top:24px; }     /* room for the labels above the top dots */
+.orb-legend{ display:flex; justify-content:center; gap:16px; flex-wrap:wrap; margin-top:14px; font-size:11.5px; color:var(--muted); }
+.orb-legend i{ display:inline-block; width:10px; height:10px; border-radius:99px; margin-right:6px; vertical-align:-1px; background:var(--tone); }
+.orb-legend i.dash{ background:none; border:1.5px dashed var(--warn); }
+@media (prefers-reduced-motion:reduce){ .orb-dot{ transition:none; } }

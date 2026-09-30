@@ -75,6 +75,27 @@ export async function addPhoto(album, blob, meta = {}){
   return rec;
 }
 
+/* Read-modify-write inside ONE transaction. Doing get() and put() in two
+   separate transactions would let a concurrent write land in between and
+   silently be overwritten. */
+export async function updatePhoto(id, patch){
+  await tx('readwrite', os => {
+    const req = os.get(id);
+    req.onsuccess = () => { if (req.result) os.put({ ...req.result, ...patch }); };
+    return req;
+  });
+}
+
+/** Blob -> the { b64, media } shape the AI adapter expects. */
+export function blobToImage(blob){
+  return new Promise((resolve, reject) => {
+    const fr = new FileReader();
+    fr.onerror = () => reject(new Error('Could not read that photo.'));
+    fr.onload = () => resolve({ b64: String(fr.result).split(',')[1], media: blob.type || 'image/jpeg' });
+    fr.readAsDataURL(blob);
+  });
+}
+
 export async function listPhotos(album){
   const all = await tx('readonly', os => os.index('album').getAll(album));
   return (all || []).sort((a,b) => a.t - b.t);

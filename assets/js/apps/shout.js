@@ -17,10 +17,12 @@ import {
   empty, stat, haptic, avatarStyle, initials, num,
 } from '../core/ui.js';
 import { icon } from '../core/icons.js';
+import { layoutOrbit, RING } from '../core/orbit.js';
 
 const store = new Slice('shout', {
   mates: [],    // { id, name, cadence, lastSeen, note, tags:[] }
   plans: [],    // { id, mateIds, what, when, done }
+  view: 'orbit',   // last-used tab, so it opens where you left it
 });
 
 let tab = 'roster';
@@ -80,6 +82,8 @@ export async function summary(){
 export async function mount(el){
   root = el;
   await store.load();
+  const v = store.get().view;
+  tab = ['orbit', 'roster', 'plans'].includes(v) ? v : 'orbit';
   render();
 }
 
@@ -89,19 +93,20 @@ function paintView(){
     <div class="spread">
       <div>
         <div class="eyebrow">Mates · Shout</div>
-        <h1 class="page-h1">${tab==='roster' ? 'The roster' : 'Plans'}</h1>
+        <h1 class="page-h1">${tab==='orbit' ? 'Your orbit' : tab==='roster' ? 'The roster' : 'Plans'}</h1>
       </div>
       <button class="chip" data-act="addmate">+ Person</button>
     </div>
   </header>
 
   <div class="seg sticky" style="margin:16px 0">
-    ${[['roster','Roster'],['plans','Plans']].map(([v,l]) =>
+    ${[['orbit','Orbit'],['roster','Roster'],['plans','Plans']].map(([v,l]) =>
       `<button class="${tab===v?'on':''}" data-act="tab" data-v="${v}">${l}</button>`).join('')}
   </div>
 
-  ${tab==='roster' ? rosterHTML() : plansHTML()}`;
+  ${tab==='orbit' ? orbitHTML() : tab==='roster' ? rosterHTML() : plansHTML()}`;
   bind();
+  if (tab === 'orbit') settleOrbit();
 }
 
 /* Re-rendering swaps the whole view via innerHTML. For a moment the page
@@ -112,6 +117,89 @@ function render(){
   const y = window.scrollY;
   paintView();
   if (Math.abs(window.scrollY - y) > 1) window.scrollTo(0, y);
+}
+
+/* ---------------- orbit ----------------
+   The roster answers "who is overdue" as a list. This answers it as a
+   picture: distance from the middle is how far through each person's own
+   cadence you are, so the eye finds the drifters without reading. The
+   maths lives in core/orbit.js. */
+const firstName = n => String(n).trim().split(/\s+/)[0];
+
+function orbitHTML(){
+  const ms = store.get().mates;
+  if (!ms.length) return rosterHTML();          // same empty state as the roster
+
+  const pts = layoutOrbit(ms.map(m => ({ id:m.id, ratio:overdueRatio(m), seeing:isSeeing(m) })));
+  const byId = Object.fromEntries(ms.map(m => [m.id, m]));
+  const drifting = overdue();
+  const seeing = ms.filter(isSeeing);
+  const calm = ms.length - drifting.length - seeing.length;
+  const reduce = typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const ring = r => `style="width:${r * 2}%"`;
+  const worst = drifting[0];
+
+  return `
+  <div class="orbit in" id="orbit">
+    <span class="orb-ring" ${ring(RING.fresh)}></span>
+    <span class="orb-ring due" ${ring(RING.due)}></span>
+    <span class="orb-ring" ${ring(RING.edge)}></span>
+
+    <div class="orb-core">
+      ${drifting.length ? `<div><b>${drifting.length}</b><small>due</small></div>` : icon('check', 22)}
+    </div>
+
+    ${pts.map((pt, i) => {
+      const m = byId[pt.id];
+      const never = !m.lastSeen && !isSeeing(m);
+      return `<button class="orb-dot ${pt.tone}${pt.up ? ' up' : ''}" data-act="openmate" data-id="${m.id}"
+        data-x="${pt.x.toFixed(2)}" data-y="${pt.y.toFixed(2)}" data-i="${i}"
+        aria-label="${esc(m.name)}, ${m.lastSeen ? sinceDays(m) + ' days since you saw them' : 'not logged yet'}"
+        style="${avatarStyle(m.name)};${reduce ? `left:${pt.x.toFixed(2)}%;top:${pt.y.toFixed(2)}%` : ''}${never ? ';opacity:.8' : ''}">
+        ${esc(initials(m.name)[0] || '?')}
+        <span class="orb-name">${esc(firstName(m.name))}</span>
+      </button>`;
+    }).join('')}
+  </div>
+
+  <div class="orb-legend">
+    <span><i style="--tone:var(--good)"></i>Recent</span>
+    <span><i class="dash"></i>Due</span>
+    <span><i style="--tone:var(--bad)"></i>Drifting</span>
+    ${seeing.length ? `<span><i style="--tone:#EC4899"></i>Seeing</span>` : ''}
+  </div>
+  <div class="center tiny muted" style="margin-top:10px;line-height:1.55">
+    ${drifting.length} to reach out to · ${calm} in orbit${seeing.length ? ` · ${seeing.length} you are seeing, who stay in close` : ''}
+  </div>
+
+  ${worst ? `
+  <div class="sec">Reach out to</div>
+  <button class="rowcard in" data-act="openmate" data-id="${worst.id}" style="width:100%;text-align:left">
+    <div class="av" style="${avatarStyle(worst.name)}">${esc(initials(worst.name))}</div>
+    <div class="grow">
+      <b>${esc(worst.name)}</b>
+      <span class="sub">${worst.lastSeen ? `${sinceDays(worst)} days · you wanted ${esc(cadenceLabel(worst.cadence).toLowerCase())}` : 'Not logged yet'}</span>
+    </div>
+    <span class="badge warn">Open</span>
+  </button>` : `
+  <div class="card in" style="margin-top:14px;background:var(--good-tint);border-color:transparent">
+    <div class="card-title" style="color:var(--good)">Nobody is drifting</div>
+    <div class="card-note" style="margin-top:4px">Everyone is within their own cadence. Rare and good.</div>
+  </div>`}`;
+}
+
+/* Dots start at the centre and settle out to their place. Set on the
+   next frame so the browser has a starting position to transition from. */
+function settleOrbit(){
+  const dots = [...root.querySelectorAll('.orb-dot')];
+  if (!dots.length) return;
+  requestAnimationFrame(() => requestAnimationFrame(() => {
+    dots.forEach(el => {
+      el.style.transitionDelay = `${(+el.dataset.i || 0) * 45}ms`;
+      el.style.left = el.dataset.x + '%';
+      el.style.top  = el.dataset.y + '%';
+    });
+  }));
 }
 
 /* ---------------- roster ---------------- */
@@ -538,7 +626,7 @@ function addPlan(){
 /* ---------------- bind ---------------- */
 function bind(){
   bindActions(root, {
-    tab: d => { tab = d.v; render(); },
+    tab: d => { tab = d.v; store.update(s => { s.view = d.v; }); render(); },
     addmate: () => editMate(null),
     openmate: d => openMate(d.id),
     addplan: addPlan,
