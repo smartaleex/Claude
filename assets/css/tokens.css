@@ -1,0 +1,233 @@
+/* ============================================================
+   ALEX HQ — Design tokens · Claymorphism
+
+   The whole look rests on one idea: every surface is a piece of soft
+   clay pressed out of the background. That needs three shadows working
+   together, never one:
+
+     1. CAST   a big, soft, coloured drop shadow underneath — the object
+               sitting above the page.
+     2. RIM    a dark inset from the bottom edge — the underside curving
+               away from you.
+     3. LIP    a bright white inset along the top — light catching the
+               rounded upper edge.
+
+   Drop any one and it stops reading as clay: cast alone is flat
+   material design, insets alone are neumorphism. Shadows are tinted
+   violet rather than grey, because neutral grey on a lavender ground
+   looks like dirt.
+   ============================================================ */
+
+:root{
+  /* ---- surfaces ----
+     The ground is deliberately darker than the cards. Clay only reads
+     as raised if there's something for it to sit on. */
+  --bg:        #E9EAF6;
+  --bg-sunk:   #DCDDEE;
+  --surface:   #FFFFFF;
+  --surface-2: #F4F5FC;
+  --line:      #DFE1F0;
+  --line-soft: #EBECF7;
+
+  /* ---- ink ---- */
+  --ink:       #191A28;
+  --ink-2:     #43465C;
+  --muted:     #767A96;
+  --faint:     #A6AAC6;
+
+  /* ---- brand ----
+     Straight off the app icon: dawn blue through violet and pink to
+     sunrise orange. */
+  --brand-1:   #5B6CF6;
+  --brand-2:   #EC4899;
+  --brand-tint:#E9EBFE;
+  --brand-grad: linear-gradient(140deg, #5B6CF6 0%, #8B5CF6 42%, #EC4899 78%, #F97316 100%);
+
+  /* ---- per-app accents: six slices of the same spectrum ---- */
+  --forge-1:#2563EB; --forge-2:#4F46E5; --forge-tint:#E2EAFE;
+  --fuel-1:#5850EC;  --fuel-2:#8B5CF6;  --fuel-tint:#EAE9FE;
+  --ldgr-1:#8B5CF6;  --ldgr-2:#C026D3;  --ldgr-tint:#F1E8FD;
+  --vale-1:#C026D3;  --vale-2:#EC4899;  --vale-tint:#FAE8FB;
+  --shout-1:#EC4899; --shout-2:#F43F5E; --shout-tint:#FCE8F1;
+  --clear-1:#F97316; --clear-2:#FBBF24; --clear-tint:#FEEEE0;
+
+  /* ---- semantic ---- */
+  --good:#12A150;  --good-tint:#DFF5E8;
+  --warn:#D97706;  --warn-tint:#FDEFD9;
+  --bad:#DC2626;   --bad-tint:#FBE7E7;
+
+  /* ---- macro colours (Fuel + Forge) ---- */
+  --pro:#F43F5E;  --pro-tint:#FDE7EC;  --pro-bar:#F9CFD8;
+  --carb:#8B5CF6; --carb-tint:#EFE9FE; --carb-bar:#DDD2FB;
+  --fat:#F59E0B;  --fat-tint:#FEF2E0;  --fat-bar:#FADFBD;
+
+  /* ---- geometry ----
+     Clay is extruded, not cut. Radii run large and the smallest things
+     stay fully rounded so nothing looks sharp-edged next to a blob. */
+  --r-xs:13px; --r-sm:17px; --r-md:22px; --r-lg:27px; --r-xl:33px; --r-pill:999px;
+
+  /* ---- the clay recipe ----
+     Shadow colour is a violet-grey so it sits in the palette rather
+     than muddying it. */
+  --clay-hue: 245 60% 45%;
+
+  --clay-cast:    0 18px 34px -14px hsl(var(--clay-hue) / .30);
+  --clay-cast-lg: 0 30px 56px -18px hsl(var(--clay-hue) / .34);
+  --clay-cast-sm: 0 10px 20px -10px hsl(var(--clay-hue) / .22);
+  --clay-rim:     inset 0 -7px 14px -4px hsl(var(--clay-hue) / .16);
+  --clay-lip:     inset 0 8px 16px -6px rgba(255,255,255,.95);
+
+  /* Composites — use these, not the parts. */
+  --clay:    var(--clay-cast),    var(--clay-rim), var(--clay-lip);
+  --clay-lg: var(--clay-cast-lg), var(--clay-rim), var(--clay-lip);
+  --clay-sm: var(--clay-cast-sm), inset 0 -4px 9px -3px hsl(var(--clay-hue) / .13),
+             inset 0 5px 11px -4px rgba(255,255,255,.9);
+
+  /* Pressed into the surface rather than sitting on it — the shadows
+     invert, so light comes from below and dark from above. */
+  --clay-in: inset 0 6px 14px -4px hsl(var(--clay-hue) / .22),
+             inset 0 -5px 11px -4px rgba(255,255,255,.85);
+
+  /* Squashed: what a button looks like mid-press. */
+  --clay-press: 0 4px 10px -6px hsl(var(--clay-hue) / .28),
+                inset 0 4px 10px -3px hsl(var(--clay-hue) / .20),
+                inset 0 -3px 8px -3px rgba(255,255,255,.7);
+
+  /* Coloured clay — hero blocks and primary buttons. --accent-glow is
+     set per app by the router. */
+  --clay-tint:    0 20px 38px -14px var(--accent-glow, rgba(91,108,246,.42));
+  --clay-tint-lg: 0 30px 58px -16px var(--accent-glow, rgba(91,108,246,.48));
+  --clay-on-colour: inset 0 -8px 18px -6px rgba(0,0,0,.16),
+                    inset 0 9px 18px -6px rgba(255,255,255,.42);
+
+  /* legacy aliases so older rules keep working */
+  --sh-sm: var(--clay-sm);
+  --sh:    var(--clay);
+  --sh-md: var(--clay);
+  --sh-lg: var(--clay-lg);
+  --sh-brand: var(--clay-tint);
+
+  /* ---- motion ----
+     Clay is soft and slightly overshooting; it should feel squishy. */
+  --ease: cubic-bezier(.32,.72,.28,1);
+  --ease-out: cubic-bezier(.16,1,.3,1);
+  --ease-squish: cubic-bezier(.34,1.56,.64,1);
+  --fast:.16s; --base:.26s; --slow:.42s;
+
+  /* ---- safe areas ---- */
+  --sat: env(safe-area-inset-top, 0px);
+  --sab: env(safe-area-inset-bottom, 0px);
+
+  /* ---- layout ---- */
+  --shell-w: 620px;
+  --tabbar-h: 66px;
+}
+
+/* ---------------- dark ----------------
+   Claymorphism is a lighting effect, and in the dark there is no light
+   to model. A dark shadow on a dark ground is invisible, and the white
+   lip highlight — the thing that makes a light card look inflated —
+   becomes a glowing rim on every element at once. That is the "bubbly
+   and confusing" part: dozens of glowing edges competing, none of them
+   telling you what is on top of what.
+
+   So dark mode stops pretending to be clay. Same geometry, same palette,
+   but layers separate through SURFACE CONTRAST and a hairline border
+   rather than shadow. Flatter, calmer, far easier to read at night. */
+
+@media (prefers-color-scheme: dark){
+  :root[data-theme="auto"]{
+    color-scheme: dark;
+  --bg:        #101119;
+  --bg-sunk:   #0A0B11;
+  --surface:   #1B1D28;
+  --surface-2: #232635;
+  --line:      #2E3242;
+  --line-soft: #262A38;
+
+  --ink:       #F1F2F8;
+  --ink-2:     #C3C7D8;
+  --muted:     #8B90A6;
+  --faint:     #61667E;
+
+  /* Definition comes from a hairline, not a highlight. */
+  --clay-hue: 240 30% 3%;
+  --clay-edge: inset 0 0 0 1px rgba(255,255,255,.055);
+
+  --clay-cast:    0 10px 24px -14px rgba(0,0,0,.8);
+  --clay-cast-lg: 0 18px 38px -18px rgba(0,0,0,.85);
+  --clay-cast-sm: 0 6px 14px -10px rgba(0,0,0,.7);
+  --clay-rim:     none;
+  --clay-lip:     none;
+
+  --clay:    var(--clay-cast),    var(--clay-edge);
+  --clay-lg: var(--clay-cast-lg), var(--clay-edge);
+  --clay-sm: var(--clay-cast-sm), var(--clay-edge);
+
+  /* Pressed-in reads as a darker well plus the same hairline. */
+  --clay-in: inset 0 1px 3px rgba(0,0,0,.55), inset 0 0 0 1px rgba(255,255,255,.035);
+  --clay-press: inset 0 2px 6px rgba(0,0,0,.6), inset 0 0 0 1px rgba(255,255,255,.04);
+
+  --clay-tint:    0 12px 26px -14px var(--accent-glow, rgba(91,108,246,.5));
+  --clay-tint-lg: 0 18px 36px -16px var(--accent-glow, rgba(91,108,246,.55));
+  --clay-on-colour: inset 0 0 0 1px rgba(255,255,255,.10);
+
+  /* Tints sit just above the surface — enough to register, not enough
+     to glow. */
+  --brand-tint:#232746; --fuel-tint:#232248; --forge-tint:#1B2745;
+  --ldgr-tint:#282050; --vale-tint:#34203E; --shout-tint:#372030; --clear-tint:#33240F;
+  --good-tint:#14291D; --warn-tint:#2C2010; --bad-tint:#2F1919;
+  --good:#3DD68C; --warn:#F0A93B; --bad:#F26B6B;
+
+  --pro-tint:#38202A;  --pro-bar:#4A2833;
+  --carb-tint:#2A2447; --carb-bar:#372E5C;
+  --fat-tint:#372B16;  --fat-bar:#4A3A1E;
+  }
+}
+:root[data-theme="dark"]{
+  color-scheme: dark;
+  --bg:        #101119;
+  --bg-sunk:   #0A0B11;
+  --surface:   #1B1D28;
+  --surface-2: #232635;
+  --line:      #2E3242;
+  --line-soft: #262A38;
+
+  --ink:       #F1F2F8;
+  --ink-2:     #C3C7D8;
+  --muted:     #8B90A6;
+  --faint:     #61667E;
+
+  /* Definition comes from a hairline, not a highlight. */
+  --clay-hue: 240 30% 3%;
+  --clay-edge: inset 0 0 0 1px rgba(255,255,255,.055);
+
+  --clay-cast:    0 10px 24px -14px rgba(0,0,0,.8);
+  --clay-cast-lg: 0 18px 38px -18px rgba(0,0,0,.85);
+  --clay-cast-sm: 0 6px 14px -10px rgba(0,0,0,.7);
+  --clay-rim:     none;
+  --clay-lip:     none;
+
+  --clay:    var(--clay-cast),    var(--clay-edge);
+  --clay-lg: var(--clay-cast-lg), var(--clay-edge);
+  --clay-sm: var(--clay-cast-sm), var(--clay-edge);
+
+  /* Pressed-in reads as a darker well plus the same hairline. */
+  --clay-in: inset 0 1px 3px rgba(0,0,0,.55), inset 0 0 0 1px rgba(255,255,255,.035);
+  --clay-press: inset 0 2px 6px rgba(0,0,0,.6), inset 0 0 0 1px rgba(255,255,255,.04);
+
+  --clay-tint:    0 12px 26px -14px var(--accent-glow, rgba(91,108,246,.5));
+  --clay-tint-lg: 0 18px 36px -16px var(--accent-glow, rgba(91,108,246,.55));
+  --clay-on-colour: inset 0 0 0 1px rgba(255,255,255,.10);
+
+  /* Tints sit just above the surface — enough to register, not enough
+     to glow. */
+  --brand-tint:#232746; --fuel-tint:#232248; --forge-tint:#1B2745;
+  --ldgr-tint:#282050; --vale-tint:#34203E; --shout-tint:#372030; --clear-tint:#33240F;
+  --good-tint:#14291D; --warn-tint:#2C2010; --bad-tint:#2F1919;
+  --good:#3DD68C; --warn:#F0A93B; --bad:#F26B6B;
+
+  --pro-tint:#38202A;  --pro-bar:#4A2833;
+  --carb-tint:#2A2447; --carb-bar:#372E5C;
+  --fat-tint:#372B16;  --fat-bar:#4A3A1E;
+}
