@@ -275,7 +275,7 @@ canvas{ display:block; }
 }
 .scrim.on{ opacity:1; pointer-events:auto; visibility:visible; transition-delay:0s; }
 .sheet{
-  position:fixed; left:0; right:0; bottom:0; z-index:61;
+  position:fixed; left:0; right:0; bottom:var(--kb, 0px); z-index:61;
   background:var(--surface); border-radius:var(--r-xl) var(--r-xl) 0 0;
   padding:12px 22px calc(var(--sab) + 26px);
   /* A closed sheet must be truly gone, not just translated off-screen: on iOS
@@ -284,7 +284,8 @@ canvas{ display:block; }
      visibility (after the slide-out finishes) guarantees it cannot. */
   transform:translateY(110%); visibility:hidden; pointer-events:none;
   transition:transform var(--base) var(--ease-out), visibility 0s linear var(--base);
-  max-height:90dvh; overflow-y:auto;
+  max-height:min(90dvh, calc(var(--vvh, 100dvh) - 16px)); overflow-y:auto;
+  overscroll-behavior:contain;
   box-shadow:0 -22px 50px -18px hsl(var(--clay-hue) / .38),
              inset 0 9px 18px -8px rgba(255,255,255,.95);
   max-width:var(--shell-w); margin:0 auto;
@@ -507,6 +508,7 @@ canvas{ display:block; }
   padding:0 14px; display:flex; justify-content:center; pointer-events:none;
 }
 #tmdock[hidden]{ display:none; }
+.kb-open .tabbar, .kb-open #tmdock{ opacity:0; visibility:hidden; transition:none; }
 .has-dock #app{ padding-bottom:calc(var(--tabbar-h) + var(--sab) + 108px); }
 .tm-in{
   pointer-events:auto; position:relative; overflow:hidden;

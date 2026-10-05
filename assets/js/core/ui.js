@@ -243,3 +243,46 @@ export function lineChart(canvas, { values, color = '#4F46E5', fill = true, band
   ctx.fillStyle = '#fff';
   ctx.beginPath(); ctx.arc(X(last.i), Y(last.v), 1.7, 0, Math.PI*2); ctx.fill();
 }
+
+/* ---------------- on-screen keyboard ----------------
+   On iOS the keyboard does not resize the page: it covers it, and the
+   browser scrolls the page up to reveal the focused field. Two things
+   follow. A bottom sheet sits behind the keyboard, so you type blind; and
+   when the keyboard closes the page can be left scrolled, so the fixed tab
+   bar and timer dock float mid-screen.
+
+   Fix: measure how much of the layout viewport the keyboard covers
+   (--kb) and lift the sheet by exactly that; hide the tab bar and dock
+   while it is up; and when it goes away, put the page back where it was. */
+export function keyboardInset(innerH, vvH, vvTop){
+  return Math.max(0, Math.round(innerH - vvH - vvTop));
+}
+
+function watchKeyboard(){
+  const vv = window.visualViewport;
+  if (!vv || typeof document === 'undefined') return;
+  const root = document.documentElement;
+  let was = 0, y0 = 0;
+  const apply = () => {
+    const kb = keyboardInset(window.innerHeight, vv.height, vv.offsetTop);
+    const open = kb > 80;                       // small insets are toolbars, not a keyboard
+    root.style.setProperty('--kb', (open ? kb : 0) + 'px');
+    root.style.setProperty('--vvh', Math.round(vv.height) + 'px');
+    root.classList.toggle('kb-open', open);
+    if (open && !was) y0 = window.scrollY;
+    if (!open && was){
+      // keyboard just closed: undo the browser's reveal-scroll
+      const back = () => { window.scrollTo(0, y0); root.style.setProperty('--kb', '0px'); };
+      back(); setTimeout(back, 80); setTimeout(back, 260);
+    }
+    was = open ? kb : 0;
+  };
+  vv.addEventListener('resize', apply);
+  vv.addEventListener('scroll', apply);
+  document.addEventListener('focusin', e => {
+    if (e.target.closest?.('.sheet') && /^(INPUT|TEXTAREA|SELECT)$/.test(e.target.tagName))
+      setTimeout(() => e.target.scrollIntoView?.({ block:'center', behavior:'smooth' }), 320);
+  });
+  document.addEventListener('focusout', () => setTimeout(apply, 120));
+}
+watchKeyboard();
