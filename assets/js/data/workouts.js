@@ -49,6 +49,22 @@ export const WARMUPS = {
   },
 };
 
+/* The leg warm-up for the back-friendly leg day. Written for a specific
+   complaint: glutes that feel tight and a lower back that pulls. Tight
+   hip flexors tip the pelvis forward and the lower back picks up the
+   slack; waking the glutes and holding the ribs down first is the usual
+   first thing to try. This is a movement cue, not a diagnosis. */
+WARMUPS.legsKind = {
+  name: 'Lower prep, back-friendly',
+  why: 'Your glutes feel tight and your lower back pulls. Tight hip flexors tip the pelvis forward and the back takes the strain, so open the front of the hip, wake the glutes and learn to keep the ribs down before any load.',
+  items: [
+    { n:'Couch stretch',        d:'2 × 40s each side. Knee on the floor, foot up a wall or bench. Tuck the pelvis under until you feel the front of the hip.' },
+    { n:'Banded glute bridge',  d:'2 × 12. Band above the knees, push the knees out, squeeze at the top without arching the back.' },
+    { n:'Dead bug',             d:'2 × 6 each side. Lower back stays flat on the floor, ribs down. Slow.' },
+    { n:'Banded lateral walk',  d:'2 × 12 each side. Knees stay out, not caving in.' },
+  ],
+};
+
 /* Day identities are shared across every phase — same four days, same
    colours, so the app looks consistent as phases roll over. */
 const DAY_META = {
@@ -554,6 +570,88 @@ const PHASE3_DAYS = [
   }),
 ];
 
+/* ============================================================
+   Back-friendly legs.
+
+   Three things came up together: glutes that feel tight with a lower back
+   that pulls, a hinge (Romanian deadlift) where the knees seem to buckle,
+   and a dislike of leg day. The standard day answers none of them, so
+   this version changes the exercises rather than asking for more grit.
+
+     · The loaded hinge is out for now. Hip thrusts train the glutes hard
+       with almost no load through the lower back, and glute strength is
+       what holds the knees out.
+     · Leg press stays but with a cue that matters: stop before the pelvis
+       tucks under, which is the point where the back starts to pull.
+     · Lower back control gets trained directly (dead bug).
+     · It is shorter (about half an hour), and the third pair is labelled
+       a bonus, so doing the first two counts as having done legs.
+
+   The Romanian deadlift can come back light and slow once things feel
+   clean (see the optional block). It is on by default and can be turned
+   off in Training settings. Not medical advice: sharp pain, pain down the
+   leg, numbness, or a knee that gives way is a physio or GP, not a
+   different exercise.
+   ============================================================ */
+export function kindLegs(day){
+  if (!day || day.key !== 'd3') return day;
+  return {
+    ...day,
+    subtitle: 'Back-friendly legs · about 30 min',
+    warmup: 'legsKind',
+    supersets: [
+      {
+        label: 'SS1 — Quads + Calf',
+        rationale: 'Non-competing muscles, so no performance cost. The leg press stays, with one cue that matters for your back.',
+        exercises: [
+          { name:'Leg press (feet high)', sets:'3', reps:'10–12', rest:'0s', tag:'Compound',
+            notes:'Feet high and a little wide on the platform. Lower only until your pelvis would start to tuck under, then press. That tuck is what pulls on the lower back. Knees follow the line of your second toe.' },
+          { name:'Seated calf raise', sets:'3', reps:'15', rest:'90s', tag:'Isolation',
+            notes:'Slow, pause at the bottom stretch.' },
+        ],
+      },
+      {
+        label: 'SS2 — Glutes + Hamstrings',
+        rationale: 'Replaces the Romanian deadlift for now. Hip thrusts work the glutes hard with almost no load through the lower back, and glute strength is what stops the knees rolling in.',
+        exercises: [
+          { name:'Hip thrust (barbell or bench)', sets:'3', reps:'10–12', rest:'0s', tag:'Compound',
+            notes:'Upper back on a bench, feet flat about hip width apart. Ribs down, chin tucked. Drive through the heels, squeeze at the top without arching, and keep the knees pushed out. If the lower back feels it, the ribs are flaring: bring them down.' },
+          { name:'Lying leg curl', sets:'3', reps:'12–15', rest:'75s', tag:'Isolation',
+            notes:'Hips stay down on the pad. Squeeze at the top and lower slowly.' },
+        ],
+      },
+      {
+        label: 'SS3 — Bonus (skip it on a flat day)',
+        rationale: 'If you have done the first two pairs, legs are done. This is a bonus, not a requirement.',
+        exercises: [
+          { name:'Leg extension', sets:'2', reps:'12–15', rest:'0s', tag:'Isolation',
+            notes:'Light and controlled. Toes point straight up, no swinging.' },
+          { name:'Dead bug', sets:'3', reps:'8 each side', rest:'60s', tag:'Core',
+            notes:'Lower back flat into the floor, ribs down, slow. This trains the pelvic control that stops your lower back taking over.' },
+        ],
+      },
+    ],
+    extra: {
+      label:'Extra time? (+10 min)',
+      exercises: [
+        { name:'Single-leg RDL (light, one hand on a rack)', sets:'2', reps:'8 each leg', note:'The way back to hinging: light, slow, one hand on a rack. Film it from the front once. If your knee drifts inward, drop the weight.' },
+        { name:'Couch stretch', sets:'2', reps:'40s each side', note:'Do this on the days you skip the warm-up too.' },
+      ],
+    },
+  };
+}
+
+/* Shown on the Plan, not buried: what to try, and when to stop trying. */
+export const LEGS_HONESTLY = {
+  title: 'Legs, honestly',
+  lines: [
+    'Tight glutes with a lower back that pulls usually means the front of the hips is tight and the glutes are not doing their share. That is what the new warm-up and the hip thrusts are for.',
+    'Knees that cave in on a hinge are a control and strength problem more often than a form flaw you can fix with a cue. Hip thrusts and the banded walk build what holds them out. The Romanian deadlift can come back later, light and slow.',
+    'You do not need to love it. The first two pairs are the job. Everything after that is a bonus.',
+  ],
+  flags: 'See a physio or your GP rather than training through: sharp or catching pain, pain or numbness running down the leg, a knee that gives way, locks or swells, or back pain that is worse at night or does not ease with rest.',
+};
+
 /* ---------------- phases ---------------- */
 export const PHASES = [
   {
@@ -605,10 +703,11 @@ const MUSCLE_RULES = [
   [/lateral raise|upright row|lateral/i,                        'Side delts'],
   [/rear delt|rear|reverse pec|reverse fly|face pull|pull-apart|y-raise/i, 'Rear delts & traps'],
   [/shrug/i,                                                    'Traps'],
+  [/hip thrust|glute bridge|pull-?through/i,                    'Glutes'],
   [/leg curl|romanian|rdl|deadlift/i,                           'Hamstrings'],
   [/squat|leg press|hack|lunge|leg extension/i,                 'Quads'],
   [/calf/i,                                                     'Calves'],
-  [/crunch|plank|leg raise|knee raise|pallof|woodchop|ab wheel/i,'Core'],
+  [/crunch|plank|leg raise|knee raise|pallof|woodchop|ab wheel|dead bug/i,'Core'],
   [/curl|preacher|bayesian|hammer/i,                            'Biceps'],
   [/pushdown|triceps|tricep|close-grip|overhead.*extension/i,   'Triceps'],
   [/pulldown|pull-up|pullup|straight-arm|dead hang/i,           'Lats'],

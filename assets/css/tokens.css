@@ -231,3 +231,53 @@
   --carb-tint:#2A2447; --carb-bar:#372E5C;
   --fat-tint:#372B16;  --fat-bar:#4A3A1E;
 }
+
+/* ============================================================
+   QUIET — the flat alternative to clay.
+
+   Same layout, same icons, same accents; the lighting is switched off.
+   Definition comes from a hairline and a whisper of shadow instead of
+   inflated surfaces, radii tighten, the coloured wash behind the page
+   goes, and the light ground turns a warm off-white. It is the look most
+   current apps are moving to: calmer, denser, easier to read for long
+   sessions. Chosen in Settings; clay stays the default.
+
+   Shadows and radii are theme-agnostic (they lean on --line, which both
+   light and dark define). Only the light ground needs its own colours.
+   ============================================================ */
+:root[data-style="quiet"]{
+  --r-xs:9px; --r-sm:12px; --r-md:15px; --r-lg:18px; --r-xl:22px;
+  --clay-hue: 220 8% 30%;
+
+  --clay-edge: 0 0 0 1px var(--line);
+  --clay-cast:    0 1px 2px rgba(10,12,20,.06);
+  --clay-cast-lg: 0 6px 18px -8px rgba(10,12,20,.16);
+  --clay-cast-sm: 0 1px 2px rgba(10,12,20,.05);
+  --clay-rim: 0 0 0 0 transparent;
+  --clay-lip: 0 0 0 0 transparent;
+
+  --clay:    var(--clay-edge), var(--clay-cast);
+  --clay-lg: var(--clay-edge), var(--clay-cast-lg);
+  --clay-sm: var(--clay-edge), var(--clay-cast-sm);
+  --clay-in: inset 0 0 0 1px var(--line), inset 0 1px 2px rgba(10,12,20,.05);
+  --clay-press: inset 0 0 0 1px var(--line), inset 0 2px 4px rgba(10,12,20,.10);
+  --clay-tint:    0 1px 2px rgba(10,12,20,.10);
+  --clay-tint-lg: 0 6px 16px -8px var(--accent-glow, rgba(91,108,246,.35));
+  --clay-on-colour: none;
+}
+:root[data-style="quiet"] body::before{ display:none; }
+
+/* the light ground: warm off-white, white cards, ink slightly cooler */
+:root[data-style="quiet"][data-theme="light"],
+:root[data-style="quiet"]:not([data-theme="dark"]):not([data-theme="auto"]){
+  --bg:#F5F5F2; --bg-sunk:#EBEBE7; --surface:#FFFFFF; --surface-2:#F3F3F0;
+  --line:#E3E3DE; --line-soft:#EDEDE9;
+  --ink:#16171C; --ink-2:#43454E; --muted:#73757F; --faint:#A8AAB2;
+}
+@media (prefers-color-scheme: light){
+  :root[data-style="quiet"][data-theme="auto"]{
+    --bg:#F5F5F2; --bg-sunk:#EBEBE7; --surface:#FFFFFF; --surface-2:#F3F3F0;
+    --line:#E3E3DE; --line-soft:#EDEDE9;
+    --ink:#16171C; --ink-2:#43454E; --muted:#73757F; --faint:#A8AAB2;
+  }
+}

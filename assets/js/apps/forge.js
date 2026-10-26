@@ -9,16 +9,20 @@
 import { Slice, today, dayKey, keyToDate, daysBetween, uid, fmtDayShort } from '../core/store.js';
 import { ask, aiStatus } from '../core/ai.js';
 import {
-  esc, num, round, toast, openSheet, closeSheet, sheetVal, sheetNum,
+  esc, num, round, toast, openSheet, closeSheet, sheetVal, sheetNum, sheetRoot,
   bindActions, empty, stat, haptic,
 } from '../core/ui.js';
 import { icon } from '../core/icons.js';
-import { swapsFor, GEAR_STYLE, convertWeight, loadIndex } from '../data/swaps.js';
+import {
+  swapsFor, GEAR_STYLE, GEARS, convertWeight, loadIndex, gearOf, estimateForGear,
+  stackToKg, kgToStack, stackConfigFor, defaultStack,
+} from '../data/swaps.js';
+import * as cb from '../core/comeback.js';
 import { compress, addPhoto, listPhotos, deletePhoto, updatePhoto, blobToImage, urlFor, releaseUrls } from '../core/photos.js';
 import * as timer from '../core/timer.js';
 import * as coach from '../core/coach.js';
 import {
-  PHASES, WARMUPS, PROGRESSION, TAG_STYLE, PHYSIQUE,
+  PHASES, WARMUPS, PROGRESSION, TAG_STYLE, PHYSIQUE, kindLegs, LEGS_HONESTLY,
   weeklyVolume, sessionMinutes, totalExercises,
 } from '../data/workouts.js';
 
@@ -28,6 +32,10 @@ const store = new Slice('forge', {
   sessions: {},           // id -> { day, dayKey, sets:{ exKey:[{w}] }, done }
   lastByEx: {},           // exercise name -> { w, est? }  (est = converted from another machine, not lifted yet)
   swaps: {},              // 'dayKey|program exercise' -> the alternative you chose; applies everywhere until reverted
+  custom: {},             // equivalents you typed in: name -> { gear, idx }
+  legs: 'kind',           // 'kind' = the back-friendly leg day, 'original' = the program as first written
+  comeback: null,         // { start, weeks, off } the return-to-training ramp
+  stack: structuredClone(defaultStack),   // how this gym labels cable and machine stacks
   activeId: null,
   timer: { auto:true, awake:true, beep:true },   // rest timer behaviour
   focus: {},              // muscle -> extra weekly sets, applied from a goal benchmark
@@ -48,7 +56,36 @@ let tab = 'plan';
 let root = null;
 let BONUS = {};            // 'dayKey|exercise' -> extra sets from the focus boosts
 
-const phase = () => PHASES[store.get().blockIndex % PHASES.length];
+/* The phase as it is run right now: the program with the back-friendly leg
+   day swapped in unless that is switched off. Cached, because it is read
+   constantly and must return the same objects between renders. */
+const phaseCache = new Map();
+const phase = () => {
+  const i = store.get().blockIndex % PHASES.length, kind = store.get().legs !== 'original';
+  const k = `${i}|${kind}`;
+  if (!phaseCache.has(k)){
+    const base = PHASES[i];
+    phaseCache.set(k, kind ? { ...base, days: base.days.map(kindLegs) } : base);
+  }
+  return phaseCache.get(k);
+};
+
+/* ---------------- comeback ramp ----------------
+   After ten days away the first sessions back run at reduced volume and
+   lighter weights, building to normal over three weeks. See core/comeback.js. */
+const ramp = () => cb.rampState(store.get().comeback, today());
+function checkComeback(){
+  if (cb.shouldStartRamp(store.get().comeback, store.get().sessions, today())){
+    store.update(s => { s.comeback = { start: today(), weeks: 3, off: false, auto: true }; });
+  }
+}
+/* Sets to do for an exercise today: the program's number, scaled while the
+   ramp runs (and without focus boosts, which wait until it is over). */
+function targetSets(ex, dk, orig){
+  const base = parseInt(ex.sets, 10) || 1, r = ramp();
+  return r.active ? cb.scaleSets(base, r.factor) : base + coach.bonusFor(BONUS, dk, orig ?? ex.name);
+}
+const weekGoal = () => cb.weekTarget(ramp());
 const weekInBlock = () => Math.floor(daysBetween(store.get().blockStart, today()) / 7) + 1;
 const dayOf = k => phase().days.find(d => d.key === k);
 
@@ -93,11 +130,12 @@ const SHORT = { d1:'Back/Bi', d2:'Chest/Tri', d3:'Legs', d4:'Delts/Arms' };
 export async function summary(){
   await store.load();
   checkBlockRollover();
+  checkComeback();
   const p = phase(), d = nextDay();
   return {
     headline: doneToday(d.key) ? 'Done for today ✓' : d.title,
-    detail: `Phase ${p.phase} · ${p.name} · week ${Math.min(weekInBlock(),8)} of 8`,
-    badge: `${thisWeekCount()}/4`,
+    detail: ramp().active ? `Comeback week ${ramp().week} of ${ramp().weeks} · ${p.name}` : `Phase ${p.phase} · ${p.name} · week ${Math.min(weekInBlock(),8)} of 8`,
+    badge: `${thisWeekCount()}/${weekGoal()}`,
     chips: p.days.map(day => ({
       label: SHORT[day.key] || day.title,
       act: 'forge-day',
@@ -118,6 +156,7 @@ export async function mount(el){
   root = el;
   await store.load();
   checkBlockRollover();
+  checkComeback();
   render();
 }
 
@@ -186,14 +225,16 @@ function planHTML(){
   const p = phase();
   const next = nextDay();
   const wk = thisWeekCount();
+  const goal = weekGoal(), rp = ramp();
 
   return `
+  ${comebackBannerHTML(rp)}
   <div class="hero in">
     <div class="eyebrow" style="color:rgba(255,255,255,.75)">Up next</div>
     <div style="font-family:'Sora',sans-serif;font-weight:800;font-size:28px;letter-spacing:-.03em;margin-top:6px">${esc(next.title)}</div>
     <div class="hero-cap">${esc(next.subtitle)} · ~${sessionMinutes(next)} min</div>
-    <div class="bar"><i style="width:${wk/4*100}%"></i></div>
-    <div class="hero-cap" style="margin-top:8px">${wk} of 4 sessions done this week</div>
+    <div class="bar"><i style="width:${Math.min(100, wk/goal*100)}%"></i></div>
+    <div class="hero-cap" style="margin-top:8px">${wk} of ${goal} sessions done this week${wk >= cb.weekMinimum && wk < goal ? ' · a good week already' : ''}</div>
   </div>
 
   <button class="btn btn-primary block in in-2" style="margin-top:14px" data-act="start" data-d="${next.key}">
@@ -235,6 +276,8 @@ function planHTML(){
     Tap the circle to tick a session off, or the name to open it and log sets.
   </div>
 
+  ${store.get().legs !== 'original' ? legsHonestlyHTML() : ''}
+
   <div class="sec">How to progress</div>
   <div class="card in">
     ${PROGRESSION.map((x,i) => `
@@ -249,12 +292,47 @@ function planHTML(){
   </div>`;
 }
 
+/* ---------------- comeback + legs cards ---------------- */
+function comebackBannerHTML(rp){
+  const c = store.get().comeback, gap = cb.gapDays(store.get().sessions, today());
+  if (rp.active){
+    return `
+  <div class="card in" style="margin-bottom:14px;background:var(--accent-tint);border-color:transparent">
+    <div class="spread" style="align-items:baseline">
+      <div class="card-title">Comeback · week ${rp.week} of ${rp.weeks}</div>
+      <span class="tiny muted">${rp.daysLeft} day${rp.daysLeft === 1 ? '' : 's'} left</span>
+    </div>
+    <div class="card-note" style="margin-top:7px;line-height:1.6">
+      Sets are at ${Math.round(rp.factor * 100)}% and weights open about ${Math.round((1 - rp.weights) * 100)}% under last time. ${esc(rp.rpe)}
+      Aim for ${cb.weekTarget(rp)} sessions; ${cb.weekMinimum} still counts. Easing in is how you get back to full strength without a setback.
+    </div>
+    <button class="btn btn-ghost btn-sm" style="margin-top:8px" data-act="rampoff">I do not need this, run the full program</button>
+  </div>`;
+  }
+  if (gap != null && gap >= cb.GAP_DAYS && c?.off){
+    return `<button class="card tight in" style="width:100%;text-align:left;margin-bottom:14px" data-act="rampon">
+      <b style="font-size:14.5px">${gap} days since your last session</b>
+      <div class="tiny muted" style="margin-top:4px;line-height:1.55">Tap to start a three-week comeback ramp.</div></button>`;
+  }
+  return '';
+}
+
+function legsHonestlyHTML(){
+  return `
+  <div class="sec">${esc(LEGS_HONESTLY.title)}</div>
+  <div class="card in">
+    ${LEGS_HONESTLY.lines.map((l, i) => `<p class="card-note" style="margin:${i ? '10px' : '0'} 0 0;line-height:1.6">${esc(l)}</p>`).join('')}
+    <div class="hr"></div>
+    <div class="tiny muted" style="line-height:1.6"><b>When to stop and get it looked at.</b> ${esc(LEGS_HONESTLY.flags)}</div>
+  </div>`;
+}
+
 /* ---------------- live session ---------------- */
 function sessionHTML(sess){
   const d = dayOf(sess.day) || phase().days[0];
   const wu = WARMUPS[d.warmup];
   const totalSets = d.supersets.reduce((n,ss) =>
-    n + ss.exercises.reduce((m,ex) => m + (parseInt(ex.sets,10)||1) + coach.bonusFor(BONUS, d.key, ex.name), 0), 0);
+    n + ss.exercises.reduce((m,ex) => m + targetSets(ex, d.key), 0), 0);
   const doneSets = Object.values(sess.sets).reduce((n,arr) => n + arr.length, 0);
 
   return `
@@ -266,7 +344,7 @@ function sessionHTML(sess){
           <span class="tiny" style="color:${d.color};font-weight:800">${d.label}</span>
         </div>
         <div class="card-note" style="margin-top:3px">${esc(d.subtitle)}</div>
-        <div class="tiny muted" style="margin-top:6px">${doneSets} of ${totalSets} sets logged</div>
+        <div class="tiny muted" style="margin-top:6px">${doneSets} of ${totalSets} sets logged${ramp().active ? ` · comeback week ${ramp().week}, sets at ${Math.round(ramp().factor*100)}%` : ''}</div>
       </div>
       <button class="btn btn-sm btn-plain" data-act="abandon">Exit</button>
     </div>
@@ -318,13 +396,52 @@ function sessionHTML(sess){
   <button class="btn btn-primary block" style="margin:20px 0 8px" data-act="finish">Finish session ✓</button>`;
 }
 
+/* On a cable or machine whose stack is labelled differently from the weight
+   at your hand, show what the stack should read. Empty otherwise. */
+function stackNote(name, kg){
+  const g = gearOf(name, store.get().custom), c = stackConfigFor(g, store.get().stack);
+  if (!c) return '';
+  return ` (stack ${kgToStack(kg, c)}${c.unit === 'lb' ? 'lb' : ''})`;
+}
+
+/* One tap for the common case: you did the sets the plan said, at the
+   weight you usually use. Fills every remaining set. */
+function openingFor(exName){
+  const prev = store.get().lastByEx[exName], rp = ramp();
+  return rp.active && prev?.w != null && !prev.est ? cb.openingWeight(prev.w, rp.weights) : (prev?.w ?? null);
+}
+
+function fillSets(key, exName, count){
+  const prev = store.get().lastByEx[exName];
+  const w = openingFor(exName);
+  store.update(s => {
+    const sess = s.sessions[s.activeId];
+    if (!sess.sets[key]) sess.sets[key] = [];
+    for (let i = 0; i < count; i++) sess.sets[key].push({ w });
+    if (w != null && !(prev?.w === w)) s.lastByEx[exName] = { w };
+  });
+  haptic(14);
+  render();
+  // The last set just logged is the one a rest follows.
+  if (store.get().timer.auto){
+    const sess = store.get().sessions[store.get().activeId];
+    const [si, ei] = key.split('-').map(Number);
+    const ex = dayOf(sess?.day)?.supersets[si]?.exercises[ei];
+    const secs = timer.parseRest(ex?.rest);
+    if (secs > 0) timer.startRest(secs); else timer.clearRest();
+  }
+}
+
 function exerciseHTML(ex0, key, sess, d, hasNext){
   const ex = resolve(ex0, d.key);
   const swapped = ex.name !== ex.orig;
   const logged = sess.sets[key] || [];
-  const bonus = coach.bonusFor(BONUS, d.key, ex.orig);
-  const target = (parseInt(ex.sets, 10) || 1) + bonus;
+  const rp = ramp();
+  const bonus = rp.active ? 0 : coach.bonusFor(BONUS, d.key, ex.orig);
+  const target = targetSets(ex, d.key, ex.orig);
   const prev = store.get().lastByEx[ex.name];
+  const ease = rp.active && prev?.w != null && !prev.est ? cb.openingWeight(prev.w, rp.weights) : null;
+  const remaining = Math.max(0, target - logged.length);
   const doneAll = logged.length >= target;
   const ts = TAG_STYLE[ex.tag] || TAG_STYLE.Isolation;
   const straightInto = ex.rest === '0s';
@@ -340,7 +457,8 @@ function exerciseHTML(ex0, key, sess, d, hasNext){
         <div class="tiny muted mono" style="margin-top:3px">
           ${logged.length}/${target} sets · ${esc(ex.reps)} reps ·
           ${straightInto ? `<span style="color:${d.color};font-weight:700">→ straight into next</span>` : `${esc(ex.rest)} rest`}
-          ${prev?.w != null ? ` · ${prev.est ? 'try ' : 'last '}${prev.w}kg${prev.est ? ' (est.)' : ''}` : ''}
+          ${ease != null ? ` · ease in at ~${ease}kg${stackNote(ex.name, ease)} (last ${prev.w}kg)`
+            : prev?.w != null ? ` · ${prev.est ? 'try ' : 'last '}${prev.w}kg${stackNote(ex.name, prev.w)}${prev.est ? ' (est.)' : ''}` : ''}
         </div>
       </div>
       <div style="display:flex;gap:7px;flex:none;align-items:center">
@@ -356,6 +474,10 @@ function exerciseHTML(ex0, key, sess, d, hasNext){
 
     ${ex.notes ? `<div class="tiny" style="margin-top:9px;color:var(--ink-2);background:var(--surface-2);
         padding:9px 11px;border-radius:11px;line-height:1.55">${esc(ex.notes)}</div>` : ''}
+
+    ${remaining > 1 || (remaining === 1 && !logged.length) ? `<button class="btn btn-ghost btn-sm" style="margin-top:10px"
+        data-act="fillsets" data-k="${key}" data-n="${esc(ex.name)}" data-c="${remaining}">
+        Log all ${remaining} as planned${(ease ?? prev?.w) != null ? ` at ${ease ?? prev.w}kg` : ''}</button>` : ''}
 
     ${logged.length ? `<div class="chips" style="margin-top:10px">
         ${logged.map((s,i) => `<button class="chip on" style="font-size:12.5px;padding:7px 13px"
@@ -381,7 +503,9 @@ function goalHTML(){
   }
 
   return `
-  <div class="hero in">
+  ${backOnTrackHTML(weights)}
+
+  <div class="hero in" style="margin-top:14px">
     <div class="eyebrow" style="color:rgba(255,255,255,.75)">Swimmer build</div>
     <div class="spread" style="align-items:flex-end;margin-top:6px">
       <div><div class="hero-num" style="font-size:44px">${round(cur,1)}<span style="font-size:22px">kg</span></div>
@@ -429,6 +553,42 @@ function goalHTML(){
   ${volumeHTML()}
 
   <button class="btn btn-plain block in" style="margin-top:14px" data-act="advice">${icon('spark',17)} Ask about form or a swap</button>`;
+}
+
+/* Where you are and what to do about it, from what the app already knows.
+   No key and no AI needed, so it is there on a flat day. */
+function backOnTrackHTML(weights){
+  const f = fuelData();
+  const plan = cb.backOnTrack({
+    sessions: store.get().sessions, todayKey: today(), weights, fuel: f, physique: PHYSIQUE,
+    photoKeys: photoCache ? photoCache.map(x => dayKey(x.t)) : null, ramp: ramp(),
+  });
+  if (photoCache === null) loadPhotos();
+  const TONE = { good:'var(--good)', warn:'var(--warn)', neutral:'var(--faint)' };
+  const max = Math.max(1, ...plan.counts);
+  return `
+  <div class="eyebrow in">Back on track</div>
+  <div class="card in" style="margin-top:8px">
+    <div style="font-family:'Sora',sans-serif;font-weight:800;font-size:19px;letter-spacing:-.02em;line-height:1.3">${esc(plan.headline)}</div>
+    <div class="tiny muted" style="margin-top:4px">Sessions per week, last four weeks</div>
+    <div style="display:flex;gap:8px;align-items:flex-end;height:46px;margin-top:8px">
+      ${plan.counts.map((n, i) => `<div style="flex:1;text-align:center">
+        <div style="height:${Math.max(4, n / max * 34)}px;border-radius:7px;background:${n >= cb.weekMinimum ? 'var(--accent-1)' : 'var(--bg-sunk)'}"></div>
+        <div class="tiny muted" style="margin-top:3px">${n}</div></div>`).join('')}
+    </div>
+    <div class="stack" style="gap:0;margin-top:12px">
+      ${plan.items.map(it => `
+        <div style="padding:12px 0;border-top:1px solid var(--line-soft)">
+          <div class="spread" style="align-items:center">
+            <b style="font-size:14.5px">${esc(it.title)}</b>
+            <span style="width:9px;height:9px;border-radius:99px;background:${TONE[it.tone] || TONE.neutral}"></span>
+          </div>
+          <div class="tiny" style="margin-top:4px;line-height:1.6;color:var(--ink-2)">${esc(it.body)}</div>
+          ${it.detail ? `<div class="tiny muted" style="margin-top:4px">${esc(it.detail)}</div>` : ''}
+        </div>`).join('')}
+    </div>
+    <button class="btn btn-plain block" style="margin-top:6px" data-act="tab" data-v="photos">Compare my photos</button>
+  </div>`;
 }
 
 /* The reasoning, written down. "Trust the plan" is worth nothing when
@@ -1111,7 +1271,7 @@ function openSwap(exName, orig, dk){
   const opts = g.options.filter(o => o.name !== exName);
   const est = name => {
     if (last[name]?.w != null) return { kg: last[name].w, own: true };
-    const kg = convertWeight(exName, name, cur);
+    const kg = convertWeight(exName, name, cur, store.get().custom);
     return kg == null ? null : { kg, own: false };
   };
 
@@ -1147,11 +1307,45 @@ function openSwap(exName, orig, dk){
         </button>`;
       }).join('')}
     </div>
+
+    <div class="sec" style="margin-top:20px">Using something else?</div>
+    <div class="card tight sunk">
+      <div class="tiny muted" style="line-height:1.6">
+        Machine taken and you have something different in mind? Say what kind of kit it is and
+        what you would call it. The starting weight is worked out from how that kit usually
+        compares for ${esc(g.label.toLowerCase())}. Dumbbell weights are per hand.
+      </div>
+      <div class="chips" style="margin-top:12px" id="cu-gear">
+        ${GEARS.map(k => `<button class="chip" data-act="cgear" data-g="${k}" style="font-size:12.5px;padding:8px 13px">${GEAR_STYLE[k].label}</button>`).join('')}
+      </div>
+      <input class="input" id="cu-name" placeholder="e.g. Smith machine press" maxlength="48" style="margin-top:10px">
+      <button class="btn btn-primary block" style="margin-top:10px" data-act="pickcustom">Use this instead</button>
+    </div>
     <button class="btn btn-ghost block" style="margin-top:16px" data-act="close">Close</button>
   `);
 
+  let cGear = null;
   bindActions(document.querySelector('.sheet'), {
     close: closeSheet,
+    cgear: (d, el) => {
+      cGear = d.g;
+      document.querySelectorAll('#cu-gear .chip').forEach(c => c.classList.toggle('on', c === el));
+      haptic(4);
+    },
+    pickcustom: () => {
+      if (!cGear){ toast('Pick what kind of kit it is first'); return; }
+      const typed = sheetVal('cu-name').trim().replace(/\s+/g, ' ');
+      const name = typed || `${GEAR_STYLE[cGear].label} ${g.label.toLowerCase()}`;
+      const e = estimateForGear(exName, cGear, cur, store.get().custom);
+      store.update(st => {
+        st.custom = { ...(st.custom || {}), [name]: { gear: cGear, idx: e.idx } };
+        st.swaps = { ...(st.swaps || {}), [key]: name };
+        if (e.kg != null && st.lastByEx[name]?.w == null) st.lastByEx[name] = { w: e.kg, est: true };
+      });
+      haptic(); closeSheet();
+      toast(e.kg != null ? `Using ${name}, start around ${e.kg}kg` : `Using ${name}`);
+      render();
+    },
     pickswap: d => {
       const alt = d.o;                                   // '' = back to the original
       const target = alt || orig;
@@ -1171,11 +1365,11 @@ function openSwap(exName, orig, dk){
 }
 
 function addSet(key, exName){
-  const prev = store.get().lastByEx[exName];
+  const w = openingFor(exName);
   store.update(s => {
     const sess = s.sessions[s.activeId];
     if (!sess.sets[key]) sess.sets[key] = [];
-    sess.sets[key].push({ w: prev?.w ?? null });
+    sess.sets[key].push({ w });
   });
   haptic();
   render();
@@ -1194,29 +1388,70 @@ function addSet(key, exName){
 
 function editSet(key, i, exName){
   const cur = store.get().sessions[store.get().activeId]?.sets[key]?.[i];
+  const gear = gearOf(exName, store.get().custom);
+  const sc = stackConfigFor(gear, store.get().stack);      // null unless this gym's stack differs from the real load
+  const curKg = setWeight(cur);
+  const shown = curKg == null ? '' : (sc ? kgToStack(curKg, sc) : curKg);
+  const step = sc ? (sc.unit === 'lb' ? 5 : 2.5) : 2.5;
+  const sets = store.get().sessions[store.get().activeId]?.sets[key] || [];
+
   openSheet(`
     <h2>${esc(exName)}</h2>
-    <p class="sub">Set ${i+1}. Weight is optional — leave it blank if you'd rather just tick it off.</p>
-    <label class="label">Weight (kg)</label>
-    <input class="input" type="number" inputmode="decimal" step="0.5" id="s-w"
-           value="${setWeight(cur) ?? ''}" placeholder="Optional"
-           style="font-size:22px;font-weight:700;text-align:center;padding:16px">
+    <p class="sub">Set ${i+1}. Weight is optional, leave it blank if you would rather just tick it off.</p>
+    <label class="label">${sc ? `What the stack reads (${sc.unit})` : 'Weight (kg)'}</label>
+    <div style="display:flex;gap:8px;align-items:stretch">
+      <button class="btn btn-plain" style="flex:none;width:64px;font-size:20px" data-act="dec" aria-label="Less">−</button>
+      <input class="input" type="number" inputmode="decimal" step="0.5" id="s-w"
+             value="${shown}" placeholder="Optional"
+             style="font-size:22px;font-weight:700;text-align:center;padding:16px;flex:1;min-width:0">
+      <button class="btn btn-plain" style="flex:none;width:64px;font-size:20px" data-act="inc" aria-label="More">+</button>
+    </div>
+    ${sc ? `<div class="tiny muted" id="s-hand" style="margin-top:8px;text-align:center"></div>` : ''}
     <button class="btn btn-primary block" style="margin-top:14px" data-act="save">Save</button>
+    ${sets.length > 1 ? `<button class="btn btn-plain block" style="margin-top:8px" data-act="saveall">Save for all ${sets.length} sets</button>` : ''}
     <button class="btn btn-danger block" style="margin-top:8px" data-act="rm">Remove this set</button>
     <button class="btn btn-ghost block" data-act="close">Cancel</button>
   `);
   setTimeout(() => document.getElementById('s-w')?.focus(), 120);
 
+  /* What goes in the box is what you read off the stack; what is stored is
+     the weight at your hand, so every comparison and conversion stays honest. */
+  const toKg = raw => {
+    const t = String(raw).trim();
+    if (t === '') return null;
+    const n = parseFloat(t);
+    if (!Number.isFinite(n)) return null;
+    return sc ? stackToKg(n, sc) : n;
+  };
+  const input = document.getElementById('s-w');
+  const hand = () => {
+    const el = document.getElementById('s-hand'); if (!el) return;
+    const kg = toKg(input.value);
+    el.textContent = kg == null ? '' : `That is ${round(kg, 2)} kg at your hand`;
+  };
+  input.addEventListener('input', hand); hand();
+  const nudge = dir => {
+    const n = parseFloat(input.value);
+    const next = (Number.isFinite(n) ? n : 0) + dir * step;
+    input.value = String(Math.max(0, Math.round(next * 100) / 100));
+    hand(); haptic(4);
+  };
+
+  const save = all => {
+    const w = toKg(input.value);
+    store.update(s => {
+      const arr = s.sessions[s.activeId].sets[key];
+      if (all) arr.forEach((_, j) => { arr[j] = { w }; }); else arr[i] = { w };
+      if (w != null) s.lastByEx[exName] = { w };
+    });
+    closeSheet(); render();
+  };
+
   bindActions(document.querySelector('.sheet'), {
-    save: () => {
-      const raw = sheetVal('s-w').trim();
-      const w = raw === '' ? null : parseFloat(raw);
-      store.update(s => {
-        s.sessions[s.activeId].sets[key][i] = { w: Number.isFinite(w) ? w : null };
-        if (Number.isFinite(w)) s.lastByEx[exName] = { w };
-      });
-      closeSheet(); render();
-    },
+    inc: () => nudge(1),
+    dec: () => nudge(-1),
+    save: () => save(false),
+    saveall: () => save(true),
     rm: () => {
       store.update(s => { s.sessions[s.activeId].sets[key].splice(i,1); });
       closeSheet(); haptic(); render();
@@ -1330,10 +1565,53 @@ Respond with ONLY this JSON:
 }
 
 /* ---------------- settings ---------------- */
+/* Changing a setting redraws the sheet; keep the scroll position or it
+   jumps back to the top every tap. */
+function reopen(){
+  const y = sheetRoot()?.scrollTop || 0;
+  openSettings();
+  const el = sheetRoot(); if (el) el.scrollTop = y;
+}
+
 function openSettings(){
   const s = store.get();
+  const st = { ...defaultStack, ...(s.stack || {}) };
+  const seg = (act, items, cur, extra = '') => `<div class="seg" style="margin:6px 0 0">
+    ${items.map(([v, l]) => `<button class="${String(cur) === String(v) ? 'on' : ''}" data-act="${act}" data-v="${v}" ${extra}>${l}</button>`).join('')}</div>`;
+  const rp = ramp();
+
   openSheet(`
-    <h2>Phases</h2>
+    <h2>Training settings</h2>
+
+    <div class="sec" style="margin-top:14px">Leg day</div>
+    <p class="sub" style="margin-bottom:0">Back-friendly swaps out the loaded hinge for hip thrusts, adds a hip and back warm-up and runs about 30 minutes. Original is the program as first written.</p>
+    ${seg('setlegs', [['kind', 'Back-friendly'], ['original', 'Original']], s.legs !== 'original' ? 'kind' : 'original')}
+
+    <div class="sec" style="margin-top:20px">Comeback ramp</div>
+    <p class="sub" style="margin-bottom:0">${rp.active ? `Running: week ${rp.week} of ${rp.weeks}.` : 'Starts by itself after ten days away: three weeks of lighter volume and weights.'}</p>
+    ${rp.active
+      ? `<button class="btn btn-plain block" style="margin-top:8px" data-act="rampoff">Stop the ramp</button>`
+      : `<button class="btn btn-plain block" style="margin-top:8px" data-act="rampon">Start a ramp now</button>`}
+
+    <div class="sec" style="margin-top:20px">Cable and machine labels</div>
+    <div class="card tight sunk" style="margin:6px 0 10px">
+      <div class="tiny muted" style="line-height:1.6">
+        The number on a stack is not always the weight at your hand. Many cable stations run the cable
+        through a moving pulley (2:1), so a stack reading of 40 puts about 20 in your hand. Some stacks are
+        labelled in pounds. This app cannot see your gym, so set it once and every set converts for you.
+        Not sure? Ask staff, look for a 2:1 sticker, or try a light set: if 20 on the stack feels like a
+        10kg dumbbell, it is 2:1.
+      </div>
+    </div>
+    ${['cable', 'machine'].map(g => `
+      <div style="margin-top:10px"><b style="font-size:14px">${g === 'cable' ? 'Cables' : 'Machines'}</b>
+        <div class="tiny muted" style="margin-top:3px">Stack to hand ratio</div>
+        ${seg('setstack', [['1', '1 : 1'], ['2', '2 : 1']], st[g].ratio, `data-g="${g}" data-f="ratio"`)}
+        <div class="tiny muted" style="margin-top:8px">Stack is labelled in</div>
+        ${seg('setstack', [['kg', 'kg'], ['lb', 'lb']], st[g].unit, `data-g="${g}" data-f="unit"`)}
+      </div>`).join('')}
+
+    <div class="sec" style="margin-top:22px">Phases</div>
     <p class="sub">6–8 weeks each, then it advances on its own and loops back to Phase 1. Switch manually any time.</p>
     <div class="stack" style="gap:8px">
       ${PHASES.map((p,i) => `
@@ -1356,6 +1634,19 @@ function openSettings(){
       store.update(st => { st.blockStart = today(); });
       closeSheet(); toast('Clock restarted'); render();
     },
+    setlegs: d => {
+      store.update(x => { x.legs = d.v; });
+      haptic(); toast(d.v === 'kind' ? 'Back-friendly legs on' : 'Original leg day'); render(); reopen();
+    },
+    setstack: d => {
+      store.update(x => {
+        x.stack = { ...defaultStack, ...(x.stack || {}) };
+        x.stack[d.g] = { ...x.stack[d.g], [d.f]: d.f === 'ratio' ? +d.v : d.v };
+      });
+      haptic(6); render(); reopen();
+    },
+    rampon: () => { store.update(x => { x.comeback = { start: today(), weeks: 3, off:false }; }); haptic(); toast('Comeback ramp started'); render(); reopen(); },
+    rampoff: () => { store.update(x => { x.comeback = { ...(x.comeback || {}), off:true }; }); haptic(); render(); reopen(); },
     close: closeSheet,
   });
 }
@@ -1368,6 +1659,9 @@ function bind(){
     abandon: () => { store.update(s => { s.activeId = null; }); timer.stop(); render(); },
     togglewu: () => { const e = document.getElementById('wu-body'); if (e) e.hidden = !e.hidden; },
     addset: d => addSet(d.k, d.n),
+    fillsets: d => fillSets(d.k, d.n, +d.c),
+    rampoff: () => { store.update(s => { s.comeback = { ...(s.comeback || {}), off:true }; }); haptic(); render(); },
+    rampon: () => { store.update(s => { s.comeback = { start: today(), weeks: 3, off:false }; }); haptic(); toast('Comeback ramp started'); render(); },
     swap: d => openSwap(d.n, d.o, d.dk),
     editset: d => editSet(d.k, +d.i, d.n),
     tick: d => quickComplete(d.d),

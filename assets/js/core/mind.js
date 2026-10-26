@@ -62,7 +62,7 @@ export function readContext({ day, fuel, todayKey, yesterdayKey, hour = 12 } = {
 
 /* theme -> multiplier, per state. Anything unlisted stays at 1. */
 const THEME_BIAS = {
-  low:       { endure:3, selfcompassion:3, present:2.5, connection:2, grief:2, body:1.6, acceptance:1.6, effort:0.25, action:0.25, courage:0.7 },
+  low:       { endure:3, boundaries:0.5, selfcompassion:3, present:2.5, connection:2, grief:2, body:1.6, acceptance:1.6, effort:0.25, action:0.25, courage:0.7 },
   high:      { restraint:4, rest:3.5, patience:3, perspective:2, body:1.6, present:1.5, effort:0.1, action:0.1, courage:0.15 },
   mixed:     { present:3, restraint:2.5, body:2.5, selfcompassion:2.5, rest:2, effort:0.15, action:0.15, courage:0.3 },
   shortsleep:{ rest:3, restraint:2, body:2, effort:0.2, action:0.2 },
@@ -70,6 +70,10 @@ const THEME_BIAS = {
 };
 
 export function quoteWeight(q, ctx){
+  // some lines are held back from certain states entirely
+  if ((q.avoid || []).some(f => (ctx?.flags || []).includes(f))) return 0;
+  // ...and some only on a day the log positively says is steady, not merely unlogged
+  if (q.needs === 'steady' && ctx?.mood !== 'steady') return 0;
   let w = 1;
   for (const f of ctx?.flags || []){
     const bias = THEME_BIAS[f]; if (!bias) continue;

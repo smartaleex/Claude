@@ -514,6 +514,15 @@ function openSettings(){
         `<button class="${theme===v?'on':''}" data-act="theme" data-v="${v}">${l}</button>`).join('')}
     </div>
 
+    <label class="label" style="margin-top:20px">Style</label>
+    <div class="tiny muted" style="margin:-2px 0 8px">
+      Clay is the soft 3D look. Quiet is flat and calm: hairlines, tighter corners, no glow.
+    </div>
+    <div class="seg">
+      ${[['clay','Clay'],['quiet','Quiet']].map(([v,l]) =>
+        `<button class="${(document.documentElement.dataset.style||'clay')===v?'on':''}" data-act="style" data-v="${v}">${l}</button>`).join('')}
+    </div>
+
     <label class="label" style="margin-top:20px">App order</label>
     <div class="tiny muted" style="margin:-2px 0 8px">
       The first ${BAR_SLOTS} sit in the bottom bar; the rest live under More.
@@ -572,6 +581,15 @@ function openSettings(){
       document.documentElement.dataset.theme = d.v;
       try{ localStorage.setItem('alexhq:theme', d.v); }catch{}
       openSettings();
+    },
+    style: d => {
+      if (d.v === 'quiet') document.documentElement.dataset.style = 'quiet';
+      else delete document.documentElement.dataset.style;
+      try{ localStorage.setItem('alexhq:style', d.v); }catch{}
+      haptic(6);
+      const y = document.querySelector('.sheet')?.scrollTop || 0;
+      openSettings();
+      const sh = document.querySelector('.sheet'); if (sh) sh.scrollTop = y;
     },
     mv: d => {
       const order = appOrder();
@@ -747,6 +765,7 @@ function doImport(){
   try{
     const t = localStorage.getItem('alexhq:theme');
     if (t) document.documentElement.dataset.theme = t;
+    if (localStorage.getItem('alexhq:style') === 'quiet') document.documentElement.dataset.style = 'quiet';
   }catch{}
 
   await initAI();

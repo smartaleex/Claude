@@ -18,6 +18,8 @@
    hit the curl rule, not the incline-press rule, so curls are tested
    before presses. */
 const RULES = [
+  /* first, so "bench" in "hip thrust (bench)" is not read as a press */
+  [/hip thrust|glute bridge|pull-?through|back extension|hyperextension/i, 'glutes'],
   [/face pull|rear delt|reverse pec|band pull/i,                 'rearDelt'],
   [/lateral raise|upright row/i,                                 'lateralRaise'],
   [/shrug/i,                                                     'shrug'],
@@ -39,7 +41,7 @@ const RULES = [
   [/squat|leg extension/i,                                       'quads'],
   [/romanian|rdl|deadlift|good morning/i,                        'hinge'],
   [/calf/i,                                                      'calves'],
-  [/crunch|leg raise|knee raise|pallof|hanging|plank|dead hang/i, 'core'],
+  [/crunch|leg raise|knee raise|pallof|hanging|plank|dead hang|dead bug/i, 'core'],
 ];
 
 export function patternOf(name){
@@ -202,6 +204,17 @@ export const SWAPS = {
       { name:'Cable pull-through',             gear:'cable',      note:'Teaches the hinge pattern with almost no spinal load.' },
     ],
   },
+  glutes: {
+    label: 'Glutes',
+    why: 'Glute strength is what keeps the knees from rolling in. These load the glutes hard with almost no pressure on the lower back.',
+    options: [
+      { name:'Hip thrust (barbell or bench)',  gear:'barbell',    note:'Upper back on a bench, ribs down, chin tucked. Squeeze at the top and keep the knees pushed out.' },
+      { name:'Machine hip thrust',             gear:'machine',    note:'Same movement with the setup done for you. Use it if your gym has one.' },
+      { name:'DB hip thrust',                  gear:'dumbbell',   note:'One dumbbell across the hips. Per-hand numbers do not apply here, it is one weight.' },
+      { name:'Glute bridge (floor)',           gear:'bodyweight', note:'Shorter range than a thrust but easy on everything. Add a band above the knees.' },
+      { name:'Cable glute pull-through',       gear:'cable',      note:'Face away from a low pulley and hinge. Teaches the hip hinge with almost no spinal load.' },
+    ],
+  },
   calves: {
     label: 'Calves',
     why: 'Stubborn. High reps, full stretch at the bottom.',
@@ -221,6 +234,7 @@ export const SWAPS = {
       { name:'Ab wheel rollout',               gear:'bodyweight', note:'From the knees. Keep the ribs down.' },
       { name:'Machine crunch',                 gear:'machine',    note:'Simple to load and progress.' },
       { name:'Pallof press',                   gear:'cable',      note:'Anti-rotation. Different job, worth keeping.' },
+      { name:'Dead bug',                       gear:'bodyweight', note:'Lower back flat, ribs down. Trains the control that keeps the lower back out of it.' },
     ],
   },
   shrug: {
@@ -297,8 +311,10 @@ const K = {
   'Leg press':1, 'Hack squat':0.7, 'Bulgarian split squat':0.2, 'Goblet squat':0.25, 'Leg extension':0.35,
   'Lying leg curl':1, 'Seated leg curl':1.1, 'Nordic curl (assisted)':null, 'Cable / band leg curl':0.6,
   'Romanian deadlift (DB or bar)':1, 'Single-leg RDL':0.35, 'Back extension (45°)':null, 'Cable pull-through':0.5,
+  'Hip thrust (barbell or bench)':1, 'Machine hip thrust':0.9, 'DB hip thrust':0.55, 'Glute bridge (floor)':null,
+  'Cable glute pull-through':0.3,
   'Standing calf raise':1, 'Seated calf raise':0.7, 'Leg press calf raise':1.2, 'Single-leg raise off a step':null,
-  'Cable crunch':1, 'Hanging knee / leg raise':null, 'Ab wheel rollout':null, 'Machine crunch':1, 'Pallof press':0.5,
+  'Cable crunch':1, 'Hanging knee / leg raise':null, 'Ab wheel rollout':null, 'Machine crunch':1, 'Pallof press':0.5, 'Dead bug':null,
   'DB shrug':1, 'Cable shrug':1.3, 'Trap bar / barbell shrug':2,
 };
 export const LOAD_INDEX = K;
@@ -307,8 +323,10 @@ const words = s => new Set((String(s).toLowerCase().match(/[a-z]{2,}/g) || []));
 
 /** Load index for ANY exercise name, including the program's own wording
     ("Close/neutral-grip lat pulldown"): the closest option by shared words.
+    `extra` = { name: { gear, idx } } for equivalents you typed in yourself.
     undefined = unknown (treated as the pattern reference, index 1). */
-export function loadIndex(name){
+export function loadIndex(name, extra){
+  if (extra && extra[name]) return extra[name].idx;
   if (name in K) return K[name];
   const grp = SWAPS[patternOf(name)];
   if (!grp) return undefined;
@@ -325,9 +343,106 @@ const step = kg => kg >= 20 ? Math.round(kg / 2.5) * 2.5 : Math.max(1, Math.roun
 
 /** Working weight to open with on `toName`, given `kg` on `fromName`.
     null when either side has no transferable weight. */
-export function convertWeight(fromName, toName, kg){
-  const a = loadIndex(fromName), b = loadIndex(toName);
+export function convertWeight(fromName, toName, kg, extra){
+  const a = loadIndex(fromName, extra), b = loadIndex(toName, extra);
   const w = Number(kg);
   if (!Number.isFinite(w) || w <= 0 || a == null || b == null) return null;
   return step(w * b / a);
+}
+
+/* ============================================================
+   "I'll use this instead."
+
+   The listed alternates cover the usual cases, but the gym is the
+   authority on what is actually free. Type in what you plan to use and
+   say what kind of kit it is; the weight comes from how that kit
+   usually compares to the original within the same movement pattern.
+   ============================================================ */
+export const GEARS = ['dumbbell', 'barbell', 'cable', 'machine', 'bodyweight'];
+
+/* Used only when the movement pattern has no listed option of that kind.
+   Dumbbell numbers are per hand, which is why they are low. */
+const GEAR_FALLBACK = { dumbbell:0.4, barbell:0.85, cable:0.5, machine:1, bodyweight:null };
+
+/** What kind of kit an exercise uses. `extra` holds your own entries. */
+export function gearOf(name, extra){
+  if (extra && extra[name]) return extra[name].gear;
+  for (const g of Object.values(SWAPS)) {
+    const o = g.options.find(x => x.name === name);
+    if (o) return o.gear;
+  }
+  const grp = SWAPS[patternOf(name)];
+  if (grp){
+    const w = words(name);
+    let best = null, bestScore = 0;
+    for (const o of grp.options){
+      const score = [...words(o.name)].filter(x => w.has(x)).length;
+      if (score > bestScore){ best = o; bestScore = score; }
+    }
+    if (best) return best.gear;
+  }
+  if (/\bcable|pushdown|pulldown|face pull|pallof|crossover/i.test(name)) return 'cable';
+  if (/\bdb\b|dumbbell|hammer|goblet/i.test(name)) return 'dumbbell';
+  if (/barbell|\bez\b|\bbar\b/i.test(name)) return 'barbell';
+  if (/machine|press|deck|leg curl|extension|calf/i.test(name)) return 'machine';
+  return null;
+}
+
+/** The load index to use for a piece of kit within a movement pattern. */
+export function gearIndex(pattern, gear){
+  const grp = SWAPS[pattern];
+  const vals = (grp?.options || []).filter(o => o.gear === gear && K[o.name] != null).map(o => K[o.name]);
+  if (vals.length) return vals.reduce((a, b) => a + b, 0) / vals.length;
+  return GEAR_FALLBACK[gear] ?? null;
+}
+
+/** Opening weight on `toGear` kit, given `kg` on `fromName`.
+    Returns { kg, idx } (idx is saved so later swaps can convert from it),
+    or { kg:null, idx } when no weight carries over. */
+export function estimateForGear(fromName, toGear, kg, extra){
+  const pat = patternOf(fromName);
+  const idx = gearIndex(pat, toGear);
+  const a = loadIndex(fromName, extra);
+  const w = Number(kg);
+  if (idx == null) return { kg:null, idx:null };
+  if (!Number.isFinite(w) || w <= 0 || a == null) return { kg:null, idx };
+  return { kg: step(w * idx / a), idx };
+}
+
+/* ============================================================
+   Reading the stack.
+
+   The number on a cable or selectorised machine is the number on the
+   stack, not always the weight reaching your hand. Many cable stations
+   run the cable through a moving pulley (2:1), which halves the load at
+   the handle: 40 on the stack is 20 at your hand. Stacks may also be
+   labelled in lb. This app cannot see your gym's labels, so you tell it
+   once (Training settings) and it converts every set for you.
+   ratio = stack : handle. 1 means they match; 2 means the stack reads
+   double what you lift.
+   ============================================================ */
+export const LB = 0.45359237;
+export const defaultStack = { cable:{ unit:'kg', ratio:1 }, machine:{ unit:'kg', ratio:1 } };
+
+/** What you read on the stack -> the weight at your hand, in kg. */
+export function stackToKg(reading, { unit = 'kg', ratio = 1 } = {}){
+  const n = Number(reading);
+  if (!Number.isFinite(n)) return null;
+  const kg = (unit === 'lb' ? n * LB : n) / (ratio || 1);
+  return Math.round(kg * 4) / 4;
+}
+
+/** The weight at your hand -> what the stack should read. */
+export function kgToStack(kg, { unit = 'kg', ratio = 1 } = {}){
+  const n = Number(kg);
+  if (!Number.isFinite(n)) return null;
+  const stack = n * (ratio || 1) / (unit === 'lb' ? LB : 1);
+  return Math.round(stack * 2) / 2;
+}
+
+/** Does this exercise need the stack conversion at all? */
+export function stackConfigFor(gear, cfg){
+  const c = cfg?.[gear];
+  if (!c) return null;
+  return (c.unit !== 'kg' || (c.ratio || 1) !== 1) ? c : null;
 }

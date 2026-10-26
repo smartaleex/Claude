@@ -135,6 +135,33 @@ export const QUOTES = [
   { t:'Nothing in the world is worth having or worth doing unless it means effort, pain, difficulty.', a:'Theodore Roosevelt', tags:['effort'] },
   { t:'No man steps in the same river twice, for it is not the same river and he is not the same man.', a:'attributed to Heraclitus', tags:['perspective','patience'], on:'You are not the person who started this stretch. That cuts both ways.' },
   { t:'Nature does not hurry, yet everything is accomplished.', a:'attributed to Lao Tzu', tags:['patience','rest','restraint'], on:'Read it twice if you have a lot of plans this week.' },
+
+  /* ---- Added from "Sentences That Rewired My Brain" and in the same plain
+     register. Where nobody can say who first wrote a line, it says so,
+     rather than borrowing a famous name. ---- */
+  { t:'Don’t let your empathy rob people of experiencing the consequences of their actions.', a:'Unknown, from a TikTok post', tags:['boundaries','perspective'], on:'Caring about someone and cleaning up after them are different things.' },
+  { t:'The truth sounds like hate to those who hate the truth.', a:'Unknown. Often credited to Orwell, but he never wrote it', tags:['courage','perspective'], on:'Check whether you are hearing hate, or just the part that is accurate.' },
+  { t:'You’re so much more than the negative thoughts in your head.', a:'Unknown, from a TikTok post', tags:['selfcompassion','endure','present'], on:'A thought is something you have, not something you are.' },
+  { t:'The cold water does not get warmer if you jump late.', a:'Unknown, from a TikTok post', tags:['courage','action'], on:'Waiting does not make the first step easier. It only makes it later.' },
+  { t:'Butterflies can’t see their own wings, but everyone still sees their beauty. You are the same.', a:'Unknown, from a TikTok post', tags:['selfcompassion','endure'], on:'Your judgement of yourself is the one reading you cannot trust.' },
+  /* Heavy on purpose. Held back from low, mixed, elevated, short-sleep and
+     under-eating days, and shown only when a steady mood is logged, and from the line of the day: with his father unwell
+     this is a line to meet on a steady day, not to be handed on a bad one. */
+  { t:'Eventually everyone you love will leave you, or you will leave everyone you love.', a:'Unknown, from a TikTok post', tags:['connection','grief','perspective'], avoid:['low','high','mixed','shortsleep','lowfood'], needs:'steady' },
+
+  /* Same register, real sources. */
+  { t:'Not everything that is faced can be changed, but nothing can be changed until it is faced.', a:'James Baldwin', tags:['courage','acceptance'], on:'Looking at it is the first act, not the whole job.' },
+  { t:'Pain is inevitable. Suffering is optional.', a:'Haruki Murakami, What I Talk About When I Talk About Running', tags:['endure','acceptance'], on:'The hard part is real. The extra layer on top is the part you get a say in.' },
+  { t:'Some things are within our power, while others are not.', a:'Epictetus, Enchiridion', tags:['acceptance','perspective'], on:'Sort today’s worries into those two piles before you carry any of them.' },
+  { t:'Hard choices, easy life. Easy choices, hard life.', a:'Jerzy Gregorek', tags:['effort','action'] },
+  { t:'You do not rise to the level of your goals. You fall to the level of your systems.', a:'James Clear, Atomic Habits', tags:['effort','action'], on:'Make the next session easy to start rather than hard to skip.' },
+  { t:'Fall seven times, stand up eight.', a:'Japanese proverb', tags:['endure','effort'] },
+  { t:'This too shall pass.', a:'Persian adage', tags:['endure','patience'], on:'True of the good weeks as well.' },
+  { t:'Not my circus, not my monkeys.', a:'Polish proverb', tags:['boundaries','restraint'], on:'You are allowed to put some things down.' },
+  { t:'Do the best you can until you know better. Then when you know better, do better.', a:'attributed to Maya Angelou', tags:['selfcompassion','action'], on:'Whatever you did before, you did with what you knew then.' },
+  { t:'Be kind, for everyone you meet is fighting a hard battle.', a:'attributed to Ian Maclaren', tags:['connection','selfcompassion'], on:'That includes you.' },
+  { t:'You can’t pour from an empty cup.', a:'Unknown', tags:['rest','body','selfcompassion'], on:'Eat, sleep, then help.' },
+  { t:'Well done is better than well said.', a:'Benjamin Franklin', tags:['action','effort'] },
 ];
 
 /* Kept under the old names for the things that import them. */
