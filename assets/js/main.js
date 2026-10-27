@@ -87,26 +87,41 @@ const openItems = () => capture.get().items.filter(i => !i.done);
 const view = $('#view');
 let current = 'home';
 
-/* ---------------- accent theming ---------------- */
-function applyAccent(appId){
+/* ---------------- accent theming ----------------
+   There used to be a different colour per tool. It made every screen look
+   like a different app and leaned on a rainbow. The accent now belongs to
+   the skin (one colour, used sparingly), so this only clears anything left
+   over from an older build. */
+/* The looks on offer. Defined by tools/skins.py; this is only the list the
+   picker needs. */
+const SKINS = [
+  ['paper',      'Paper',      'Warm paper, black ink, one red. Serif headlines and ruled lines.'],
+  ['instrument', 'Instrument', 'Near-black with amber. Condensed capitals, mono readouts, square corners.'],
+  ['poster',     'Poster',     'White, black rules, cobalt and signal yellow. Heavy type, no curves.'],
+  ['lichen',     'Lichen',     'Sage and moss with a little terracotta. Soft serif, rounded, calm.'],
+];
+
+/* Keep the phone's status bar the same colour as the page. */
+function syncThemeColor(){
+  setTimeout(() => {
+    const c = getComputedStyle(document.documentElement).getPropertyValue('--bg').trim();
+    if (c) document.querySelector('meta[name="theme-color"]')?.setAttribute('content', c);
+  }, 0);
+}
+
+function setSkin(k){
+  if (!SKINS.some(x => x[0] === k)) return;
+  document.documentElement.dataset.skin = k;
+  try{ localStorage.setItem('alexhq:skin', k); }catch{}
+  syncThemeColor();
+  // Charts are drawn on canvas in the skin's colours, so they need a redraw.
+  if (current) navigate(current).catch(() => {});
+}
+
+function applyAccent(){
   const root = document.documentElement;
-  const a = APPS[appId]?.accent;
-  if (!a){
-    root.style.removeProperty('--accent-1');
-    root.style.removeProperty('--accent-2');
-    root.style.removeProperty('--accent-tint');
-    root.style.removeProperty('--accent-glow');
-    root.style.removeProperty('--accent-grad');
-    return;
-  }
-  root.style.setProperty('--accent-1', a[0]);
-  root.style.setProperty('--accent-2', a[1]);
-  /* Mixed against the live surface rather than the registry's fixed pale
-     hex — otherwise every tinted thing (active tab, soft buttons, badges)
-     stays daylight-coloured in dark mode and glares. */
-  root.style.setProperty('--accent-tint', `color-mix(in srgb, ${a[0]} 17%, var(--surface))`);
-  root.style.setProperty('--accent-glow', a[3]);
-  root.style.setProperty('--accent-grad', `linear-gradient(118deg, ${a[0]} 6%, ${a[1]} 94%)`);
+  ['--accent-1','--accent-2','--accent-tint','--accent-glow','--accent-grad']
+    .forEach(p => root.style.removeProperty(p));
 }
 
 /* ---------------- router ---------------- */
@@ -194,10 +209,10 @@ async function homeHTML(){
     return `
   <div class="card in" data-go2="cryptic" style="margin-top:14px;padding:17px 18px;cursor:pointer">
     <div class="spread">
-      <div class="tiny muted" style="letter-spacing:.14em;text-transform:uppercase;font-weight:800">Today's cryptic</div>
+      <div class="tiny muted lbl" >Today's cryptic</div>
       <span class="badge ${done ? 'good' : 'accent'}">${done ? esc(cx.headline) : 'Unsolved'}</span>
     </div>
-    <div style="font-family:'Sora',sans-serif;font-weight:700;font-size:18px;line-height:1.4;margin-top:9px;letter-spacing:-.01em">
+    <div class="disp" style="font-size:18px;line-height:1.4;margin-top:9px">
       ${done ? esc(cx.detail) : esc(cx.detail)}
     </div>
     <div class="tiny" style="margin-top:9px;color:var(--accent-1);font-weight:700">${done ? 'Practise another →' : 'Tap to solve →'}</div>
@@ -208,8 +223,8 @@ async function homeHTML(){
   <div class="nowcard in" style="margin-top:16px" data-act="${esc(top.act)}">
     <div class="nowcard-ico">${icon(top.icon || 'spark', 22)}</div>
     <div class="grow" style="min-width:0">
-      <div class="tiny" style="opacity:.75;letter-spacing:.16em;text-transform:uppercase;font-weight:800">Right now</div>
-      <div style="font-family:'Sora',sans-serif;font-weight:800;font-size:19px;letter-spacing:-.02em;margin-top:3px">
+      <div class="tiny lbl" style="opacity:.75">Right now</div>
+      <div class="disp" style="font-size:19px;margin-top:3px">
         ${esc(top.label)}
       </div>
       <div style="font-size:13px;opacity:.85;margin-top:3px" class="trunc">${esc(top.sub || '')}</div>
@@ -219,8 +234,8 @@ async function homeHTML(){
   <div class="nowcard in calm" style="margin-top:16px" data-act="lift">
     <div class="nowcard-ico">${icon('check',22)}</div>
     <div class="grow">
-      <div class="tiny" style="opacity:.75;letter-spacing:.16em;text-transform:uppercase;font-weight:800">Right now</div>
-      <div style="font-family:'Sora',sans-serif;font-weight:800;font-size:19px;margin-top:3px">Nothing needs you</div>
+      <div class="tiny lbl" style="opacity:.75">Right now</div>
+      <div class="disp" style="font-size:19px;margin-top:3px">Nothing needs you</div>
       <div style="font-size:13px;opacity:.85;margin-top:3px">Everything due today is logged.</div>
     </div>
   </div>`}
@@ -229,15 +244,15 @@ async function homeHTML(){
        fall over first in a bad stretch: eating, remembering, and mood. -->
   <div class="quickrow in in-2">
     <button class="quick" data-act="lift">
-      <span class="qi" style="background:linear-gradient(135deg,#F97316,#FBBF24)">${icon('spark',19)}</span>
+      <span class="qi">${icon('spark',19)}</span>
       <span>Lift me</span>
     </button>
     <button class="quick" data-act="fuel-snap">
-      <span class="qi" style="background:linear-gradient(135deg,#5850EC,#8B5CF6)">${icon('camera',19)}</span>
+      <span class="qi">${icon('camera',19)}</span>
       <span>Snap food</span>
     </button>
     <button class="quick" data-act="dump">
-      <span class="qi" style="background:linear-gradient(135deg,#0EA5A5,#14B8A6)">${icon('note',19)}</span>
+      <span class="qi">${icon('note',19)}</span>
       <span>Brain dump</span>
     </button>
   </div>
@@ -247,7 +262,7 @@ async function homeHTML(){
   <div class="stack" style="gap:8px">
     ${todo.slice(0, 6).map(i => `
       <button class="rowcard" data-act="tick" data-id="${i.id}" style="width:100%;text-align:left;padding:12px 15px">
-        <span style="width:24px;height:24px;border-radius:99px;flex:none;background:var(--bg-sunk);
+        <span style="width:24px;height:24px;border-radius:var(--r-av);flex:none;background:var(--bg-sunk);
                      box-shadow:var(--clay-in)"></span>
         <span class="grow" style="font-size:14.5px">${esc(i.text)}</span>
       </button>`).join('')}
@@ -262,7 +277,7 @@ async function homeHTML(){
 
   <div class="sec">Today</div>
   <div class="card in" data-act="daily" style="padding:17px 18px">
-    <div class="tiny muted" style="letter-spacing:.14em;text-transform:uppercase;font-weight:800">
+    <div class="tiny muted lbl" >
       Something to sit with
     </div>
     <div style="font-size:15.5px;line-height:1.6;margin-top:8px">${esc(todaysLine().t)}</div>
@@ -271,12 +286,10 @@ async function homeHTML(){
   </div>
 
   ${dayCard ? `
-  <div class="hero in" style="margin-top:11px;
-       --accent-grad:linear-gradient(140deg,#0E9E9E 0%,#14B8A6 55%,#2FBF87 100%);
-       --accent-glow:rgba(14,165,165,.38)">
+  <div class="hero in" style="margin-top:11px">
     <div class="spread" style="align-items:flex-start" data-go2="day">
       <div class="grow">
-        <div style="font-family:'Sora',sans-serif;font-weight:800;font-size:26px;letter-spacing:-.03em">
+        <div class="disp" style="font-size:26px">
           ${esc(dayCard.headline)}
         </div>
         <div class="hero-cap" style="font-size:13.5px">${esc(dayCard.detail)}</div>
@@ -284,12 +297,12 @@ async function homeHTML(){
       <span style="opacity:.8">${icon('chevron',20)}</span>
     </div>
     ${dayCard.pips?.length ? `
-      <div class="chips scroll" style="margin-top:14px;padding-top:14px;border-top:1px solid rgba(255,255,255,.22)">
+      <div class="chips scroll" style="margin-top:14px;padding-top:14px;border-top:1px solid color-mix(in srgb, currentColor 24%, transparent)">
         ${dayCard.pips.map(pp => `<button data-act="day-anchor" data-id="${pp.id}"
-          style="border-radius:999px;padding:9px 14px;font-size:12.5px;font-weight:700;white-space:nowrap;
-                 background:${pp.on ? '#fff' : pp.partial ? 'rgba(255,255,255,.4)' : 'rgba(255,255,255,.16)'};
-                 color:${pp.on ? '#0E7C7C' : '#fff'};
-                 box-shadow:${pp.on ? '0 4px 10px -4px rgba(0,0,0,.3)' : 'none'}">
+          style="border-radius:var(--r-ctl);padding:9px 14px;font-size:12.5px;font-weight:700;white-space:nowrap;
+                 background:${pp.on ? 'var(--hero-fg)' : pp.partial ? 'color-mix(in srgb, currentColor 38%, transparent)' : 'color-mix(in srgb, currentColor 16%, transparent)'};
+                 color:${pp.on ? 'var(--hero-bg)' : 'inherit'};
+                 ">
           ${pp.on ? '&#10003; ' : ''}${esc(pp.label)}</button>`).join('')}
       </div>` : ''}
   </div>` : ''}
@@ -298,7 +311,7 @@ async function homeHTML(){
   <div class="card in" style="margin-top:12px;background:var(--warn-tint);border-color:transparent">
     <div class="card-title" style="color:var(--warn)">AI features are off</div>
     <div class="card-note" style="margin-top:4px">A free Gemini key turns on food photos, suggestions and Spanish feedback.</div>
-    <button class="btn btn-sm block" style="margin-top:12px;background:var(--warn);color:#fff" data-act="setup-ai">Set it up</button>
+    <button class="btn btn-sm block" style="margin-top:12px;background:var(--warn);color:var(--bg)" data-act="setup-ai">Set it up</button>
   </div>` : ''}
 
   <div class="sec">Everything else</div>
@@ -321,22 +334,21 @@ function glanceHTML(cards){
   const items = [
     // One short word each — anything longer ellipsises at four across.
     { label:'Eaten', value: (fuel.headline || '\u2014').split('/')[0].trim(), sub:'kcal',   go:'fuel',  c:'#5850EC' },
-    { label:'Gym',   value: (forge.badge || '\u2014'),                        sub:'wk',     go:'forge', c:'#2563EB' },
-    { label:'Done',  value: (day.headline || '\u2014').replace(' done','').replace(' of ','/'), sub:'anchors', go:'day', c:'#0EA5A5' },
-    { label:'Zyn',   value: (clear.detail || '').match(/(\d+)\s*pouch/)?.[1] ?? '\u2014', sub:'today', go:'clear', c:'#F97316' },
+    { label:'Gym',   value: (forge.badge || '\u2014'),                        sub:'wk',     go:'forge' },
+    { label:'Done',  value: (day.headline || '\u2014').replace(' done','').replace(' of ','/'), sub:'anchors', go:'day' },
+    { label:'Zyn',   value: (clear.detail || '').match(/(\d+)\s*pouch/)?.[1] ?? '\u2014', sub:'today', go:'clear' },
   ];
 
   return items.map(i => `
     <button class="gtile" data-go2="${i.go}">
-      <span class="tiny" style="color:var(--faint);font-weight:800;letter-spacing:.1em;text-transform:uppercase">${esc(i.label)}</span>
-      <b style="font-family:'Sora',sans-serif;font-size:19px;letter-spacing:-.02em;color:${i.c}">${esc(i.value)}</b>
+      <span class="tiny lbl">${esc(i.label)}</span>
+      <b class="disp" style="font-size:19px;">${esc(i.value)}</b>
       <span class="tiny muted">${esc(i.sub)}</span>
     </button>`).join('');
 }
 
 function tileHTML(c, i){
   const a = APPS[c.id];
-  const [c1, c2] = a.accent;
   // A tile with chips can't be one big <button> — nested buttons are
   // invalid HTML and swallow the inner taps.
   // One line per tool. The six-stacked-dashboards version buried the
@@ -346,7 +358,7 @@ function tileHTML(c, i){
   return `
   <div class="rowcard in ${i<3?'in-'+(i+2):''}" style="flex-direction:column;align-items:stretch;gap:0">
     <div style="display:flex;align-items:center;gap:12px;width:100%;min-width:0" data-go2="${c.id}">
-      <div class="av" style="background:linear-gradient(135deg,${c1},${c2});width:36px;height:36px">${icon(a.icon, 18)}</div>
+      <div class="av" style="width:36px;height:36px">${icon(a.icon, 18)}</div>
       <div class="grow" style="text-align:left;min-width:0">
         <b style="font-size:14.5px;display:block">${a.name}</b>
         <span class="sub trunc" style="margin-top:2px">${c.headline} · ${c.detail}</span>
@@ -355,7 +367,7 @@ function tileHTML(c, i){
            every row's badge sits at the same distance from the caret no
            matter how long the title is. Inside the text block it floated
            to wherever that row's title ended, which read as misaligned. -->
-      ${c.badge ? `<span class="badge" style="background:color-mix(in srgb, ${c1} 15%, var(--surface));color:${c1}">${esc(c.badge)}</span>` : ''}
+      ${c.badge ? `<span class="badge accent">${esc(c.badge)}</span>` : ''}
       <span class="caret">${icon('chevron',15)}</span>
     </div>
     ${c.chips?.length ? `
@@ -382,7 +394,7 @@ function openDump(){
       <div class="stack" style="gap:8px">
         ${list.map(i => `
           <button class="rowcard" data-act="done" data-id="${i.id}" style="width:100%;text-align:left;padding:12px 15px">
-            <span style="width:22px;height:22px;border-radius:99px;flex:none;background:var(--bg-sunk);box-shadow:var(--clay-in)"></span>
+            <span style="width:22px;height:22px;border-radius:var(--r-av);flex:none;background:var(--bg-sunk);box-shadow:var(--clay-in)"></span>
             <span class="grow" style="font-size:14.5px">${esc(i.text)}</span>
             <span class="tiny faint">done</span>
           </button>`).join('')}
@@ -472,13 +484,13 @@ function moreHTML(){
     ${moreApps().map(id => {
       const a = APPS[id];
       return `<button class="rowcard in" onclick="navigate('${id}')" style="width:100%;text-align:left">
-        <div class="av" style="background:linear-gradient(135deg,${a.accent[0]},${a.accent[1]})">${icon(a.icon, 19)}</div>
+        <div class="av">${icon(a.icon, 19)}</div>
         <div class="grow"><b>${a.name}</b><span class="sub">${a.blurb}</span></div>
         <span class="caret">›</span>
       </button>`;
     }).join('')}
     <button class="rowcard in" onclick="window.__openSettings()" style="width:100%;text-align:left">
-      <div class="av" style="background:linear-gradient(135deg,#6E7488,#3A3F52)">${icon('settings',19)}</div>
+      <div class="av">${icon('settings',19)}</div>
       <div class="grow"><b>Settings</b><span class="sub">AI, backup, appearance</span></div>
       <span class="caret">›</span>
     </button>
@@ -489,7 +501,8 @@ function moreHTML(){
 function openSettings(){
   const ai = aiStatus();
   const s = aiSettings();
-  const theme = document.documentElement.dataset.theme;
+  const theme = document.documentElement.dataset.theme || 'auto';
+  const skin = document.documentElement.dataset.skin || 'paper';
   openSheet(`
     <h2>Settings</h2>
     <p class="sub">Everything here stays on this device.</p>
@@ -514,13 +527,28 @@ function openSettings(){
         `<button class="${theme===v?'on':''}" data-act="theme" data-v="${v}">${l}</button>`).join('')}
     </div>
 
-    <label class="label" style="margin-top:20px">Style</label>
-    <div class="tiny muted" style="margin:-2px 0 8px">
-      Clay is the soft 3D look. Quiet is flat and calm: hairlines, tighter corners, no glow.
-    </div>
-    <div class="seg">
-      ${[['clay','Clay'],['quiet','Quiet']].map(([v,l]) =>
-        `<button class="${(document.documentElement.dataset.style||'clay')===v?'on':''}" data-act="style" data-v="${v}">${l}</button>`).join('')}
+    <label class="label" style="margin-top:20px">Look</label>
+    <div class="stack" style="gap:10px">
+      ${SKINS.map(([k, name, blurb]) => `
+        <button class="skin-opt ${skin===k?'on':''}" data-act="skin" data-v="${k}" aria-label="${name}">
+          <div class="skin-prev" data-skin="${k}" data-theme="${theme}">
+            <span class="lbl">Tuesday 27 October</span>
+            <div class="disp" style="font-size:22px;margin-top:3px">Morning, Alex</div>
+            <div class="hero" style="padding:11px 13px;margin-top:9px">
+              <div class="hero-num" style="font-size:30px">1,840</div>
+              <div class="bar" style="margin-top:9px"><i style="width:62%"></i></div>
+            </div>
+            <div style="display:flex;gap:7px;margin-top:9px">
+              <span class="btn btn-primary btn-sm" style="padding:7px 13px;font-size:12.5px">Log a meal</span>
+              <span class="chip on" style="padding:7px 12px;font-size:12.5px">Today</span>
+              <span class="chip" style="padding:7px 12px;font-size:12.5px">Week</span>
+            </div>
+          </div>
+          <div class="skin-meta">
+            <div class="spread"><b>${name}</b>${skin===k?'<span class="badge accent">In use</span>':''}</div>
+            <div class="tiny muted" style="margin-top:3px;line-height:1.5">${blurb}</div>
+          </div>
+        </button>`).join('')}
     </div>
 
     <label class="label" style="margin-top:20px">App order</label>
@@ -531,7 +559,7 @@ function openSettings(){
       ${appOrder().map((id,i) => {
         const a = APPS[id];
         return `<div class="rowcard" style="padding:10px 12px">
-          <div class="av" style="background:linear-gradient(135deg,${a.accent[0]},${a.accent[1]});width:32px;height:32px">${icon(a.icon,17)}</div>
+          <div class="av" style="width:32px;height:32px">${icon(a.icon,17)}</div>
           <div class="grow"><b style="font-size:14.5px">${esc(a.name)}</b>
             <span class="sub" style="font-size:11.5px">${i < BAR_SLOTS ? 'Bottom bar' : 'Under More'}</span></div>
           <button class="btn btn-sm btn-plain" data-act="mv" data-i="${i}" data-dir="-1" ${i===0?'disabled':''} aria-label="Move up">↑</button>
@@ -580,12 +608,13 @@ function openSettings(){
     theme: d => {
       document.documentElement.dataset.theme = d.v;
       try{ localStorage.setItem('alexhq:theme', d.v); }catch{}
+      syncThemeColor();
+      const y = document.querySelector('.sheet')?.scrollTop || 0;
       openSettings();
+      const sh = document.querySelector('.sheet'); if (sh) sh.scrollTop = y;
     },
-    style: d => {
-      if (d.v === 'quiet') document.documentElement.dataset.style = 'quiet';
-      else delete document.documentElement.dataset.style;
-      try{ localStorage.setItem('alexhq:style', d.v); }catch{}
+    skin: d => {
+      setSkin(d.v);
       haptic(6);
       const y = document.querySelector('.sheet')?.scrollTop || 0;
       openSettings();
@@ -765,8 +794,11 @@ function doImport(){
   try{
     const t = localStorage.getItem('alexhq:theme');
     if (t) document.documentElement.dataset.theme = t;
-    if (localStorage.getItem('alexhq:style') === 'quiet') document.documentElement.dataset.style = 'quiet';
+    const k = localStorage.getItem('alexhq:skin');
+    if (SKINS.some(x => x[0] === k)) document.documentElement.dataset.skin = k;
   }catch{}
+  syncThemeColor();
+  matchMedia('(prefers-color-scheme: dark)').addEventListener?.('change', syncThemeColor);
 
   await initAI();
   await navigate(location.hash.slice(1) || 'home');

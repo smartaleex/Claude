@@ -329,7 +329,7 @@ function moodCardHTML(d){
         <div class="card-title" style="color:${m.tone}">${esc(m.label)}</div>
         <div class="card-note" style="margin-top:3px">Energy: ${esc(ENERGY[mo.e ?? 2])} — tap to change</div>
       </div>
-      <span style="width:40px;height:40px;border-radius:99px;flex:none;background:${m.tone};
+      <span style="width:40px;height:40px;border-radius:var(--r-av);flex:none;background:${m.tone};
                    box-shadow:var(--clay-sm)"></span>
     </div>
   </button>`;
@@ -358,12 +358,12 @@ function openMood(){
     <p class="sub">Low to high through a level middle — not good to bad.</p>
 
     <div class="center" style="margin:20px 0 6px">
-      <b id="mo-label" style="font-family:'Sora',sans-serif;font-size:22px"></b>
+      <b class="disp" id="mo-label" style="font-size:22px"></b>
     </div>
     <div class="row" style="justify-content:space-between;gap:6px;margin-top:10px">
       ${MOOD_SCALE.map(x => `
         <button data-act="mo" data-v="${x.v}" aria-label="${esc(x.label)}"
-          style="width:34px;height:34px;border-radius:99px;flex:none;color:${x.tone};
+          style="width:34px;height:34px;border-radius:var(--r-av);flex:none;color:${x.tone};
                  background:${x.tone};box-shadow:var(--clay-sm);transition:transform .16s"></button>`).join('')}
     </div>
     <div class="spread tiny muted" style="margin-top:8px">
@@ -416,7 +416,7 @@ function todayHTML(){
               : 'Small and physical. Tap what you have done — no order, no streak.'}
         </div>
       </div>
-      <div style="font-family:'Sora',sans-serif;font-weight:800;font-size:26px;color:var(--accent-1)">${n}<span style="font-size:16px;opacity:.6">/${vis.length}</span></div>
+      <div class="disp" style="font-size:26px;color:var(--accent-1)">${n}<span style="font-size:16px;opacity:.8">/${vis.length}</span></div>
     </div>
   </div>
 
@@ -424,8 +424,8 @@ function todayHTML(){
     ${vis.map(a => a.id === 'meds' ? medsRowHTML(d) : (() => {
       const on = isDone(d, a.id);
       return `<button class="rowcard" data-act="toggle" data-id="${a.id}" style="width:100%;text-align:left">
-        <span style="width:38px;height:38px;border-radius:99px;flex:none;display:grid;place-items:center;
-              background:${on ? 'var(--good)' : 'var(--bg-sunk)'};color:${on ? '#fff' : 'var(--faint)'};
+        <span style="width:38px;height:38px;border-radius:var(--r-av);flex:none;display:grid;place-items:center;
+              background:${on ? 'var(--good)' : 'var(--bg-sunk)'};color:${on ? 'var(--bg)' : 'var(--faint)'};
               box-shadow:${on ? 'var(--clay-sm)' : 'var(--clay-in)'}">
           ${icon(on ? 'check' : a.icon, 19)}
         </span>
@@ -489,9 +489,9 @@ function medsRowHTML(d){
   const labels = of === 3 ? ['Morning','Midday','Night'] : of === 2 ? ['Morning','Night'] : ['Today'];
   return `
   <div class="rowcard" style="align-items:flex-start">
-    <span style="width:38px;height:38px;border-radius:99px;flex:none;display:grid;place-items:center;margin-top:2px;
+    <span style="width:38px;height:38px;border-radius:var(--r-av);flex:none;display:grid;place-items:center;margin-top:2px;
           background:${all ? 'var(--good)' : n ? 'var(--accent-tint)' : 'var(--bg-sunk)'};
-          color:${all ? '#fff' : n ? 'var(--accent-1)' : 'var(--faint)'};
+          color:${all ? 'var(--bg)' : n ? 'var(--accent-1)' : 'var(--faint)'};
           box-shadow:${n ? 'var(--clay-sm)' : 'var(--clay-in)'}">
       ${icon(all ? 'check' : 'pill', 19)}
     </span>
@@ -506,7 +506,7 @@ function medsRowHTML(d){
           <button data-act="dose" data-i="${i}" aria-label="${esc(labels[i]||'Dose '+(i+1))}"
             style="flex:1;padding:9px 4px;border-radius:14px;font-size:11px;font-weight:700;letter-spacing:.03em;
                    background:${i < n ? 'var(--good)' : 'var(--bg-sunk)'};
-                   color:${i < n ? '#fff' : 'var(--faint)'};
+                   color:${i < n ? 'var(--bg)' : 'var(--faint)'};
                    box-shadow:${i < n ? 'var(--clay-sm)' : 'var(--clay-in)'}">
             ${esc(labels[i] || 'Dose ' + (i+1))}
           </button>`).join('')}

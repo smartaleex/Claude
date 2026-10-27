@@ -1,21 +1,32 @@
 <!DOCTYPE html>
-<html lang="en" data-theme="auto">
+<html lang="en" data-theme="auto" data-skin="paper">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no">
 <meta name="description" content="Alex HQ — macros, training, money, mates, nicotine and Spanish in one place.">
-<meta name="theme-color" content="#F4F5FA">
+<meta name="theme-color" content="#EEE9DD">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="Alex HQ">
 <title>Alex HQ</title>
 <link rel="manifest" href="./manifest.webmanifest">
 <link rel="apple-touch-icon" href="./assets/icon-180.png">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Sora:wght@600;700;800&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="./assets/css/tokens.css">
+<link rel="preload" href="./assets/fonts/public-sans-latin-wght-normal.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="./assets/css/fonts.css">
+<link rel="stylesheet" href="./assets/css/skins.css">
 <link rel="stylesheet" href="./assets/css/app.css">
+<script>
+/* Apply the saved look before first paint, so there is no flash of the
+   wrong skin. main.js does the same job later; this only avoids the flicker. */
+(function(){
+  try{
+    var r = document.documentElement;
+    var t = localStorage.getItem('alexhq:theme'), k = localStorage.getItem('alexhq:skin');
+    if (t) r.dataset.theme = t;
+    if (k && /^(paper|instrument|poster|lichen)$/.test(k)) r.dataset.skin = k;
+  }catch(e){}
+})();
+</script>
 </head>
 <body>
   <div class="statusbar-scrim"></div>

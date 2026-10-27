@@ -251,8 +251,8 @@ function planHTML(){
   return `
   ${comebackBannerHTML(rp)}
   <div class="hero in">
-    <div class="eyebrow" style="color:rgba(255,255,255,.75)">Up next</div>
-    <div style="font-family:'Sora',sans-serif;font-weight:800;font-size:28px;letter-spacing:-.03em;margin-top:6px">${esc(next.title)}</div>
+    <div class="eyebrow">Up next</div>
+    <div class="disp" style="font-size:28px;margin-top:6px">${esc(next.title)}</div>
     <div class="hero-cap">${esc(next.subtitle)} · ~${sessionMinutes(next)} min</div>
     <div class="bar"><i style="width:${Math.min(100, wk/goal*100)}%"></i></div>
     <div class="hero-cap" style="margin-top:8px">${wk} of ${goal} sessions done this week${wk >= cb.weekMinimum && wk < goal ? ' · a good week already' : ''}</div>
@@ -278,9 +278,9 @@ function planHTML(){
       const isDone = doneToday(d.key);
       return `<div class="rowcard" style="${isDone?'opacity:.72':''};border-left:3px solid ${d.color}">
         <button data-act="${isDone?'undo':'tick'}" data-d="${d.key}" aria-label="Mark done"
-          style="width:30px;height:30px;border-radius:99px;flex:none;display:grid;place-items:center;
+          style="width:30px;height:30px;border-radius:var(--r-av);flex:none;display:grid;place-items:center;
                  font-size:14px;font-weight:800;
-                 background:${isDone?'var(--good)':'var(--bg-sunk)'};color:${isDone?'#fff':'var(--faint)'}">${isDone?'✓':''}</button>
+                 background:${isDone?'var(--good)':'var(--bg-sunk)'};color:${isDone?'var(--bg)':'var(--faint)'}">${isDone?'✓':''}</button>
         <button class="grow" data-act="start" data-d="${d.key}" style="text-align:left">
           <div class="spread" style="align-items:baseline">
             <b style="${isDone?'text-decoration:line-through':''}">${esc(d.title)}</b>
@@ -392,7 +392,7 @@ function sessionHTML(sess){
   ${d.supersets.map((ss,i) => `
     <div class="sec">${esc(ss.label)}</div>
     <div class="card in" style="padding:0;overflow:hidden">
-      <div style="padding:13px 16px;background:${d.color}0C;border-bottom:1px solid var(--line-soft)">
+      <div style="padding:13px 16px;background:color-mix(in srgb, ${d.color} 6%, transparent);border-bottom:1px solid var(--line-soft)">
         <div class="tiny" style="line-height:1.55;color:var(--ink-2)">
           <b style="color:${d.color}">Why this pairing: </b>${esc(ss.rationale)}
         </div>
@@ -403,9 +403,9 @@ function sessionHTML(sess){
 
   ${d.extra ? `
     <div class="sec">${esc(d.extra.label)} · optional</div>
-    <div class="card in" style="border:1.5px dashed ${d.color}55;background:transparent">
+    <div class="card in" style="border:1.5px dashed color-mix(in srgb, ${d.color} 40%, transparent);background:transparent">
       ${d.extra.exercises.map((ex,i) => `
-        <div class="spread" style="align-items:flex-start;padding:9px 0;${i>0?`border-top:1px solid ${d.color}22`:''}">
+        <div class="spread" style="align-items:flex-start;padding:9px 0;${i>0?`border-top:1px solid color-mix(in srgb, ${d.color} 16%, transparent)`:''}">
           <div class="grow">
             <b style="font-size:14px">${esc(ex.name)}</b>
             <div class="tiny muted" style="margin-top:2px;line-height:1.5">${esc(ex.note)}</div>
@@ -527,7 +527,7 @@ function goalHTML(){
   ${backOnTrackHTML(weights)}
 
   <div class="hero in" style="margin-top:14px">
-    <div class="eyebrow" style="color:rgba(255,255,255,.75)">Swimmer build</div>
+    <div class="eyebrow">Swimmer build</div>
     <div class="spread" style="align-items:flex-end;margin-top:6px">
       <div><div class="hero-num" style="font-size:44px">${round(cur,1)}<span style="font-size:22px">kg</span></div>
         <div class="hero-cap">from ${PHYSIQUE.start} → ${PHYSIQUE.goal}kg</div></div>
@@ -553,7 +553,7 @@ function goalHTML(){
   ${rate !== null ? `
   <div class="card in in-3" style="margin-top:14px">
     <div class="card-title">Rate of gain</div>
-    <div style="font-family:'Sora',sans-serif;font-weight:800;font-size:30px;margin:8px 0 4px;
+    <div class="disp" style="font-size:30px;margin:8px 0 4px;
                 color:${rate < PHYSIQUE.rateLo ? 'var(--warn)' : rate <= PHYSIQUE.rateHi ? 'var(--good)' : 'var(--bad)'}">
       ${rate>=0?'+':''}${round(rate,2)} kg/week
     </div>
@@ -590,7 +590,7 @@ function backOnTrackHTML(weights){
   return `
   <div class="eyebrow in">Back on track</div>
   <div class="card in" style="margin-top:8px">
-    <div style="font-family:'Sora',sans-serif;font-weight:800;font-size:19px;letter-spacing:-.02em;line-height:1.3">${esc(plan.headline)}</div>
+    <div class="disp" style="font-size:19px;line-height:1.3">${esc(plan.headline)}</div>
     <div class="tiny muted" style="margin-top:4px">Sessions per week, last four weeks</div>
     <div style="display:flex;gap:8px;align-items:flex-end;height:46px;margin-top:8px">
       ${plan.counts.map((n, i) => `<div style="flex:1;text-align:center">
@@ -602,7 +602,7 @@ function backOnTrackHTML(weights){
         <div style="padding:12px 0;border-top:1px solid var(--line-soft)">
           <div class="spread" style="align-items:center">
             <b style="font-size:14.5px">${esc(it.title)}</b>
-            <span style="width:9px;height:9px;border-radius:99px;background:${TONE[it.tone] || TONE.neutral}"></span>
+            <span style="width:9px;height:9px;border-radius:var(--r-av);background:${TONE[it.tone] || TONE.neutral}"></span>
           </div>
           <div class="tiny" style="margin-top:4px;line-height:1.6;color:var(--ink-2)">${esc(it.body)}</div>
           ${it.detail ? `<div class="tiny muted" style="margin-top:4px">${esc(it.detail)}</div>` : ''}
@@ -861,10 +861,10 @@ function progressResultHTML(r){
   const d = r.data;
   return `
   <div class="card in" style="margin-top:12px">
-    <div class="tiny muted" style="letter-spacing:.12em;text-transform:uppercase;font-weight:800">
+    <div class="tiny muted lbl" >
       Reading · ${esc(fmtDayShort(dayKey(r.t)))} · ${r.n} photo${r.n>1?'s':''}
     </div>
-    ${d.headline ? `<div style="font-family:'Sora',sans-serif;font-weight:700;font-size:17px;line-height:1.4;margin-top:8px">${esc(d.headline)}</div>` : ''}
+    ${d.headline ? `<div class="disp" style="font-size:17px;line-height:1.4;margin-top:8px">${esc(d.headline)}</div>` : ''}
     ${r.q && d.answer ? `<div class="card tight sunk" style="margin-top:12px">
         <div class="tiny muted">You asked: ${esc(r.q)}</div>
         <div style="font-size:14px;line-height:1.6;margin-top:6px">${esc(d.answer)}</div></div>` : ''}
@@ -903,7 +903,7 @@ function goalHTML2(ai, shots){
         <div style="position:relative;width:74px;height:98px;border-radius:var(--r-sm);overflow:hidden;box-shadow:var(--clay-sm)">
           <img src="${urlFor(g)}" style="width:100%;height:100%;object-fit:cover;display:block">
           <button data-act="rmgoal" data-id="${g.id}" aria-label="Remove reference"
-            style="position:absolute;top:4px;right:4px;width:22px;height:22px;border-radius:99px;
+            style="position:absolute;top:4px;right:4px;width:22px;height:22px;border-radius:var(--r-av);
                    background:rgba(13,14,20,.78);color:#fff;font-size:11px;line-height:1">✕</button>
         </div>`).join('')}
     </div>` : ''}
@@ -931,10 +931,10 @@ function benchmarkResultHTML(r){
 
   return `
   <div class="card in" style="margin-top:12px">
-    <div class="tiny muted" style="letter-spacing:.12em;text-transform:uppercase;font-weight:800">
+    <div class="tiny muted lbl" >
       Benchmark · ${esc(fmtDayShort(dayKey(r.t)))}
     </div>
-    ${d.summary ? `<div style="font-family:'Sora',sans-serif;font-weight:700;font-size:16.5px;line-height:1.45;margin-top:8px">${esc(d.summary)}</div>` : ''}
+    ${d.summary ? `<div class="disp" style="font-size:16.5px;line-height:1.45;margin-top:8px">${esc(d.summary)}</div>` : ''}
 
     ${d.areas.length ? `<div class="stack" style="gap:9px;margin-top:14px">
       ${d.areas.map(a => { const [lab, tone] = GAP[a.gap] || GAP.moderate; return `

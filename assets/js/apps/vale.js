@@ -137,7 +137,7 @@ function learnHTML(){
 
   return `
   <div class="hero in">
-    <div class="eyebrow" style="color:rgba(255,255,255,.75)">De B1 a nativo</div>
+    <div class="eyebrow">De B1 a nativo</div>
     <div class="spread" style="align-items:flex-end;margin-top:6px">
       <div><div class="hero-num" style="font-size:44px">${p.done}<span style="font-size:22px">/${p.total}</span></div>
         <div class="hero-cap">lessons worked through</div></div>
@@ -155,7 +155,7 @@ function learnHTML(){
     <div class="stack" style="gap:9px">
       ${ls.map(l => `
         <button class="rowcard" data-act="lesson" data-id="${l.id}" style="width:100%;text-align:left">
-          <div class="av" style="background:${s.seen[l.id] ? 'var(--good)' : 'var(--bg-sunk)'};color:${s.seen[l.id]?'#fff':'var(--faint)'};font-size:16px">
+          <div class="av" style="background:${s.seen[l.id] ? 'var(--good)' : 'var(--bg-sunk)'};color:${s.seen[l.id]?'var(--bg)':'var(--faint)'};font-size:16px">
             ${s.seen[l.id] ? '✓' : '·'}
           </div>
           <div class="grow"><b>${esc(l.title)}</b><span class="sub">${esc(l.hook.slice(0,72))}${l.hook.length>72?'…':''}</span></div>
@@ -185,7 +185,7 @@ function openLesson(id){
       <div style="overflow-x:auto;margin:18px 0;-webkit-overflow-scrolling:touch">
         <table style="width:100%;border-collapse:collapse;font-size:13.5px;min-width:${l.table.head.length*88}px">
           <thead><tr>${l.table.head.map(h =>
-            `<th style="text-align:left;padding:9px 10px;font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);border-bottom:1.5px solid var(--line)">${esc(h)}</th>`).join('')}</tr></thead>
+            `<th class="lbl" style="text-align:left;padding:9px 10px;font-size:11px;color:var(--muted);border-bottom:1.5px solid var(--line)">${esc(h)}</th>`).join('')}</tr></thead>
           <tbody>${l.table.rows.map(r => `<tr>${r.map((c,i) =>
             `<td style="padding:9px 10px;border-bottom:1px solid var(--line-soft);${i===0?'color:var(--muted)':'font-weight:600'}">${esc(c)}</td>`).join('')}</tr>`).join('')}</tbody>
         </table>
@@ -274,7 +274,7 @@ function sessionHTML(){
     return `
     <div class="card in center" style="padding:34px 22px">
       <div style="color:var(--accent-1)">${icon(pct >= 80 ? 'spark' : pct >= 50 ? 'check' : 'note', 40)}</div>
-      <div style="font-family:'Sora',sans-serif;font-weight:800;font-size:28px;margin-top:12px">
+      <div class="disp" style="font-size:28px;margin-top:12px">
         ${session.right} / ${queue.length}
       </div>
       <p class="card-note" style="margin-top:8px">

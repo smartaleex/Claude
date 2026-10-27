@@ -7,7 +7,7 @@ import { Slice, today, shiftDay, lastNDays, fmtDay, fmtDayShort, uid } from '../
 import { ask, fileToImage, clean, aiStatus } from '../core/ai.js';
 import {
   esc, num, round, pct, toast, openSheet, closeSheet, sheetNum, bindActions,
-  meter, stat, empty, barChart, haptic, $$,
+  meter, stat, empty, barChart, haptic, $$, tok,
 } from '../core/ui.js';
 import { icon } from '../core/icons.js';
 import { offlineMatch, offlineSuggest, looksBranded } from '../data/foods.js';
@@ -200,7 +200,7 @@ function dayHTML(d, isToday){
   return `
   ${!isToday ? `<div class="row" style="margin-bottom:14px">
     <button class="btn btn-plain btn-sm" data-act="back">‹ Back</button>
-    <b style="font-family:'Sora',sans-serif">${esc(fmtDay(d))}</b>
+    <b class="disp" >${esc(fmtDay(d))}</b>
   </div>` : ''}
 
   <div class="hero in">
@@ -260,7 +260,7 @@ function logList(d){
           <b style="font-size:15.5px">${esc(e.name)}</b>
           <div class="tiny muted" style="margin-top:2px">${esc(e.meal||'Snack')}</div>
         </div>
-        <div style="font-family:'Sora',sans-serif;font-weight:800;font-size:18px;color:var(--accent-1)">
+        <div class="disp" style="font-size:18px;color:var(--accent-1)">
           ${num(e.kcal)}<small style="font-family:Inter;font-weight:500;color:var(--muted);font-size:12px"> kcal</small>
         </div>
       </div>
@@ -270,7 +270,7 @@ function logList(d){
         <div class="row">
           ${[['P',e.p,'var(--pro)','var(--pro-tint)'],['C',e.c,'var(--carb)','var(--carb-tint)'],['F',e.f,'var(--fat)','var(--fat-tint)']]
             .map(([l,v,col,tint]) => `<div class="grow center" style="background:${tint};color:${col};border-radius:12px;padding:9px 4px">
-              <b style="font-family:'Sora',sans-serif;font-size:15px;display:block">${num(v)}g</b>
+              <b class="disp" style="font-size:15px;display:block">${num(v)}g</b>
               <span style="font-size:10px;letter-spacing:.09em;font-weight:700">${l}</span></div>`).join('')}
           <button class="btn btn-danger btn-sm" data-act="del" data-day="${d}" data-id="${e.id}">Delete</button>
         </div>
@@ -292,7 +292,7 @@ function addPanel(){
     ${photos.length ? `<div class="row" style="flex-wrap:wrap;gap:8px;margin-bottom:12px">${photos.map((p,i) => `
       <div style="position:relative;width:62px;height:62px;border-radius:12px;overflow:hidden;border:1.5px solid var(--line)">
         <img src="${p.url}" style="width:100%;height:100%;object-fit:cover">
-        <button data-act="rmphoto" data-i="${i}" style="position:absolute;top:3px;right:3px;width:20px;height:20px;border-radius:99px;background:rgba(13,14,20,.78);color:#fff;font-size:11px;line-height:1">✕</button>
+        <button data-act="rmphoto" data-i="${i}" style="position:absolute;top:3px;right:3px;width:20px;height:20px;border-radius:var(--r-av);background:rgba(13,14,20,.78);color:#fff;font-size:11px;line-height:1">✕</button>
       </div>`).join('')}</div>` : ''}
     <textarea class="textarea" id="fuel-desc" placeholder='e.g. "ate 4/5 of this serve" or "2 Weet-Bix with full cream milk"'></textarea>
     <div class="chips" style="margin:12px 0 4px">
@@ -314,7 +314,7 @@ function historyHTML(){
     const t = totals(d);
     const hit = t.p >= T.p;
     return `<button class="rowcard" data-act="openday" data-d="${d}" style="width:100%;text-align:left">
-      <span style="width:10px;height:10px;border-radius:99px;flex:none;background:${hit?'var(--good)':'var(--line)'}"></span>
+      <span style="width:10px;height:10px;border-radius:var(--r-av);flex:none;background:${hit?'var(--good)':'var(--line)'}"></span>
       <div class="grow"><b>${esc(fmtDayShort(d))}</b>
         <span class="sub">${num(t.kcal)} kcal · ${num(t.p)}g protein · ${entries(d).length} items</span></div>
       <span class="caret">›</span>
@@ -457,7 +457,7 @@ function realityCheck(){
       ${skipped} part-logged day${skipped>1?'s':''} excluded — days with under ${num(MIN_LOG)} kcal aren't counted.
     </div>` : ''}
     ${Math.abs(store.get().targets.kcal - target) > 60 ? `
-      <button class="btn btn-sm block" style="margin-top:12px;background:${c};color:#fff"
+      <button class="btn btn-sm block" style="margin-top:12px;background:${c};color:var(--bg)"
               data-act="applytarget">Set my target to ${num(target)} kcal</button>` : ''}
   </div>`;
 }
@@ -486,8 +486,8 @@ function drawTrends(){
       target: T.kcal,
       colorFor: (v,i) => {
         const d = days[i];
-        if (!totals(d).kcal) return '#EDEFF5';
-        return totals(d).p >= T.p ? getComputedStyle(document.documentElement).getPropertyValue('--accent-1').trim() : '#DADEE8';
+        if (!totals(d).kcal) return tok('--bg-sunk');
+        return totals(d).p >= T.p ? tok('--accent-1') : tok('--line');
       },
     });
 

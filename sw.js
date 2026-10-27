@@ -7,13 +7,22 @@
    Bump CACHE on every deploy or phones keep serving the old build.
    ============================================================ */
 
-const CACHE = 'alexhq-v33';
+const CACHE = 'alexhq-v34';
 
 const SHELL = [
+  './assets/css/fonts.css',
+  './assets/css/skins.css',
+  './assets/fonts/newsreader-latin-500-normal.woff2',
+  './assets/fonts/newsreader-latin-600-normal.woff2',
+  './assets/fonts/public-sans-latin-wght-normal.woff2',
+  './assets/fonts/ibm-plex-mono-latin-400-normal.woff2',
+  './assets/fonts/ibm-plex-mono-latin-500-normal.woff2',
+  './assets/fonts/archivo-latin-wdth-normal.woff2',
+  './assets/fonts/young-serif-latin-400-normal.woff2',
+  './assets/fonts/karla-latin-wght-normal.woff2',
   './',
   './index.html',
   './manifest.webmanifest',
-  './assets/css/tokens.css',
   './assets/css/app.css',
   './assets/icon-maskable.png',
   './assets/js/main.js',

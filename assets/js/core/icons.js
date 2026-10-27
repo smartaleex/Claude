@@ -49,7 +49,9 @@ const P = {
   close: '<path d="M6 6l12 12M18 6 6 18"/>',
   back: '<path d="M20 6.5H9.2L3.5 12l5.7 5.5H20a1 1 0 0 0 1-1v-9a1 1 0 0 0-1-1Z"/><path d="M12.5 9.8l4.2 4.4M16.7 9.8l-4.2 4.4"/>',
   camera: '<path d="M3.5 8.5a2 2 0 0 1 2-2h2l1.5-2h6L16.5 6.5h2a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2h-13a2 2 0 0 1-2-2z"/><circle cx="12" cy="12.5" r="3.5"/>',
-  spark: '<path d="M12 3.5 13.9 9.4 19.8 11.3 13.9 13.2 12 19.1 10.1 13.2 4.2 11.3 10.1 9.4Z"/><path d="M18.5 4v3M20 5.5h-3"/>',
+  /* An asterisk, deliberately. The four-point star that used to be here is the
+     universal "AI" glyph; this reads as a typographic mark instead. */
+  spark: '<path d="M12 4v16M5.1 8l13.8 8M18.9 8 5.1 16"/>',
   moon: '<path d="M19.5 14.3A8 8 0 0 1 9.7 4.5a8 8 0 1 0 9.8 9.8Z"/>',
   pill: '<rect x="3.2" y="8.6" width="17.6" height="6.8" rx="3.4" transform="rotate(-45 12 12)"/><path d="M9.6 9.6 14.4 14.4"/>',
   dog: '<path d="M12 20c3.3 0 6-2.4 6-5.5 0-4.4-2.7-9.3-6-9.3s-6 4.9-6 9.3C6 17.6 8.7 20 12 20Z"/><path d="M6.3 9.1C4.9 8.5 3.4 9.6 3.4 11.5c0 1.9 1.2 3.4 2.6 3.7M17.7 9.1c1.4-.6 2.9.5 2.9 2.4 0 1.9-1.2 3.4-2.6 3.7"/><circle cx="12" cy="14.4" r="1" fill="currentColor" stroke="none"/>',

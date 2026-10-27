@@ -67,11 +67,19 @@ WARMUPS.legsKind = {
 
 /* Day identities are shared across every phase — same four days, same
    colours, so the app looks consistent as phases roll over. */
+/* A day's colour comes from the active skin (--d1 to --d4), with its tint and
+   rule derived from it, so the four days stay distinguishable in any look. */
+const dayInk = n => ({
+  color: `var(--d${n})`,
+  tint:  `color-mix(in srgb, var(--d${n}) 9%, var(--surface))`,
+  line:  `color-mix(in srgb, var(--d${n}) 30%, var(--surface))`,
+});
+
 const DAY_META = {
-  d1: { label:'DAY 1', title:'Back + Biceps',      color:'#0066FF', tint:'#EFF5FF', line:'#C5D9FF', warmup:'pull'  },
-  d2: { label:'DAY 2', title:'Chest + Triceps',    color:'#E85D00', tint:'#FFF3EC', line:'#FFD4B5', warmup:'press' },
-  d3: { label:'DAY 3', title:'Legs + Core',        color:'#00913A', tint:'#EDFAF3', line:'#B3E8CA', warmup:'legs'  },
-  d4: { label:'DAY 4', title:'Shoulders + Arms',   color:'#7B00D4', tint:'#F5EDFF', line:'#DBBEFF', warmup:'press' },
+  d1: { label:'DAY 1', title:'Back + Biceps',      ...dayInk(1), warmup:'pull'  },
+  d2: { label:'DAY 2', title:'Chest + Triceps',    ...dayInk(2), warmup:'press' },
+  d3: { label:'DAY 3', title:'Legs + Core',        ...dayInk(3), warmup:'legs'  },
+  d4: { label:'DAY 4', title:'Shoulders + Arms',   ...dayInk(4), warmup:'press' },
 };
 
 const day = (key, subtitle, supersets, extra) => ({ key, ...DAY_META[key], subtitle, supersets, extra });
@@ -712,11 +720,11 @@ export const PROGRESSION = [
 ];
 
 export const TAG_STYLE = {
-  'Compound':    { bg:'#F0F0F0', fg:'#555555' },
-  'Isolation':   { bg:'#F7F7F7', fg:'#777777' },
-  'Core':        { bg:'#EDFAF3', fg:'#00913A' },
-  'Rehab/Width': { bg:'#F5EDFF', fg:'#7B00D4' },
-  'Superset':    { bg:'#FFF3EC', fg:'#E85D00' },
+  'Compound':    { bg:'var(--bg-sunk)',  fg:'var(--ink-2)' },
+  'Isolation':   { bg:'var(--surface-2)', fg:'var(--muted)' },
+  'Core':        { bg:'color-mix(in srgb, var(--d3) 14%, var(--surface))', fg:'var(--d3)' },
+  'Rehab/Width': { bg:'color-mix(in srgb, var(--d4) 14%, var(--surface))', fg:'var(--d4)' },
+  'Superset':    { bg:'color-mix(in srgb, var(--d2) 14%, var(--surface))', fg:'var(--d2)' },
 };
 
 /* ---------------- muscle classification ----------------

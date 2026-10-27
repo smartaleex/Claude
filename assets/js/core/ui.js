@@ -159,13 +159,20 @@ export function hueFor(str){
   for (let i=0;i<str.length;i++) hash = (hash * 31 + str.charCodeAt(i)) | 0;
   return Math.abs(hash) % 360;
 }
+/* A flat, muted tile whose hue comes from the name. How saturated it is
+   belongs to the skin (--av-s, --av-l): earthy in Paper, grey in Instrument. */
 export const avatarStyle = name =>
-  `background:linear-gradient(135deg, hsl(${hueFor(name)} 72% 58%), hsl(${(hueFor(name)+38)%360} 72% 48%))`;
+  `background:hsl(${hueFor(name)} var(--av-s, 30%) var(--av-l, 38%));color:#fff`;
+
+/** A design token as a concrete colour, for canvas drawing (which cannot read var()). */
+export const tok = (name, fallback = '#888') =>
+  (getComputedStyle(document.documentElement).getPropertyValue(name) || '').trim() || fallback;
 export const initials = name => name.trim().split(/\s+/).slice(0,2).map(w => w[0]).join('').toUpperCase();
 
 /* ---------------- lightweight bar chart ---------------- */
-export function barChart(canvas, { values, labels, target, colorFor, targetColor = '#F2B705' }){
+export function barChart(canvas, { values, labels, target, colorFor, targetColor }){
   if (!canvas) return;
+  targetColor = targetColor || tok('--warn');
   const dpr = window.devicePixelRatio || 1;
   const cssW = canvas.clientWidth || 320, cssH = canvas.clientHeight || 190;
   canvas.width = cssW * dpr; canvas.height = cssH * dpr;
@@ -180,14 +187,14 @@ export function barChart(canvas, { values, labels, target, colorFor, targetColor
   values.forEach((v,i) => {
     const bh = (v / max) * (cssH - padB - padT);
     const x = i*bw + bw*0.2, w = bw*0.6, y = cssH - padB - bh;
-    ctx.fillStyle = colorFor ? colorFor(v,i) : '#4F46E5';
+    ctx.fillStyle = colorFor ? colorFor(v,i) : tok('--accent-1');
     roundRect(ctx, x, y, w, Math.max(bh, 3), Math.min(5, w/2));
     ctx.fill();
   });
 
   if (labels){
-    ctx.fillStyle = '#A7ADC0';
-    ctx.font = '600 10px Inter, sans-serif';
+    ctx.fillStyle = tok('--muted');
+    ctx.font = `500 10px ${tok('--f-mono', 'monospace')}`;
     ctx.textAlign = 'center';
     labels.forEach((lab,i) => { if (lab) ctx.fillText(lab, i*bw + bw/2, cssH - 9); });
   }
@@ -208,8 +215,9 @@ function roundRect(ctx,x,y,w,h,r){
 }
 
 /** Line chart for weight / trend series with gaps allowed (null values). */
-export function lineChart(canvas, { values, color = '#4F46E5', fill = true, band }){
+export function lineChart(canvas, { values, color, fill = true, band }){
   if (!canvas) return;
+  color = color || tok('--accent-1');
   const dpr = window.devicePixelRatio || 1;
   const W = canvas.clientWidth || 320, H = canvas.clientHeight || 160;
   canvas.width = W*dpr; canvas.height = H*dpr;
@@ -244,7 +252,7 @@ export function lineChart(canvas, { values, color = '#4F46E5', fill = true, band
   const last = pts.at(-1);
   ctx.fillStyle = color;
   ctx.beginPath(); ctx.arc(X(last.i), Y(last.v), 4, 0, Math.PI*2); ctx.fill();
-  ctx.fillStyle = '#fff';
+  ctx.fillStyle = tok('--surface', '#fff');
   ctx.beginPath(); ctx.arc(X(last.i), Y(last.v), 1.7, 0, Math.PI*2); ctx.fill();
 }
 

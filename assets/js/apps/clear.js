@@ -13,7 +13,7 @@
 import { Slice, today, dayKey, keyToDate, daysBetween, shiftDay, lastNDays, uid, fmtTime, fmtDayShort } from '../core/store.js';
 import {
   esc, num, round, toast, openSheet, closeSheet, sheetVal, sheetNum,
-  bindActions, empty, stat, haptic, barChart,
+  bindActions, empty, stat, haptic, barChart, tok,
 } from '../core/ui.js';
 import { icon } from '../core/icons.js';
 
@@ -227,7 +227,7 @@ function todayHTML(){
   const s = store.get();
 
   return `
-  <div class="hero in" ${used > b ? 'style="--accent-grad:linear-gradient(118deg,#D97706 6%,#DC2626 94%)"' : ''}>
+  <div class="hero in" ${used > b ? 'style="--hero-bg:var(--bad);--hero-fg:var(--bg)"' : ''}>
     <div class="spread" style="align-items:flex-start">
       <div><div class="hero-num">${num(used)}<span style="font-size:24px">mg</span></div>
         <div class="hero-cap">of ${num(b)}mg today</div></div>
@@ -304,7 +304,7 @@ function trendHTML(){
 
   ${qd ? `<div class="card in in-3" style="margin-top:14px;background:var(--accent-tint);border-color:transparent">
     <div class="card-title">On track to be done</div>
-    <div style="font-family:'Sora',sans-serif;font-weight:800;font-size:24px;margin-top:6px">
+    <div class="disp" style="font-size:24px;margin-top:6px">
       ${esc(qd.toLocaleDateString('en-AU',{ month:'long', year:'numeric' }))}
     </div>
     <div class="card-note" style="margin-top:4px">
@@ -378,10 +378,8 @@ function drawTrend(){
       labels: days.map((d,i) => i%4===0 ? d.slice(8) : ''),
       target: b,
       colorFor: (v,i) => {
-        if (!v) return '#EDEFF5';
-        return v <= budgetFor(days[i])
-          ? getComputedStyle(document.documentElement).getPropertyValue('--accent-1').trim()
-          : '#F0A868';
+        if (!v) return tok('--bg-sunk');
+        return v <= budgetFor(days[i]) ? tok('--accent-1') : tok('--warn');
       },
     });
   });

@@ -174,7 +174,7 @@ function orbitHTML(){
     <span><i style="--tone:var(--good)"></i>Recent</span>
     <span><i class="dash"></i>Due</span>
     <span><i style="--tone:var(--bad)"></i>Drifting</span>
-    ${seeing.length ? `<span><i style="--tone:#EC4899"></i>Seeing</span>` : ''}
+    ${seeing.length ? `<span><i style="--tone:var(--hue-3)"></i>Seeing</span>` : ''}
   </div>
   <div class="center tiny muted" style="margin-top:10px;line-height:1.55">
     ${drifting.length} to reach out to · ${calm} in orbit${seeing.length ? ` · ${seeing.length} you are seeing, who stay in close` : ''}

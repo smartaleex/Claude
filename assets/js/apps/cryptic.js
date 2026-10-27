@@ -199,10 +199,10 @@ function playHTML(){
 
   return `
   <div class="card in" style="text-align:center;padding:24px 20px">
-    <div class="tiny muted" style="letter-spacing:.1em;text-transform:uppercase;margin-bottom:11px">
+    <div class="tiny muted lbl" style="margin-bottom:11px">
       ${mode === 'practice' ? 'Practice' : esc(fmtDayShort(today()))}
     </div>
-    <div style="font-family:'Sora',sans-serif;font-size:21px;font-weight:700;line-height:1.45;letter-spacing:-.01em">
+    <div class="disp" style="font-size:21px;line-height:1.45">
       ${esc(c.clue.replace(c.enumeration, '').trim())}
     </div>
     <div class="badge accent" style="margin-top:12px">${esc(c.enumeration)}</div>
@@ -273,7 +273,7 @@ function doneHTML(c){
     <div class="spread" style="align-items:center">
       <div>
         <div class="tiny muted">${good ? 'Solved' : 'The answer was'}</div>
-        <div style="font-family:'Sora',sans-serif;font-weight:800;font-size:26px;letter-spacing:.04em;
+        <div class="disp" style="font-size:26px;
                     color:${good?'var(--good)':'var(--ink)'};margin-top:2px">${esc(c.answer)}</div>
       </div>
       ${good ? `<span style="color:var(--good)">${icon('check',30)}</span>` : ''}

@@ -244,10 +244,10 @@ function planHTML(){
       <div><div class="hero-num">${money(Math.max(0,left))}</div>
         <div class="hero-cap">spare each month, after everything</div></div>
     </div>
-    <div class="bar" style="display:flex;gap:2px;background:rgba(255,255,255,.2)">
-      <i style="width:${pct(fixed)}%;background:rgba(255,255,255,.95);border-radius:99px 0 0 99px"></i>
-      <i style="width:${pct(goalsM)}%;background:rgba(255,255,255,.62);border-radius:0"></i>
-      <i style="width:${pct(Math.max(0,left))}%;background:rgba(255,255,255,.32);border-radius:0 99px 99px 0"></i>
+    <div class="bar" style="display:flex;gap:2px;background:color-mix(in srgb, currentColor 22%, transparent)">
+      <i style="width:${pct(fixed)}%;background:currentColor;border-radius:var(--r-bar) 0 0 var(--r-bar)"></i>
+      <i style="width:${pct(goalsM)}%;background:color-mix(in srgb, currentColor 62%, transparent);border-radius:0"></i>
+      <i style="width:${pct(Math.max(0,left))}%;background:color-mix(in srgb, currentColor 34%, transparent);border-radius:0 var(--r-bar) var(--r-bar) 0"></i>
     </div>
     <div class="hero-cap" style="margin-top:9px;font-size:12.5px">
       ${money(fixed)} fixed · ${money(goalsM)} to goals · ${money(Math.max(0,left))} spare
@@ -354,7 +354,7 @@ function fixedHTML(){
   <div class="card in">
     <div class="spread">
       <div><div class="card-note">Total fixed, per month</div>
-        <div style="font-family:'Sora',sans-serif;font-weight:800;font-size:30px;margin-top:2px">${money(total)}</div></div>
+        <div class="disp" style="font-size:30px;margin-top:2px">${money(total)}</div></div>
       <button class="btn btn-soft btn-sm" data-act="addfixed">+ Add</button>
     </div>
     ${hasWeekly ? `<div class="tiny muted" style="margin-top:12px;padding-top:12px;border-top:1px solid var(--line-soft);line-height:1.55">
@@ -422,7 +422,7 @@ function goalsHTML(){
           ${g.bank ? `<span class="badge accent">${esc(g.bank)}</span>` : ''}
         </div>
         <div class="spread" style="align-items:baseline;margin-top:6px">
-          <span style="font-family:'Sora',sans-serif;font-weight:800;font-size:22px">${money(g.saved||0)}</span>
+          <span class="disp" style="font-size:22px">${money(g.saved||0)}</span>
           <span class="tiny muted">of ${money(g.target)}</span>
         </div>
         <div class="meter-track" style="background:var(--bg-sunk);margin-top:8px">

@@ -260,11 +260,11 @@ export const SWAPS = {
 };
 
 export const GEAR_STYLE = {
-  machine:    { label:'Machine',  fg:'#2563EB', bg:'rgba(37,99,235,.13)' },
-  cable:      { label:'Cable',    fg:'#0EA5A5', bg:'rgba(14,165,165,.13)' },
-  dumbbell:   { label:'Dumbbell', fg:'#8B5CF6', bg:'rgba(139,92,246,.13)' },
-  barbell:    { label:'Barbell',  fg:'#F97316', bg:'rgba(249,115,22,.13)' },
-  bodyweight: { label:'Bodyweight', fg:'#16A34A', bg:'rgba(22,163,74,.13)' },
+  machine:    { label:'Machine',  fg:'var(--g-machine)',  bg:'color-mix(in srgb, var(--g-machine) 14%, var(--surface))' },
+  cable:      { label:'Cable',    fg:'var(--g-cable)',    bg:'color-mix(in srgb, var(--g-cable) 14%, var(--surface))' },
+  dumbbell:   { label:'Dumbbell', fg:'var(--g-dumbbell)', bg:'color-mix(in srgb, var(--g-dumbbell) 14%, var(--surface))' },
+  barbell:    { label:'Barbell',  fg:'var(--g-barbell)',  bg:'color-mix(in srgb, var(--g-barbell) 14%, var(--surface))' },
+  bodyweight: { label:'Bodyweight', fg:'var(--g-body)',   bg:'color-mix(in srgb, var(--g-body) 14%, var(--surface))' },
 };
 
 /** Alternates for an exercise, minus the one you are already doing. */
