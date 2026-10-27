@@ -55,6 +55,7 @@ export function openSheet(html, opts = {}){
   ensureSheet();
   sheetEl.innerHTML = `<div class="sheet-grip"></div>${html}`;
   sheetEl.scrollTop = 0;
+  kbRelease();
   onCloseCb = opts.onClose || null;
   requestAnimationFrame(() => {
     sheetEl.classList.add('on');
@@ -65,8 +66,11 @@ export function openSheet(html, opts = {}){
 
 export function closeSheet(){
   if (!sheetEl) return;
+  // Put the keyboard away with the sheet; a hidden field can otherwise keep it up.
+  if (sheetEl.contains(document.activeElement)) document.activeElement.blur?.();
   sheetEl.classList.remove('on');
   scrimEl.classList.remove('on');
+  kbRelease();
   const cb = onCloseCb; onCloseCb = null;
   if (cb) cb();
 }
@@ -245,44 +249,84 @@ export function lineChart(canvas, { values, color = '#4F46E5', fill = true, band
 }
 
 /* ---------------- on-screen keyboard ----------------
-   On iOS the keyboard does not resize the page: it covers it, and the
-   browser scrolls the page up to reveal the focused field. Two things
-   follow. A bottom sheet sits behind the keyboard, so you type blind; and
-   when the keyboard closes the page can be left scrolled, so the fixed tab
-   bar and timer dock float mid-screen.
+   On iOS the keyboard covers the page rather than resizing it, so a fixed
+   bottom sheet can end up behind it and you type blind. The sheet is
+   lifted by however much of the screen the keyboard covers (--kb).
 
-   Fix: measure how much of the layout viewport the keyboard covers
-   (--kb) and lift the sheet by exactly that; hide the tab bar and dock
-   while it is up; and when it goes away, put the page back where it was. */
+   What this must NOT do, learned the hard way: infer "the keyboard has
+   gone" from the numbers. While you type, iOS pans the page up, which
+   shrinks the measured inset to zero even though the keyboard is still
+   there. Treating that as "closed" scrolled the page back while you were
+   typing, so the sheet jumped about and the timer dock flickered away.
+
+   So the rules are: the keyboard is up only while a text field has focus;
+   nothing is ever hidden because of it; the page is put back once, after
+   focus has left and the keyboard has finished going away. */
 export function keyboardInset(innerH, vvH, vvTop){
   return Math.max(0, Math.round(innerH - vvH - vvTop));
 }
+
+const TEXT_INPUT = /^(text|number|search|tel|email|url|password|date|time|datetime-local|month|week)?$/i;
+export function isTyping(el){
+  if (!el) return false;
+  if (el.tagName === 'TEXTAREA') return true;
+  return el.tagName === 'INPUT' && TEXT_INPUT.test(el.getAttribute('type') || '');
+}
+
+/* A field that is removed while focused (the sheet closing on Save) does not
+   always report losing focus, so closing or opening a sheet asks for this. */
+let kbRelease = () => {};
 
 function watchKeyboard(){
   const vv = window.visualViewport;
   if (!vv || typeof document === 'undefined') return;
   const root = document.documentElement;
-  let was = 0, y0 = 0;
-  const apply = () => {
-    const kb = keyboardInset(window.innerHeight, vv.height, vv.offsetTop);
-    const open = kb > 80;                       // small insets are toolbars, not a keyboard
-    root.style.setProperty('--kb', (open ? kb : 0) + 'px');
-    root.style.setProperty('--vvh', Math.round(vv.height) + 'px');
-    root.classList.toggle('kb-open', open);
-    if (open && !was) y0 = window.scrollY;
-    if (!open && was){
-      // keyboard just closed: undo the browser's reveal-scroll
-      const back = () => { window.scrollTo(0, y0); root.style.setProperty('--kb', '0px'); };
-      back(); setTimeout(back, 80); setTimeout(back, 260);
-    }
-    was = open ? kb : 0;
+  let y0 = 0, raf = 0, backT = 0, wasTyping = false;
+
+  const setKb = px => {
+    const v = px + 'px';
+    if (root.style.getPropertyValue('--kb') !== v) root.style.setProperty('--kb', v);
   };
-  vv.addEventListener('resize', apply);
-  vv.addEventListener('scroll', apply);
+
+  const apply = () => {
+    raf = 0;
+    const typing = isTyping(document.activeElement);
+    const kb = typing ? keyboardInset(window.innerHeight, vv.height, vv.offsetTop) : 0;
+    setKb(kb > 80 ? kb : 0);                 // small insets are browser toolbars, not a keyboard
+  };
+  const soon = () => { if (!raf) raf = requestAnimationFrame(apply); };
+
+  vv.addEventListener('resize', soon);
+  vv.addEventListener('scroll', soon);
+
   document.addEventListener('focusin', e => {
-    if (e.target.closest?.('.sheet') && /^(INPUT|TEXTAREA|SELECT)$/.test(e.target.tagName))
-      setTimeout(() => e.target.scrollIntoView?.({ block:'center', behavior:'smooth' }), 320);
+    clearTimeout(backT);
+    if (!isTyping(e.target)) return;
+    if (!wasTyping) y0 = window.scrollY;
+    wasTyping = true;
+    soon();
+    // If the sheet is taller than the space left, bring the field into view once, without animation.
+    if (e.target.closest?.('.sheet')) setTimeout(() => {
+      if (document.activeElement === e.target) e.target.scrollIntoView?.({ block:'nearest' });
+    }, 350);
   });
-  document.addEventListener('focusout', () => setTimeout(apply, 120));
+
+  const release = () => {
+    // Focus often hops straight to another field; only act if it does not.
+    clearTimeout(backT);
+    backT = setTimeout(() => {
+      if (isTyping(document.activeElement)) return;
+      wasTyping = false;
+      setKb(0);
+      // Let the keyboard finish leaving, then undo the browser's reveal-scroll, once.
+      setTimeout(() => {
+        if (isTyping(document.activeElement)) return;
+        setKb(0);
+        if (Math.abs(window.scrollY - y0) > 1 || vv.offsetTop > 1) window.scrollTo(0, y0);
+      }, 320);
+    }, 120);
+  };
+  document.addEventListener('focusout', release);
+  kbRelease = release;
 }
 watchKeyboard();

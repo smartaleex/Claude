@@ -779,6 +779,13 @@ function doImport(){
   // Tell the boot watchdog in index.html we made it.
   window.__booted?.();
 
+  /* After boot, an uncaught error should not leave a silent, half-working
+     screen. Say so once in a while; the data is untouched. */
+  let lastSnag = 0;
+  const snag = () => { if (Date.now() - lastSnag > 8000){ lastSnag = Date.now(); toast('Something went wrong. Your data is saved.'); } };
+  window.addEventListener('error', e => { console.error(e.error || e.message); snag(); });
+  window.addEventListener('unhandledrejection', e => { console.error(e.reason); snag(); });
+
   if ('serviceWorker' in navigator && location.protocol === 'https:'){
     /* updateViaCache:'none' matters more than it looks. By default the
        browser may serve sw.js itself from the HTTP cache for up to 24

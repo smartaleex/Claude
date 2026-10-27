@@ -652,6 +652,30 @@ export const LEGS_HONESTLY = {
   flags: 'See a physio or your GP rather than training through: sharp or catching pain, pain or numbness running down the leg, a knee that gives way, locks or swells, or back pain that is worse at night or does not ease with rest.',
 };
 
+/* ============================================================
+   Front delts.
+
+   The program used to leave the front of the shoulder to the presses,
+   on the reasoning that chest work and overhead pressing already load
+   it and the shoulder is unstable. That left no front-delt exercise
+   anywhere in the week, so it never showed up as a muscle group of its
+   own. It is now a short, light, strict finisher on the shoulder day in
+   every phase: neutral grip, no higher than eye height, no swinging.
+   Light on purpose: it rounds the muscle off without adding joint load.
+   ============================================================ */
+const FRONT_DELTS = {
+  label: 'SS4 — Front Delts',
+  rationale: 'Chest and overhead presses already hit the front of the shoulder, so this stays light and strict. It finishes the muscle without adding load to a joint that does not need it.',
+  exercises: [
+    { name:'Cable front raise (rope, neutral grip)', sets:'3', reps:'12–15', rest:'60s', tag:'Isolation',
+      notes:'Cable low, rope in both hands, thumbs up. Raise to eye height and no higher, no swinging. Keep it light. If the front of the shoulder pinches, stop and drop the weight.' },
+  ],
+};
+for (const days of [PHASE1_DAYS, PHASE2_DAYS, PHASE3_DAYS]){
+  const d4 = days.find(d => d.key === 'd4');
+  if (d4 && !d4.supersets.some(ss => ss.label === FRONT_DELTS.label)) d4.supersets.push(FRONT_DELTS);
+}
+
 /* ---------------- phases ---------------- */
 export const PHASES = [
   {
@@ -700,6 +724,7 @@ export const TAG_STYLE = {
    totals stay correct when exercises are swapped. Order matters: the
    first match wins, so specific patterns sit above general ones. */
 const MUSCLE_RULES = [
+  [/front raise/i,                                              'Front delts'],
   [/lateral raise|upright row|lateral/i,                        'Side delts'],
   [/rear delt|rear|reverse pec|reverse fly|face pull|pull-apart|y-raise/i, 'Rear delts & traps'],
   [/shrug/i,                                                    'Traps'],

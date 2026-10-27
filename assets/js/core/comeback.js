@@ -25,11 +25,11 @@ export const RAMP = [
 ];
 const MIN_LOG = 300;          // below this a day's food log is "forgot to log"
 
-const ms = k => Date.UTC(+k.slice(0, 4), +k.slice(5, 7) - 1, +k.slice(8, 10));
+const ms = k => { const t = String(k ?? ''); return Date.UTC(+t.slice(0, 4), +t.slice(5, 7) - 1, +t.slice(8, 10)); };
 const days = (a, b) => Math.round((ms(b) - ms(a)) / 864e5);
 
 export const lastDone = sessions =>
-  Object.values(sessions || {}).filter(s => s.done).map(s => s.dayKey).sort().at(-1) || null;
+  Object.values(sessions || {}).filter(s => s && s.done && /^\d{4}-\d{2}-\d{2}$/.test(String(s.dayKey))).map(s => s.dayKey).sort().at(-1) || null;
 
 export const gapDays = (sessions, todayKey) => {
   const l = lastDone(sessions);
@@ -55,11 +55,12 @@ export function weeklyCounts(sessions, todayKey, n = 4){
 /** Where the ramp is right now. `c` = { start, weeks, off }. */
 export function rampState(c, todayKey){
   if (!c || c.off || !c.start) return { active:false };
-  const d = days(c.start, todayKey);
-  const weeks = Math.min(RAMP.length, c.weeks || RAMP.length);
+  const d = days(String(c.start), todayKey);
+  if (!Number.isFinite(d)) return { active:false };                 // a damaged date means no ramp, never a crash
+  const weeks = Math.max(1, Math.min(RAMP.length, Math.floor(+c.weeks) || RAMP.length));
   if (d < 0 || d >= weeks * 7) return { active:false, finished:true };
   const week = Math.floor(d / 7) + 1;
-  const r = RAMP[week - 1];
+  const r = RAMP[week - 1] || RAMP[RAMP.length - 1];
   return { active:true, week, weeks, factor:r.factor, weights:r.weights, rpe:r.rpe, daysLeft: weeks * 7 - d };
 }
 
@@ -69,7 +70,7 @@ export function shouldStartRamp(c, sessions, todayKey){
   if (!l) return false;                                  // never trained: nothing to ramp back from
   if (days(l, todayKey) < GAP_DAYS) return false;
   if (rampState(c, todayKey).active) return false;
-  return !c || c.start <= l;                             // not already offered for this gap
+  return !c || !(String(c.start) > l);                   // not already offered for this gap
 }
 
 /** Sets to do during the ramp. Never below 1, and never touches a single set. */

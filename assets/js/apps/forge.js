@@ -206,8 +206,29 @@ function paintView(){
    logged. Capture the offset, repaint, put it back. */
 function render(){
   const y = window.scrollY;
-  paintView();
+  try{ paintView(); }
+  catch (e){ console.error(e); snag(e); return; }
   if (Math.abs(window.scrollY - y) > 1) window.scrollTo(0, y);
+}
+
+/* If a screen cannot be drawn, say so and offer a way out, rather than
+   leaving a frozen page with nothing to tap. Nothing logged is touched. */
+function snag(e){
+  if (!root) return;
+  root.innerHTML = `
+  <div class="card in" style="margin-top:40px">
+    <div class="card-title">That screen hit a snag</div>
+    <p class="card-note" style="margin:8px 0 0;line-height:1.6">Everything you have logged is saved. Try again, and if it keeps happening, leave the session and reopen it.</p>
+    <div class="tiny muted mono" style="margin-top:10px;word-break:break-word">${esc(String(e?.message || e))}</div>
+    <button class="btn btn-primary block" style="margin-top:14px" data-act="retry">Try again</button>
+    <button class="btn btn-plain block" style="margin-top:8px" data-act="leave">Leave this session</button>
+    <button class="btn btn-ghost block" data-act="reload">Reload the app</button>
+  </div>`;
+  bindActions(root, {
+    retry: () => render(),
+    leave: () => { store.update(s => { s.activeId = null; }); timer.stop(); render(); },
+    reload: () => location.reload(),
+  });
 }
 
 /* The exercise as it should appear right now: your chosen alternative if
@@ -1412,7 +1433,9 @@ function editSet(key, i, exName){
     <button class="btn btn-danger block" style="margin-top:8px" data-act="rm">Remove this set</button>
     <button class="btn btn-ghost block" data-act="close">Cancel</button>
   `);
-  setTimeout(() => document.getElementById('s-w')?.focus(), 120);
+  /* No autofocus. The + and - buttons cover most edits without the keyboard,
+     and a keyboard that pops up on every tap is what makes a set feel fiddly.
+     Tapping the number brings it up, with the value selected for typing over. */
 
   /* What goes in the box is what you read off the stack; what is stored is
      the weight at your hand, so every comparison and conversion stays honest. */
@@ -1430,6 +1453,7 @@ function editSet(key, i, exName){
     el.textContent = kg == null ? '' : `That is ${round(kg, 2)} kg at your hand`;
   };
   input.addEventListener('input', hand); hand();
+  input.addEventListener('focus', () => setTimeout(() => { try{ input.select(); }catch{} }, 0));
   const nudge = dir => {
     const n = parseFloat(input.value);
     const next = (Number.isFinite(n) ? n : 0) + dir * step;

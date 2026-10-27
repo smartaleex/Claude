@@ -7,7 +7,7 @@
    Bump CACHE on every deploy or phones keep serving the old build.
    ============================================================ */
 
-const CACHE = 'alexhq-v32';
+const CACHE = 'alexhq-v33';
 
 const SHELL = [
   './',

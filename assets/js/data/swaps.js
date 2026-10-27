@@ -18,6 +18,7 @@
    hit the curl rule, not the incline-press rule, so curls are tested
    before presses. */
 const RULES = [
+  [/front raise/i,                                               'frontDelt'],
   /* first, so "bench" in "hip thrust (bench)" is not read as a press */
   [/hip thrust|glute bridge|pull-?through|back extension|hyperextension/i, 'glutes'],
   [/face pull|rear delt|reverse pec|band pull/i,                 'rearDelt'],
@@ -126,6 +127,16 @@ export const SWAPS = {
       { name:'Machine lateral raise',          gear:'machine',    note:'If your gym has one, it is excellent for this.' },
       { name:'Band lateral raise',             gear:'bodyweight', note:'Stand on the band. Fine for high-rep burnout sets.' },
       { name:'Lean-away DB raise',             gear:'dumbbell',   note:'Hold a rack and lean out. Longer range, more stretch.' },
+    ],
+  },
+  frontDelt: {
+    label: 'Front raise',
+    why: 'The front of the shoulder. Kept light and strict: pressing already loads it, so this only finishes it.',
+    options: [
+      { name:'Cable front raise (rope, neutral grip)', gear:'cable',      note:'Constant tension and a neutral grip. The kindest version for the shoulder.' },
+      { name:'DB front raise (neutral grip)',          gear:'dumbbell',   note:'Thumbs up, to eye height, no swinging. Per-hand weight, lighter than you think.' },
+      { name:'Plate front raise',                      gear:'barbell',    note:'Hold a plate at the sides. Easy to load in small steps.' },
+      { name:'Band front raise',                       gear:'bodyweight', note:'Stand on the band. Fine when everything else is taken.' },
     ],
   },
   rearDelt: {
@@ -300,6 +311,7 @@ const K = {
   'Machine shoulder press':1, 'Seated DB press (back support)':0.4, 'Landmine press':0.5, 'Arnold press (light)':0.3,
   'Cable lateral raise (one arm)':1, 'DB lateral raise':1, 'Machine lateral raise':2,
   'Band lateral raise':null, 'Lean-away DB raise':0.9,
+  'Cable front raise (rope, neutral grip)':1, 'DB front raise (neutral grip)':0.7, 'Plate front raise':1.1, 'Band front raise':null,
   'Face pull (rope, high pulley)':1, 'Reverse pec deck':1.2, 'Rear delt cable fly':0.5,
   'Bent-over DB reverse fly':0.4, 'Band pull-apart':null,
   'Incline DB curl':1, 'Bayesian cable curl':0.9, 'Preacher curl (machine or EZ)':1.3,
