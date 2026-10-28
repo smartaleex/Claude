@@ -289,6 +289,7 @@ canvas{ display:block; }
 
 .tabbar{
   position:fixed; left:0; right:0; bottom:0; z-index:50;
+  transform:translateZ(0);
   padding:0 var(--tb-inset) calc(var(--sab) + var(--tb-bottom));
   display:flex; justify-content:center;
   background:var(--tb-wrap-bg); border-top:var(--tb-wrap-bd);
@@ -460,6 +461,7 @@ canvas{ display:block; }
    Sits just above the tab bar, in thumb reach. */
 #tmdock{
   position:fixed; left:0; right:0; z-index:45;
+  transform:translateZ(0);
   bottom:calc(var(--tb-total) + 12px);
   padding:0 14px; display:flex; justify-content:center; pointer-events:none;
 }
@@ -596,3 +598,21 @@ canvas{ display:block; }
 .lbl, .tiny.lbl{ font-family:var(--f-label); font-size:var(--fs-label); letter-spacing:var(--ls-label); text-transform:var(--tt-label); font-weight:var(--w-label); }
 .lbl{ color:var(--muted); }
 .hero .lbl, .nowcard .lbl, .tm-in .lbl{ color:inherit; }
+
+/* ---------- weight pad (training) ---------- */
+.pad-val{
+  flex:1; min-width:0; display:grid; place-items:center; padding:10px 8px;
+  font-family:var(--f-num); font-weight:var(--w-num, var(--w-display)); font-size:40px; line-height:1;
+  font-variant-numeric:lining-nums tabular-nums; letter-spacing:var(--ls-num, var(--ls-display));
+  background:var(--surface-2); border:var(--bd); border-radius:var(--r-sm); min-height:64px;
+}
+.pad-val.empty{ color:var(--faint); }
+.pad{ display:grid; grid-template-columns:repeat(3,1fr); gap:7px; margin-top:12px; }
+.pad button{
+  height:54px; border-radius:var(--r-sm); background:var(--surface); border:var(--bd);
+  font-family:var(--f-num); font-weight:var(--w-num, var(--w-display)); font-size:22px; color:var(--ink);
+  display:grid; place-items:center; font-variant-numeric:lining-nums tabular-nums;
+  transition:transform var(--fast) var(--ease-squish), background var(--fast);
+  touch-action:manipulation;
+}
+.pad button:active{ transform:translateY(1px); background:var(--surface-2); }

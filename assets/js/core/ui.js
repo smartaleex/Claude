@@ -285,6 +285,20 @@ export function isTyping(el){
    always report losing focus, so closing or opening a sheet asks for this. */
 let kbRelease = () => {};
 
+/* After the keyboard closes, iOS can leave the layout viewport the size it
+   was with the keyboard up, so fixed elements (the tab bar, the timer) sit
+   halfway up the screen while the page behind them is the right size. The
+   numbers JS can read look normal in that state, so there is nothing to
+   test for; the only reliable cure is to make the page scroll. A one-pixel
+   scroll and back, in consecutive frames, makes WebKit recompute the
+   viewport. It is invisible, and harmless when nothing was stuck. */
+export function unstick(y = window.scrollY){
+  try{
+    window.scrollTo(0, y + 1);
+    requestAnimationFrame(() => { window.scrollTo(0, y); requestAnimationFrame(() => window.scrollTo(0, y)); });
+  }catch{ /* no window, or blocked: nothing to do */ }
+}
+
 function watchKeyboard(){
   const vv = window.visualViewport;
   if (!vv || typeof document === 'undefined') return;
@@ -330,11 +344,14 @@ function watchKeyboard(){
       setTimeout(() => {
         if (isTyping(document.activeElement)) return;
         setKb(0);
-        if (Math.abs(window.scrollY - y0) > 1 || vv.offsetTop > 1) window.scrollTo(0, y0);
+        unstick(y0);
       }, 320);
     }, 120);
   };
   document.addEventListener('focusout', release);
   kbRelease = release;
+  // Returning from the app switcher is the other time the viewport can come back wrong.
+  document.addEventListener('visibilitychange', () => { if (!document.hidden && !isTyping(document.activeElement)) setTimeout(() => unstick(), 80); });
+  window.addEventListener('pageshow', () => { if (!isTyping(document.activeElement)) setTimeout(() => unstick(), 80); });
 }
 watchKeyboard();

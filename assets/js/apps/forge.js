@@ -1339,7 +1339,8 @@ function openSwap(exName, orig, dk){
       <div class="chips" style="margin-top:12px" id="cu-gear">
         ${GEARS.map(k => `<button class="chip" data-act="cgear" data-g="${k}" style="font-size:12.5px;padding:8px 13px">${GEAR_STYLE[k].label}</button>`).join('')}
       </div>
-      <input class="input" id="cu-name" placeholder="e.g. Smith machine press" maxlength="48" style="margin-top:10px">
+      <button class="btn btn-ghost btn-sm" style="margin-top:8px" data-act="namecu" id="cu-namebtn">Give it a name (optional)</button>
+      <input class="input" id="cu-name" placeholder="e.g. Smith machine press" maxlength="48" style="margin-top:10px" hidden>
       <button class="btn btn-primary block" style="margin-top:10px" data-act="pickcustom">Use this instead</button>
     </div>
     <button class="btn btn-ghost block" style="margin-top:16px" data-act="close">Close</button>
@@ -1348,6 +1349,7 @@ function openSwap(exName, orig, dk){
   let cGear = null;
   bindActions(document.querySelector('.sheet'), {
     close: closeSheet,
+    namecu: () => { const f = document.getElementById('cu-name'); f.hidden = false; document.getElementById('cu-namebtn').hidden = true; f.focus(); },
     cgear: (d, el) => {
       cGear = d.g;
       document.querySelectorAll('#cu-gear .chip').forEach(c => c.classList.toggle('on', c === el));
@@ -1407,62 +1409,86 @@ function addSet(key, exName){
   }
 }
 
+/* The weight sheet has its own number pad, like the Cryptic keyboard.
+
+   Typing a weight with the phone's keyboard meant a sheet fighting a
+   keyboard in the middle of a workout: the keyboard covers the screen, iOS
+   pans the page, and on closing it can leave the tab bar and timer stranded
+   halfway up the screen. A pad drawn in the sheet has none of that, because
+   the real keyboard never opens. It is also faster: big keys, one hand. */
 function editSet(key, i, exName){
   const cur = store.get().sessions[store.get().activeId]?.sets[key]?.[i];
   const gear = gearOf(exName, store.get().custom);
   const sc = stackConfigFor(gear, store.get().stack);      // null unless this gym's stack differs from the real load
   const curKg = setWeight(cur);
-  const shown = curKg == null ? '' : (sc ? kgToStack(curKg, sc) : curKg);
+  const shown = curKg == null ? '' : String(sc ? kgToStack(curKg, sc) : curKg);
   const step = sc ? (sc.unit === 'lb' ? 5 : 2.5) : 2.5;
   const sets = store.get().sessions[store.get().activeId]?.sets[key] || [];
+  let buf = shown;
+  let fresh = shown !== '';          // the first digit replaces what is there; a nudge or backspace edits it
 
+  const KEYS = ['1','2','3','4','5','6','7','8','9','.','0','del'];
   openSheet(`
     <h2>${esc(exName)}</h2>
-    <p class="sub">Set ${i+1}. Weight is optional, leave it blank if you would rather just tick it off.</p>
-    <label class="label">${sc ? `What the stack reads (${sc.unit})` : 'Weight (kg)'}</label>
-    <div style="display:flex;gap:8px;align-items:stretch">
-      <button class="btn btn-plain" style="flex:none;width:64px;font-size:20px" data-act="dec" aria-label="Less">−</button>
-      <input class="input" type="number" inputmode="decimal" step="0.5" id="s-w"
-             value="${shown}" placeholder="Optional"
-             style="font-size:22px;font-weight:700;text-align:center;padding:16px;flex:1;min-width:0">
-      <button class="btn btn-plain" style="flex:none;width:64px;font-size:20px" data-act="inc" aria-label="More">+</button>
+    <p class="sub">Set ${i+1}. Weight is optional, save it empty if you would rather just tick it off.</p>
+    <div class="lbl" style="text-align:center">${sc ? `What the stack reads (${sc.unit})` : 'Weight (kg)'}</div>
+    <div style="display:flex;gap:8px;align-items:stretch;margin-top:8px">
+      <button class="btn btn-plain" style="flex:none;width:64px;font-size:22px" data-act="dec" aria-label="Less">−</button>
+      <div class="pad-val" id="s-w" aria-live="polite"></div>
+      <button class="btn btn-plain" style="flex:none;width:64px;font-size:22px" data-act="inc" aria-label="More">+</button>
     </div>
-    ${sc ? `<div class="tiny muted" id="s-hand" style="margin-top:8px;text-align:center"></div>` : ''}
-    <button class="btn btn-primary block" style="margin-top:14px" data-act="save">Save</button>
-    ${sets.length > 1 ? `<button class="btn btn-plain block" style="margin-top:8px" data-act="saveall">Save for all ${sets.length} sets</button>` : ''}
-    <button class="btn btn-danger block" style="margin-top:8px" data-act="rm">Remove this set</button>
+    <div class="tiny muted" id="s-hand" style="margin-top:8px;text-align:center;min-height:18px"></div>
+    <div class="pad">
+      ${KEYS.map(k => `<button data-act="pad" data-k="${k}" aria-label="${k === 'del' ? 'Delete' : k}">${k === 'del' ? icon('back', 22) : k}</button>`).join('')}
+    </div>
+    <button class="btn btn-primary block" style="margin-top:12px" data-act="save">Save</button>
+    <div class="${sets.length > 1 ? 'grid2' : ''}" style="margin-top:8px;gap:8px">
+      ${sets.length > 1 ? `<button class="btn btn-plain btn-sm" data-act="saveall">Save for all ${sets.length}</button>` : ''}
+      <button class="btn btn-danger btn-sm ${sets.length > 1 ? '' : 'block'}" data-act="rm">Remove this set</button>
+    </div>
     <button class="btn btn-ghost block" data-act="close">Cancel</button>
   `);
-  /* No autofocus. The + and - buttons cover most edits without the keyboard,
-     and a keyboard that pops up on every tap is what makes a set feel fiddly.
-     Tapping the number brings it up, with the value selected for typing over. */
 
-  /* What goes in the box is what you read off the stack; what is stored is
-     the weight at your hand, so every comparison and conversion stays honest. */
+  /* What is typed is what you read off the stack; what is stored is the
+     weight at your hand, so every comparison and conversion stays honest. */
   const toKg = raw => {
     const t = String(raw).trim();
-    if (t === '') return null;
+    if (t === '' || t === '.') return null;
     const n = parseFloat(t);
     if (!Number.isFinite(n)) return null;
     return sc ? stackToKg(n, sc) : n;
   };
-  const input = document.getElementById('s-w');
-  const hand = () => {
-    const el = document.getElementById('s-hand'); if (!el) return;
-    const kg = toKg(input.value);
-    el.textContent = kg == null ? '' : `That is ${round(kg, 2)} kg at your hand`;
+  const draw = () => {
+    const el = document.getElementById('s-w'); if (!el) return;
+    el.textContent = buf === '' ? '—' : buf;
+    el.classList.toggle('empty', buf === '');
+    const h = document.getElementById('s-hand');
+    const kg = toKg(buf);
+    if (h) h.textContent = sc && kg != null ? `That is ${round(kg, 2)} kg at your hand` : '';
   };
-  input.addEventListener('input', hand); hand();
-  input.addEventListener('focus', () => setTimeout(() => { try{ input.select(); }catch{} }, 0));
+  draw();
+
+  const press = k => {
+    if (k === 'del'){ buf = fresh ? '' : buf.slice(0, -1); fresh = false; }
+    else {
+      if (fresh){ buf = ''; fresh = false; }
+      if (k === '.' && buf.includes('.')) return;
+      if (k === '.' && buf === '') buf = '0';
+      if (buf.length >= 6) return;
+      if (/\.\d{2}$/.test(buf)) return;            // two decimals is plenty
+      buf += k;
+    }
+    draw(); haptic(4);
+  };
   const nudge = dir => {
-    const n = parseFloat(input.value);
+    const n = parseFloat(buf);
     const next = (Number.isFinite(n) ? n : 0) + dir * step;
-    input.value = String(Math.max(0, Math.round(next * 100) / 100));
-    hand(); haptic(4);
+    buf = String(Math.max(0, Math.round(next * 100) / 100));
+    fresh = true; draw(); haptic(4);
   };
 
   const save = all => {
-    const w = toKg(input.value);
+    const w = toKg(buf);
     store.update(s => {
       const arr = s.sessions[s.activeId].sets[key];
       if (all) arr.forEach((_, j) => { arr[j] = { w }; }); else arr[i] = { w };
@@ -1472,6 +1498,7 @@ function editSet(key, i, exName){
   };
 
   bindActions(document.querySelector('.sheet'), {
+    pad: d => press(d.k),
     inc: () => nudge(1),
     dec: () => nudge(-1),
     save: () => save(false),
