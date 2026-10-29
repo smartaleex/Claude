@@ -12,7 +12,7 @@
    ============================================================ */
 
 const P = {
-  /* Sunrise — the brand mark, matching the app icon. */
+  /* Sunrise: the home screen. */
   hq: '<path d="M4.5 17.5h15M6.5 21h11"/><path d="M6.5 13.5a5.5 5.5 0 0 1 11 0"/>',
 
   /* Compass — grounding, orientation, "where am I today". */
