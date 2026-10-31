@@ -37,7 +37,7 @@ const before = (await m()).appTop;
 if (await tapVisible('[data-act="editset"]')){ await p.waitForTimeout(900); await p.click('.sheet.on [data-act="close"]'); await p.waitForTimeout(1200); s=await m(); ok(Math.abs(s.appTop-before)<=2,'scroll unchanged 1.2s after opening and cancelling the weight sheet ('+before+' -> '+s.appTop+')'); }
 // the last thing on the page is not hidden by the bars
 await p.evaluate(()=>{ const sc=document.getElementById('app'); sc.scrollTop=sc.scrollHeight; }); await p.waitForTimeout(200);
-const end = await p.evaluate(()=>{ const sc=document.getElementById('app'); const kids=[...document.querySelectorAll('#view > *')].filter(e=>e.getBoundingClientRect().height>0 && !e.hidden); const last=kids.at(-1).getBoundingClientRect(); return { lastBottom: Math.round(last.bottom), tabTop: Math.round(document.querySelector('.tabbar').getBoundingClientRect().top) }; });
+const end = await p.evaluate(()=>{ const kids=[...document.querySelectorAll('#view > *')].filter(e=>e.getBoundingClientRect().height>0 && !e.hidden); const last=kids.at(-1).getBoundingClientRect(); return { lastBottom: Math.round(last.bottom), tabTop: Math.round(document.querySelector('.tabbar').getBoundingClientRect().top) }; });
 ok(end.lastBottom<=end.tabTop,'bottom of the page clears the tab bar ('+end.lastBottom+' <= '+end.tabTop+')');
 // sticky tab strip stays pinned while scrolling
 await p.evaluate(()=>{ document.getElementById('app').scrollTop = 600; }); await p.waitForTimeout(150);

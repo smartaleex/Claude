@@ -3,15 +3,8 @@
    even straight after logging one. A new set must copy the one before it. */
 import { launch, open, go, ok, done, forgeSeed, liveSession, dayKey } from '../lib.mjs';
 
-const { b, p, errs, url } = await launch();
+const { b, errs, url } = await launch();
 const EX = 'Incline machine chest press';        // Phase 2, Chest + Triceps, first exercise
-const chips = () => p.$$eval(`[data-act="editset"][data-n="${EX}"]`, els => els.map(e => e.innerText.trim()));
-const tap = sel => p.evaluate(s => { const e = document.querySelector(s); if (e) e.click(); return !!e; }, sel);
-const pad = async keys => { for (const k of keys) await p.click(`.sheet.on .pad [data-k="${k}"]`); };
-const setWeight = async (i, keys) => {          // open set i, type a weight, save
-  await tap(`[data-act="editset"][data-n="${EX}"][data-i="${i}"]`); await p.waitForTimeout(450);
-  await pad(keys); await p.click('.sheet.on [data-act="save"]'); await p.waitForTimeout(350);
-};
 
 for (const [label, comeback] of [['comeback week', { start: dayKey(0), weeks: 3, off: false }], ['normal week', { off: true }]]){
   const pg = await b.contexts()[0].newPage();

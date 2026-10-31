@@ -40,7 +40,6 @@ ok(chips.length===3 && chips.every(c=>c==='85kg'),'sets carry the eased weight: 
 await p.click('[data-act="settings"]'); await p.waitForTimeout(400);
 ok(/cable and machine labels/i.test(await p.$eval('.sheet.on',e=>e.innerText)),'settings has stack section');
 await p.click('.sheet.on [data-act="setstack"][data-g="cable"][data-f="ratio"][data-v="2"]'); await p.waitForTimeout(250);
-const y = await p.$eval('.sheet.on',e=>e.scrollTop);
 ok(await p.$eval('.sheet.on [data-g="cable"][data-f="ratio"][data-v="2"]',e=>e.classList.contains('on')),'2:1 selected');
 await p.click('.sheet.on [data-act="close"]'); await p.waitForTimeout(400);
 const cfg = await p.evaluate(()=>JSON.parse(localStorage.getItem('alexhq:forge')).stack);

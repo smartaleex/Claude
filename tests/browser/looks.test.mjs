@@ -9,7 +9,6 @@ const shot = !!process.env.SHOTS;
 if (shot) mkdirSync(OUT, { recursive:true });
 const { b, ctx, url } = await launch();
 const URL = url + 'index.html';
-const dk = n => { const d=new Date(Date.now()-n*864e5); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`; };
 const SEED = () => {
   const k=n=>{const d=new Date(Date.now()-n*864e5);return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`};
   localStorage.setItem('alexhq:forge', JSON.stringify({blockIndex:1,blockStart:k(10),sessions:{a:{id:'a',day:'d1',dayKey:k(2),sets:{},done:true},act:{id:'act',day:'d2',dayKey:k(0),sets:{'0-0':[{w:40},{w:40}]},done:false,startedAt:Date.now()-900000}},activeId:'act',lastByEx:{'Incline machine chest press':{w:40}},comeback:{off:true}}));
@@ -28,8 +27,7 @@ const CHECK = () => {
   let n; while((n=walker.nextNode())){ const t=n.textContent.trim(); if(t.length<2) continue; const el=n.parentElement; if(!el||seen.has(el)) continue; seen.add(el);
     const cs=getComputedStyle(el); if (cs.visibility==='hidden'||cs.display==='none') continue; const r=el.getBoundingClientRect(); if(r.width<2||r.height<2) continue;
     let fg=parse(cs.color); if(!fg) continue; const bg=bgOf(el); if (fg.a<1) fg=over(fg,bg);
-    const L1=lum(fg), L2=lum(bg); const ratio=(Math.max(L1,L2)+.05)/(Math.min(L1,L2)+.05);
-    const op=parseFloat(cs.opacity)||1; // ancestors' opacity
+    const L2=lum(bg);
     let eff=1; for(let e=el;e&&e!==document.body;e=e.parentElement) eff*=parseFloat(getComputedStyle(e).opacity)||1;
     // opacity lowers contrast: approximate by blending fg toward bg
     const fg2={r:fg.r*eff+bg.r*(1-eff),g:fg.g*eff+bg.g*(1-eff),b:fg.b*eff+bg.b*(1-eff)};
@@ -39,12 +37,10 @@ const CHECK = () => {
   return { overflow: document.scrollingElement.scrollWidth - innerWidth, bad };
 };
 const SCREENS = [['home',null],['day',null],['fuel',null],['forge','plan'],['forge','session'],['cryptic',null],['shout',null],['ledger',null],['clear',null],['vale',null]];
-let total=0;
 for (const sk of skins) for (const mode of modes){
   const p = await ctx.newPage(); const pe=[]; p.on('pageerror',e=>pe.push(e.message));
   await p.addInitScript(([sk,mode,seed])=>{ if(sessionStorage.seeded) return; sessionStorage.seeded='1'; localStorage.setItem('alexhq:skin',sk); localStorage.setItem('alexhq:theme',mode); (new Function('return ('+seed+')()'))(); },[sk,mode,SEED.toString()]);
   await p.goto(URL,{waitUntil:'domcontentloaded'}); await p.waitForTimeout(1300);
-  const lines=[];
   for (const [app,sub] of SCREENS){
     if (app!=='home') await p.evaluate(a=>window.navigate(a), app); else await p.evaluate(()=>window.navigate('home'));
     await p.waitForTimeout(600);

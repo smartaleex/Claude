@@ -1,7 +1,7 @@
 import { ok, done } from '../lib.mjs';
-import { patternOf, swapsFor, SWAPS, LOAD_INDEX, convertWeight, loadIndex, gearOf, gearIndex, estimateForGear, stackToKg, kgToStack, stackConfigFor, GEARS } from '../../assets/js/data/swaps.js';
+import { patternOf, swapsFor, SWAPS, LOAD_INDEX, convertWeight, loadIndex, gearOf, estimateForGear, stackToKg, kgToStack, stackConfigFor } from '../../assets/js/data/swaps.js';
 // every option has a K entry key, patterns resolve
-for (const [k,g] of Object.entries(SWAPS)) for (const o of g.options) ok(o.name in LOAD_INDEX, `K entry for ${o.name}`);
+for (const g of Object.values(SWAPS)) for (const o of g.options) ok(o.name in LOAD_INDEX, `K entry for ${o.name}`);
 ok(patternOf('Hip thrust (bench or machine)')==='glutes','hip thrust -> glutes');
 ok(patternOf('Romanian deadlift')==='hinge','RDL still hinge');
 ok(patternOf('Back extension (45°)')==='glutes' || patternOf('Back extension (45°)')==='hinge','back extension resolves');

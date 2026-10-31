@@ -1,5 +1,5 @@
 import { launch, ok, done } from '../lib.mjs';
-const { b, ctx, p, errs, url } = await launch();
+const { b, ctx, url } = await launch();
 const URL = url + 'index.html';
 const dk = n => { const d=new Date(Date.now()-n*864e5); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`; };
 let seed=12345; const rnd=()=>((seed=(seed*1664525+1013904223)>>>0)/2**32); const pick=a=>a[Math.floor(rnd()*a.length)];

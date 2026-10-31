@@ -79,7 +79,6 @@ ok((await p.evaluate(() => JSON.parse(localStorage.getItem('alexhq:forge')).phot
 // ---- a reply in the wrong shape is survived
 mode = 'bad';
 await stubGemini(p, () => '{"nonsense": true}');
-await p.evaluate(() => { const s = JSON.parse(localStorage.getItem('alexhq:forge')); });
 await tapEl(p, '[data-act="readprogress"]'); await p.waitForTimeout(500);
 if (await p.$('.sheet.on [data-act="yes"]')){ await p.click('.sheet.on [data-act="yes"]'); await p.waitForTimeout(1500); }
 ok(/could not read|shape|Try again/i.test(await p.$eval('body', e => e.innerText)) && !(await p.$('[data-act="readprogress"][disabled]')), 'progress read: an unreadable reply says so and the button recovers');

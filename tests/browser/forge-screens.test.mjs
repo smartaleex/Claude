@@ -1,7 +1,7 @@
 /* The Training screens that are not the live session: Goal, History, the
    settings and timer sheets, ask-the-coach, ticking a day off, finishing a
    session. Written to pin behaviour before forge.js was split into modules. */
-import { launch, open, go, ok, done, forgeSeed, liveSession, dayKey, enableAI, stubGemini, tapEl } from '../lib.mjs';
+import { launch, open, go, ok, done, forgeSeed, dayKey, enableAI, stubGemini, tapEl } from '../lib.mjs';
 
 const { b, p, errs, url } = await launch();
 const sessions = {

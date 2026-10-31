@@ -1,5 +1,5 @@
 import { launch, ok, done } from '../lib.mjs';
-const { b, ctx, errs, url } = await launch();
+const { b, ctx, url } = await launch();
 const URL = url + 'index.html';
 for (const bi of [0,1,2]){
   const p = await ctx.newPage(); const pe=[]; p.on('pageerror',e=>pe.push(e.message));
