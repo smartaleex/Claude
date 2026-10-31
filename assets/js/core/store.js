@@ -132,13 +132,6 @@ export async function importAll(obj){
   }
 }
 
-export async function wipeAll(){
-  for (const n of ALL_SLICES){
-    await rawSet(`${NS}:${n}`, JSON.stringify({}));
-    cache.delete(`${NS}:${n}`);
-  }
-}
-
 /* Persist anything pending when the app is backgrounded — mobile
    Safari kills tabs aggressively and a debounced write can be lost. */
 if (typeof document !== 'undefined'){

@@ -117,3 +117,34 @@ export const forgeSeed = (over = {}) => ({
 /** A session in progress for day `day`, started 10 minutes ago. */
 export const liveSession = (day = 'd2', sets = {}) =>
   ({ id:'act', day, dayKey:dayKey(0), sets, done:false, startedAt: Date.now() - 600000 });
+
+/* ---------------- AI stubbing ---------------- */
+/** Turn on the Gemini tier with a fake key, so AI buttons appear. */
+export async function enableAI(page){
+  await page.evaluate(async () => {
+    const a = await import('./assets/js/core/ai.js');
+    await a.initAI();
+    a.setKey('AIzaFAKEKEYFAKEKEYFAKEKEYFAKEKEYFAKEKEY');
+  });
+}
+
+/** Answer every Gemini request. replyFor(promptText) returns the JSON object to send back,
+    or a string for a deliberately malformed reply. Returns the list of prompts seen. */
+export async function stubGemini(page, replyFor){
+  const seen = [];
+  await page.route('**generativelanguage.googleapis.com/**', route => {
+    let prompt = '';
+    try{ prompt = JSON.stringify(route.request().postDataJSON()); }catch{}
+    seen.push(prompt);
+    const r = replyFor(prompt);
+    const text = typeof r === 'string' ? r : JSON.stringify(r);
+    route.fulfill({ status:200, contentType:'application/json', body: JSON.stringify({ candidates:[{ content:{ parts:[{ text }] } }] }) });
+  });
+  return seen;
+}
+
+/** A 1x1 PNG, for photo tests. */
+export const PNG = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==', 'base64');
+
+/** Click an element without Playwright scrolling it into view (the page is a scroll frame; auto-scroll moves it). */
+export const tapEl = (page, sel) => page.evaluate(s => { const e = document.querySelector(s); if (e) e.click(); return !!e; }, sel);

@@ -87,23 +87,6 @@ export const sheetNum = (id, fallback = 0) => {
   return Number.isFinite(v) ? v : fallback;
 };
 
-/* ---------------- confirm ---------------- */
-export function confirmSheet({ title, body, danger = true, confirmLabel = 'Delete' }){
-  return new Promise(resolve => {
-    let settled = false;
-    const done = v => { if (settled) return; settled = true; resolve(v); };
-    openSheet(`
-      <h2>${esc(title)}</h2>
-      <p class="sub">${esc(body)}</p>
-      <button class="btn block ${danger ? 'btn-danger' : 'btn-ink'}" data-act="yes">${esc(confirmLabel)}</button>
-      <button class="btn btn-ghost block" data-act="no">Cancel</button>
-    `, { onClose: () => done(false) });
-
-    sheetEl.querySelector('[data-act=yes]').onclick = () => { done(true); closeSheet(); };
-    sheetEl.querySelector('[data-act=no]').onclick  = () => { done(false); closeSheet(); };
-  });
-}
-
 /* ---------------- delegated events ----------------
    Views re-render by replacing innerHTML, so per-node listeners die.
    Instead each view declares `data-act` and we route centrally. */
@@ -131,8 +114,6 @@ export function bindActions(root, map){
 }
 
 /* ---------------- reusable fragments ---------------- */
-
-export const heroBar = p => `<div class="bar"><i style="width:${p}%"></i></div>`;
 
 export const meter = ({ label, value, target, unit = 'g', color, tint, bar }) => {
   const p = pct(value, target);

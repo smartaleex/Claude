@@ -74,4 +74,3 @@ export function icon(name, size = 22, extra = ''){
     aria-hidden="true" class="ico ${extra}">${d}</svg>`;
 }
 
-export const hasIcon = n => !!P[n];

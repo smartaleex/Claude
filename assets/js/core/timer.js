@@ -75,8 +75,6 @@ export function configure({ session, options, minutes, openSettings }){
   sync();
 }
 
-export const restOptions = () => ({ ...opts });
-
 /** Start (or restart) a rest countdown. Call from a tap so audio can unlock. */
 export function startRest(seconds){
   if (!seconds || seconds <= 0) return;

@@ -706,9 +706,6 @@ export const PHASES = [
   },
 ];
 
-/** Kept as an alias so existing imports don't break. */
-export const BLOCKS = PHASES;
-
 /* ---------------- progression rules (from the original) ---------------- */
 export const PROGRESSION = [
   { label:'Progressive Overload',

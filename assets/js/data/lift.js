@@ -210,12 +210,3 @@ export const TRUTHS = [
   { t:'Low mood with a lot of energy is an uncomfortable mix, and it is worth taking seriously. Keep the day small, keep it slow, and consider letting your doctor know.', when:['mixed'] },
   { t:'Restless and low at once is one of the hardest states to sit in. Walk, not gym. Eat. Do not make decisions tonight.', when:['mixed'] },
 ];
-
-/* Same date, same line, on every device. A context-aware pick is made by
-   core/mind.js and then held still for the day, so it is something to
-   sit with rather than a slot machine you reroll. */
-export function dailyLine(dayKeyStr, pickFn){
-  if (pickFn) return pickFn(DAILY, dayKeyStr);
-  const n = Number(String(dayKeyStr).replaceAll('-', '')) || 0;
-  return DAILY[n % DAILY.length];
-}
