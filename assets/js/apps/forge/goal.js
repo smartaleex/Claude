@@ -1,5 +1,6 @@
 /* ============================================================
-   Training: the Goal tab. Weight and rate of gain, the back-on-track plan, the reasoning, weekly volume, focus boosts.
+   Training: the Goal tab. Weight and rate of gain, the back-on-track plan,
+   the reasoning, weekly volume, focus boosts.
    ============================================================ */
 
 import { today, dayKey, keyToDate } from '../../core/store.js';

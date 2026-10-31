@@ -1,5 +1,6 @@
 /* ============================================================
-   Training: how AI readings and the goal reference are drawn (progress read, benchmark result, goal photos). Views only.
+   Training: how AI readings and the goal reference are drawn (progress
+   read, benchmark result, goal photos). Views only.
    ============================================================ */
 
 import { dayKey, fmtDayShort } from '../../core/store.js';

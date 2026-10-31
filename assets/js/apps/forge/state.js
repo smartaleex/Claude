@@ -1,7 +1,9 @@
 /* ============================================================
-   Training: the shared state. The saved store, the screen state that is not saved (current tab, photo caches, ...), and the small
-   derived facts every other file asks (which phase is running, is the comeback ramp on, which day is up next). Imports nothing from the
-   other Training files, so it can never be part of an import cycle.
+   Training: the shared state. The saved store, the screen state that is
+   not saved (current tab, photo caches, ...), and the small derived facts
+   every other file asks (which phase is running, is the comeback ramp on,
+   which day is up next). Imports nothing from the other Training files, so
+   it can never be part of an import cycle.
    ============================================================ */
 
 import { Slice, today, dayKey, keyToDate, daysBetween } from '../../core/store.js';

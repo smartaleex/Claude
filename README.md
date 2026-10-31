@@ -1,15 +1,20 @@
 # Alex HQ
 
-Six tools, one app, on your phone. No build step, no server, no subscription.
+Eight tools, one app, on your phone. No build step, no server, no subscription.
 
-| | Tool | What it does |
-|---|---|---|
-| 🍳 | **Fuel** | Macro tracking for the lean bulk. Photo a label or a plate, describe what you ate, get suggestions built around the gap left in your day. |
-| 💪 | **Forge** | Four-day training split built for a swimmer physique, working around a weak shoulder, hypermobility and a cranky tricep insertion. |
-| 💰 | **Ledger** | Budget tracking, plus property scenarios — repayments, strata, stamp duty, and what happens if rates rise 3%. |
-| 🍻 | **Shout** | Mates roster. Surfaces who's quietly drifted, drafts the text, suggests something worth doing. |
-| 🌱 | **Clear** | Nicotine taper. A daily mg budget that steps down each week. |
-| 🇪🇸 | **Vale** | Spanish for someone who lived in Spain and has gone rusty. Real grammar explanations, then spaced repetition. |
+| Tool | What it does |
+|---|---|
+| **Day** | Meds, sleep, mood and the daily anchors, with a summary you can show a doctor. |
+| **Food** | Macro tracking for the lean bulk. Photo a label or a plate, or describe what you ate; suggestions are built around what is left in the day. |
+| **Training** | The swimmer build: a four-day split that works around an unstable shoulder, a sore triceps tendon and knee valgus. Comeback ramp after a gap, swaps when a machine is busy, progress photos. |
+| **Nicotine** | The taper. A daily budget that steps down each week. |
+| **People** | Mates roster. Shows who has drifted, drafts the text, suggests something worth doing. |
+| **Money** | Budget tracking, plus property scenarios: repayments, strata, stamp duty, what a rate rise does. |
+| **Spanish** | Spanish for someone who lived in Spain and has gone rusty. Real grammar explanations, then spaced repetition. |
+| **Cryptic** | One cryptic clue a day, with hints, and unlimited machine-made clues that are checked letter by letter before you see them. |
+
+There is also a "Lift me" button for a bad hour, and a brain dump for getting a
+thought out of your head in four seconds.
 
 ---
 
@@ -93,45 +98,43 @@ python3 -m http.server 8000
 
 No dependencies, no build. Edit a file, refresh.
 
+Tests, lint and a code audit are dev tools only (the app itself has no
+dependencies):
+
+```bash
+npm install
+npm test            # unit + headless-browser tests
+npm run lint        # catches a missing import before a phone does
+npm run audit       # dead exports, duplicates, files that have grown too big
+```
+
 ---
 
-## Layout
+## Changing the code
 
-```
-index.html              shell
-manifest.webmanifest    home-screen install
-sw.js                   offline cache — bump CACHE when deploying
-assets/
-  css/tokens.css        claymorphism tokens: the 3-shadow recipe, palette, geometry
-  css/app.css           shared components, all built on that recipe
-  js/main.js            registry, router, tab bar, home dashboard, settings
-  js/core/store.js      persistence + date helpers
-  js/core/ui.js         view helpers, sheets, toasts, charts
-  js/core/ai.js         the three-tier adapter
-  js/apps/*.js          the six tools — each exports mount() and summary()
-  js/data/foods.js      offline food DB + portion parser
-  js/data/workouts.js   the training program and its reasoning
-  js/data/spanish.js    the Spanish curriculum
-```
-
-Every tool exports `summary()`, which is what the home dashboard reads. Adding a seventh tool means
-writing one module and adding one line to `APPS` in `main.js`.
+Start with [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md). It has the file map and a
+"where do I fix X?" table. The short version: every file does one job, logic that
+makes a decision lives in `assets/js/core/` with a unit test, and a screen is a
+function that returns HTML.
 
 ---
 
 ## Notes on the training program
 
-`assets/js/data/workouts.js` carries its reasoning in comments, because the constraints matter more
-than the exercise list:
+`assets/js/data/workouts.js` carries its reasoning in comments, because the
+constraints matter more than the exercise list:
 
-- **Lean bulk, not a cut.** Already lean at 185cm/75kg — the gap to the reference physique is
-  shoulder and lat *width*, not body fat. Target ~83kg.
-- **Hypermobility + unstable shoulder.** Passive tissue won't protect the joint at end range, so:
-  no deep-stretch overhead loading, nothing behind the neck, no deep barbell bench or dips.
-  Neutral grips, controlled ROM, dumbbells and cables.
-- **Tricep insertion pain.** Every pressing day opens with high-rep light pushdowns to perfuse the
-  tendon. No hard lockouts.
-- **Three 6-week blocks** rotate automatically — Width, Density, Detail.
+- **Lean bulk, not a cut.** Already lean at 185cm/75kg. The gap to the reference
+  physique is shoulder and lat width, not body fat. Target about 83kg.
+- **Unstable shoulder.** Passive tissue will not protect the joint at end range, so:
+  no deep-stretch overhead loading, nothing behind the neck, no deep barbell bench
+  or dips. Neutral grips, controlled range, dumbbells and cables.
+- **Distal triceps pain.** Every pressing day opens with high-rep light pushdowns to
+  perfuse the tendon. No hard lockouts.
+- **Knees and back.** Leg days are built to be back-friendly, and the comeback ramp
+  keeps full sets while easing reps and weight after a break.
+- **Three 6-week blocks** rotate automatically: Width, Density, Detail.
 
-Stamp duty uses current NSW general rates. Thresholds are indexed annually, so check them against
-Revenue NSW before relying on the number for an actual offer.
+Stamp duty in Money uses current NSW general rates. Thresholds are indexed
+annually, so check them against Revenue NSW before relying on the number for an
+actual offer.

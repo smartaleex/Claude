@@ -1,6 +1,7 @@
 /* ============================================================
-   Training: a live session. The session screen and each exercise card in it, starting / finishing / exiting a session, ticking a
-   day off, and the timer settings sheet.
+   Training: a live session. The session screen and each exercise card in
+   it, starting / finishing / exiting a session, ticking a day off, and the
+   timer settings sheet.
    ============================================================ */
 
 import { today, uid } from '../../core/store.js';
@@ -161,8 +162,6 @@ export function newSession(k){
 }
 
 export function startSession(k){ newSession(k); haptic(); render(); }
-
-/* One tap logs the set, carrying last session's weight if known. */
 
 /* Finishing never requires logged sets — plenty of sessions happen
    without touching the phone, and refusing those makes history lie. */

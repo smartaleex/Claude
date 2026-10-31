@@ -25,7 +25,6 @@ const walk = (d, out = []) => {
 const files = walk(join(ROOT, 'assets', 'js'));
 const rel = p => relative(ROOT, p);
 const src = Object.fromEntries(files.map(f => [f, readFileSync(f, 'utf8')]));
-const everything = Object.values(src).join('\n') + readFileSync(join(ROOT, 'index.html'), 'utf8') + readFileSync(join(ROOT, 'sw.js'), 'utf8');
 const count = (name, text) => (text.match(new RegExp(`(?<![\\w$])${name.replace(/\$/g, '\\$')}(?![\\w$])`, 'g')) || []).length;
 
 // ---- file sizes
@@ -44,7 +43,12 @@ for (const [f, t] of Object.entries(src)){
     let k = m.index + m[0].length, par = 1;
     while (k < t.length && par){ if (t[k] === '(') par++; else if (t[k] === ')') par--; k++; }
     i = t.indexOf('{', k); depth = 0;
-    for (j = i; j < t.length; j++){ const c = t[j]; if (c === '{') depth++; else if (c === '}' && --depth === 0) break; }
+    for (j = i; j < t.length; j++){
+      const c = t[j];
+      // a lone brace in quotes ('{' or "}") is text, not structure
+      if ((c === "'" || c === '"') && (t[j+1] === '{' || t[j+1] === '}') && t[j+2] === c){ j += 2; continue; }
+      if (c === '{') depth++; else if (c === '}' && --depth === 0) break;
+    }
     fns.push({ f, name: m[1], lines: t.slice(m.index, j).split('\n').length });
   }
 }

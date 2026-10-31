@@ -1,6 +1,8 @@
 /* ============================================================
-   Training (the Swimmer Build). Entry point: the HQ tile summary, mount, drawing a screen, and wiring each module's actions.
-   Each other file in this folder owns one screen or job and exports its own `actions`; see docs/ARCHITECTURE.md.
+   Training (the Swimmer Build). Entry point: the HQ tile summary, mount,
+   drawing a screen, and wiring each module's actions. Each other file in
+   this folder owns one screen or job and exports its own `actions`; see
+   docs/ARCHITECTURE.md.
    ============================================================ */
 
 import { esc, holdScroll, bindActions } from '../../core/ui.js';

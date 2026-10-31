@@ -1,6 +1,7 @@
 /* ============================================================
-   Training: logging sets. One tap per set, 'log all as planned', and the weight pad. The weight a new set opens with comes from
-   core/sets.js, so the rule is testable.
+   Training: logging sets. One tap per set, 'log all as planned', and the
+   weight pad. The weight a new set opens with comes from core/sets.js, so
+   the rule is testable.
    ============================================================ */
 
 import { esc, round, openSheet, closeSheet, bindActions, haptic } from '../../core/ui.js';
@@ -16,6 +17,18 @@ export function openingFor(exName, key){
   return nextWeight({ logged: sess?.sets[key] || [], prev: store.get().lastByEx[exName], ramp: ramp() });
 }
 
+/* Start the exercise's own rest after a set. A rest of 0s means "straight
+   into the next movement" (a superset), so nothing should be counting down,
+   and any countdown still running from before is stale. */
+function startRestFor(key){
+  if (!store.get().timer.auto) return;
+  const sess = store.get().sessions[store.get().activeId];
+  const [si, ei] = key.split('-').map(Number);
+  const ex = dayOf(sess?.day)?.supersets[si]?.exercises[ei];
+  const secs = timer.parseRest(ex?.rest);
+  if (secs > 0) timer.startRest(secs); else timer.clearRest();
+}
+
 export function fillSets(key, exName, count){
   const { w } = openingFor(exName, key);
   store.update(s => {
@@ -26,14 +39,7 @@ export function fillSets(key, exName, count){
   });
   haptic(14);
   render();
-  // The last set just logged is the one a rest follows.
-  if (store.get().timer.auto){
-    const sess = store.get().sessions[store.get().activeId];
-    const [si, ei] = key.split('-').map(Number);
-    const ex = dayOf(sess?.day)?.supersets[si]?.exercises[ei];
-    const secs = timer.parseRest(ex?.rest);
-    if (secs > 0) timer.startRest(secs); else timer.clearRest();
-  }
+  startRestFor(key);       // the last set just logged is the one a rest follows
 }
 
 export function addSet(key, exName){
@@ -45,17 +51,7 @@ export function addSet(key, exName){
   });
   haptic();
   render();
-
-  /* Start the exercise's own rest. A rest of 0s means "straight into the
-     next movement" (a superset), so nothing should be counting down — and
-     any countdown still running from before is stale. */
-  if (store.get().timer.auto){
-    const sess = store.get().sessions[store.get().activeId];
-    const [si, ei] = key.split('-').map(Number);
-    const ex = dayOf(sess?.day)?.supersets[si]?.exercises[ei];
-    const secs = timer.parseRest(ex?.rest);
-    if (secs > 0) timer.startRest(secs); else timer.clearRest();
-  }
+  startRestFor(key);
 }
 
 /* The weight sheet has its own number pad, like the Cryptic keyboard.

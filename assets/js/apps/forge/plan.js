@@ -1,5 +1,6 @@
 /* ============================================================
-   Training: the Plan tab (up next, pick a session, how to progress) and its two banners (comeback ramp, legs advice).
+   Training: the Plan tab (up next, pick a session, how to progress) and
+   its two banners (comeback ramp, legs advice).
    ============================================================ */
 
 import { today } from '../../core/store.js';

@@ -1,6 +1,7 @@
 /* ============================================================
-   Training: the Gemini calls on photos. The consent gate, the progress read, the goal benchmark, applying focus boosts.
-   Every call is clamped by core/coach.js before it touches the program.
+   Training: the Gemini calls on photos. The consent gate, the progress
+   read, the goal benchmark, applying focus boosts. Every call is clamped
+   by core/coach.js before it touches the program.
    ============================================================ */
 
 import { dayKey } from '../../core/store.js';

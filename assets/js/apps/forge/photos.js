@@ -1,16 +1,19 @@
 /* ============================================================
-   Training: the Photos tab. Taking and listing photos, the before/after slider, editing a photo, goal reference photos.
+   Training: the Photos tab. Taking and listing photos, the before/after
+   slider, editing a photo, goal reference photos.
 
-   The scale is a bad instrument for this goal. On a lean bulk it moves for water, food and salt, and it says nothing
-   at all about shoulder width, which is the entire point. Photos in the same pose a month apart show the change the
-   scale cannot.
+   The scale is a bad instrument for this goal. On a lean bulk it moves for
+   water, food and salt, and it says nothing at all about shoulder width,
+   which is the entire point. Photos in the same pose a month apart show
+   the change the scale cannot.
 
-   Stored in IndexedDB via core/photos.js, never in localStorage: a few base64 images would exhaust the quota and
-   break every other app.
+   Stored in IndexedDB via core/photos.js, never in localStorage: a few
+   base64 images would exhaust the quota and break every other app.
 
-   Photos only leave the device when a "Send to Gemini" button is tapped, and only after an explicit one-time
-   agreement. Everything else here (the slider comparison, date editing, the weight and volume context) works with
-   no network and no key.
+   Photos only leave the device when a "Send to Gemini" button is tapped,
+   and only after an explicit one-time agreement. Everything else here (the
+   slider comparison, date editing, the weight and volume context) works
+   with no network and no key.
    ============================================================ */
 
 import { today, dayKey, daysBetween, fmtDayShort } from '../../core/store.js';
