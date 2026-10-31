@@ -11,11 +11,11 @@
    correction). Peninsular Spanish throughout.
    ============================================================ */
 
-import { Slice, today, dayKey, daysBetween, uid, shiftDay } from '../core/store.js';
+import { Slice, today, shiftDay } from '../core/store.js';
 import { ask } from '../core/ai.js';
 import {
   esc, num, toast, openSheet, closeSheet, sheetVal, bindActions,
-  empty, stat, haptic, holdScroll,
+  stat, haptic, holdScroll,
 } from '../core/ui.js';
 import { icon } from '../core/icons.js';
 import { LESSONS, LEVELS, SCENARIOS, lessonsIn } from '../data/spanish.js';

@@ -14,8 +14,7 @@
    ============================================================ */
 
 import { esc, openSheet, closeSheet, bindActions, haptic, toast } from './ui.js';
-import { icon } from './icons.js';
-import { ask, aiSettings, initAI } from './ai.js';
+import { ask, aiSettings } from './ai.js';
 import { JOKES, LINES, TRUTHS } from '../data/lift.js';
 import { readContext, quoteWeight, truthWeight, choose, hide, loadMem, saveMem, vetJoke } from './mind.js';
 

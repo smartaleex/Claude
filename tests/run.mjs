@@ -45,7 +45,7 @@ function run({ dir, f }){
 // unit tests are instant; browser tests run three at a time
 const results = [];
 const queue = [...files];
-await Promise.all(Array.from({ length: unitOnly ? 4 : 3 }, async () => {
+await Promise.all(Array.from({ length: unitOnly ? 4 : 2 }, async () => {
   while (queue.length){ const r = await run(queue.shift()); results.push(r); }
 }));
 srv.close();

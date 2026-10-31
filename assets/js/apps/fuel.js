@@ -7,7 +7,7 @@ import { Slice, today, shiftDay, lastNDays, fmtDay, fmtDayShort, uid } from '../
 import { ask, fileToImage, clean, aiStatus } from '../core/ai.js';
 import {
   esc, num, round, pct, toast, openSheet, closeSheet, sheetNum, bindActions,
-  meter, stat, empty, barChart, haptic, $$, tok, holdScroll,
+  meter, stat, empty, barChart, haptic, tok, holdScroll,
 } from '../core/ui.js';
 import { icon } from '../core/icons.js';
 import { offlineMatch, offlineSuggest, looksBranded } from '../data/foods.js';

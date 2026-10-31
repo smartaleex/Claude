@@ -7,7 +7,7 @@
    Bump CACHE on every deploy or phones keep serving the old build.
    ============================================================ */
 
-const CACHE = 'alexhq-v38';
+const CACHE = 'alexhq-v39';
 
 const SHELL = [
   './assets/css/fonts.css',
@@ -31,6 +31,7 @@ const SHELL = [
   './assets/js/core/lift.js',
   './assets/js/core/mind.js',
   './assets/js/core/comeback.js',
+  './assets/js/core/sets.js',
   './assets/js/core/timer.js',
   './assets/js/core/coach.js',
   './assets/js/core/orbit.js',
@@ -39,7 +40,19 @@ const SHELL = [
   './assets/js/core/ai.js',
   './assets/js/apps/day.js',
   './assets/js/apps/fuel.js',
-  './assets/js/apps/forge.js',
+  './assets/js/apps/forge/index.js',
+  './assets/js/apps/forge/state.js',
+  './assets/js/apps/forge/plan.js',
+  './assets/js/apps/forge/session.js',
+  './assets/js/apps/forge/logging.js',
+  './assets/js/apps/forge/swap.js',
+  './assets/js/apps/forge/goal.js',
+  './assets/js/apps/forge/history.js',
+  './assets/js/apps/forge/physique-views.js',
+  './assets/js/apps/forge/photos.js',
+  './assets/js/apps/forge/physique-ai.js',
+  './assets/js/apps/forge/advice.js',
+  './assets/js/apps/forge/settings.js',
   './assets/js/apps/ledger.js',
   './assets/js/apps/shout.js',
   './assets/js/apps/clear.js',

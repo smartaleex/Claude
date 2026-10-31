@@ -10,9 +10,9 @@
    walking the pouches down without white-knuckling it.
    ============================================================ */
 
-import { Slice, today, dayKey, keyToDate, daysBetween, shiftDay, lastNDays, uid, fmtTime, fmtDayShort } from '../core/store.js';
+import { Slice, today, dayKey, keyToDate, daysBetween, shiftDay, lastNDays, uid, fmtTime } from '../core/store.js';
 import {
-  esc, num, round, toast, openSheet, closeSheet, sheetVal, sheetNum,
+  esc, num, toast, openSheet, closeSheet, sheetVal, sheetNum,
   bindActions, empty, stat, haptic, barChart, tok, holdScroll,
 } from '../core/ui.js';
 import { icon } from '../core/icons.js';
@@ -271,14 +271,10 @@ function todayHTML(){
 
 /* ---------------- progress ---------------- */
 function trendHTML(){
-  const days = lastNDays(21).filter(d => logsOn(d).length || d >= store.get().planStart);
-  const logged = lastNDays(30).filter(d => logsOn(d).length);
   const avg7 = (() => {
     const ds = lastNDays(7).filter(d => logsOn(d).length);
     return ds.length ? Math.round(ds.reduce((n,d) => n + mgOn(d), 0) / ds.length) : null;
   })();
-  const first = store.get().logs.length
-    ? Math.round(mgOn(dayKey(Math.min(...store.get().logs.map(l => l.t))))) : null;
   const qd = quitDate();
 
   // Which situations actually drive use — the useful bit of tagging.

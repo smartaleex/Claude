@@ -24,11 +24,11 @@
    actively unhelpful.
    ============================================================ */
 
-import { Slice, today, dayKey, shiftDay, lastNDays, daysBetween, uid, fmtDayShort } from '../core/store.js';
+import { Slice, today, lastNDays, uid, fmtDayShort } from '../core/store.js';
 import { icon } from '../core/icons.js';
 import {
-  esc, num, round, toast, openSheet, closeSheet, sheetVal, sheetNum,
-  bindActions, empty, stat, haptic, holdScroll,
+  esc, toast, openSheet, closeSheet, sheetVal, sheetNum,
+  bindActions, stat, haptic, holdScroll,
 } from '../core/ui.js';
 
 /* Anchors are physical and small on purpose. "Meditate" is not here —
@@ -677,7 +677,7 @@ function openReport(){
 }
 
 function trendHTML(){
-  const m14 = medsRate(14), m30 = medsRate(30);
+  const m14 = medsRate(14);
   const sl = sleepAvg(7);
   const days = lastNDays(14);
 

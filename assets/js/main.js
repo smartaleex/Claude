@@ -12,7 +12,7 @@ import { readContext, dailyFor } from './core/mind.js';
 
 import * as day    from './apps/day.js';
 import * as fuel   from './apps/fuel.js';
-import * as forge  from './apps/forge.js';
+import * as forge  from './apps/forge/index.js';
 import * as ledger from './apps/ledger.js';
 import * as shout  from './apps/shout.js';
 import * as clear  from './apps/clear.js';

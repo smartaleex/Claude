@@ -10,10 +10,10 @@
    actually do rather than another vague "we should catch up".
    ============================================================ */
 
-import { Slice, today, dayKey, daysBetween, uid, fmtDayShort, shiftDay } from '../core/store.js';
+import { Slice, today, daysBetween, uid, fmtDayShort, shiftDay } from '../core/store.js';
 import { ask } from '../core/ai.js';
 import {
-  esc, toast, openSheet, closeSheet, sheetVal, sheetNum, bindActions,
+  esc, toast, openSheet, closeSheet, sheetVal, bindActions,
   empty, stat, haptic, avatarStyle, initials, num, holdScroll,
 } from '../core/ui.js';
 import { icon } from '../core/icons.js';

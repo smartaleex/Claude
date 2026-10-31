@@ -100,6 +100,5 @@ await p.click('[data-act="tab"][data-v="goal"]'); await p.waitForTimeout(700);
 txt = await p.$eval('#view',e=>e.innerText);
 ok(/BACK ON TRACK/i.test(txt) && /days since your last session/.test(txt),'back-on-track card: '+(txt.match(/\d+ days since your last session/)||[''])[0]);
 ok(/Training/.test(txt) && /Food/.test(txt) && /Weight/.test(txt),'sections present');
-await p.screenshot({path:'F-goal.png'});
 console.log(errs.length?errs:'no js errors'); await b.close();
 done('training: ramp, stack, swaps');

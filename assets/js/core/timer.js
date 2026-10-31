@@ -149,7 +149,6 @@ function hide(){
 /* Redraw the structure only when the *mode* changes; the tick then just
    updates text and a CSS variable, so taps are never eaten by a rebuild. */
 function paint(){
-  const s = getSession();
   const rem = restRemaining(rest);
   const mode = !rest ? 'idle' : rem <= 0 ? 'done' : 'run';
   if (mode === lastMode) return;

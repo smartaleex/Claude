@@ -11,11 +11,11 @@
    fees that go with it, which vary by state, price and buyer status.
    ============================================================ */
 
-import { Slice, today, uid, fmtDayShort } from '../core/store.js';
+import { Slice, uid } from '../core/store.js';
 import { ask } from '../core/ai.js';
 import {
-  esc, num, money, round, toast, openSheet, closeSheet, sheetVal, sheetNum,
-  bindActions, empty, stat, haptic, holdScroll,
+  esc, money, round, toast, openSheet, closeSheet, sheetVal, sheetNum,
+  bindActions, empty, holdScroll,
 } from '../core/ui.js';
 import { icon } from '../core/icons.js';
 
