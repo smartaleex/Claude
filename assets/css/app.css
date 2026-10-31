@@ -9,14 +9,13 @@
    ============================================================ */
 
 *,*::before,*::after{ box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
-html,body{ margin:0; padding:0; }
+html,body{ margin:0; padding:0; height:100%; overflow:hidden; }
 html{ -webkit-text-size-adjust:100%; }
 :root{ --tb-total:calc(var(--tabbar-h, 56px) + var(--sab, 0px) + var(--tb-bottom, 0px)); }
 body{
   background:var(--bg); color:var(--ink);
   font-family:var(--f-body);
   font-size:16px; line-height:1.5;
-  overscroll-behavior-y:none;
   -webkit-font-smoothing:antialiased;
   font-optical-sizing:auto;
 }
@@ -51,8 +50,15 @@ a{ color:inherit; }
 canvas{ display:block; }
 
 /* ---------- layout shell ---------- */
-#app{ min-height:100dvh; padding-bottom:calc(var(--tb-total) + 30px); }
-.shell{ max-width:var(--shell-w); margin:0 auto; padding:calc(var(--sat) + 14px) 17px 0; }
+/* The page itself never scrolls. #app is a full-screen frame and the content
+   scrolls inside it, so the tab bar, timer and sheets are fixed to a document
+   that never moves. When the whole document scrolled, iOS could leave those
+   fixed bars stranded halfway up the screen after a redraw or a keyboard. */
+#app{
+  position:fixed; inset:0; overflow-y:auto; overflow-x:hidden;
+  -webkit-overflow-scrolling:touch; overscroll-behavior-y:contain;
+}
+.shell{ max-width:var(--shell-w); margin:0 auto; padding:calc(var(--sat) + 14px) 17px calc(var(--tb-total) + 30px); }
 .stack{ display:flex; flex-direction:column; gap:11px; }
 .row{ display:flex; align-items:center; gap:10px; }
 .spread{ display:flex; align-items:center; justify-content:space-between; gap:12px; }
@@ -466,7 +472,7 @@ canvas{ display:block; }
   padding:0 14px; display:flex; justify-content:center; pointer-events:none;
 }
 #tmdock[hidden]{ display:none; }
-.has-dock #app{ padding-bottom:calc(var(--tb-total) + 96px); }
+.has-dock .shell{ padding-bottom:calc(var(--tb-total) + 96px); }
 .tm-in{
   pointer-events:auto; position:relative; overflow:hidden;
   width:100%; max-width:calc(var(--shell-w) - 28px);

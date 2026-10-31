@@ -256,6 +256,24 @@ export function lineChart(canvas, { values, color, fill = true, band }){
   ctx.beginPath(); ctx.arc(X(last.i), Y(last.v), 1.7, 0, Math.PI*2); ctx.fill();
 }
 
+/* ---------------- the scrolling frame ----------------
+   Screens redraw by replacing their HTML. The view is held at its old height
+   for a frame so the scroll position never clamps, then released. */
+export const scroller = () => document.getElementById('app');
+
+export function holdScroll(paint){
+  const sc = scroller(), view = document.getElementById('view');
+  const y = sc ? sc.scrollTop : 0;
+  if (view) view.style.minHeight = view.offsetHeight + 'px';
+  try{ paint(); }
+  finally{
+    if (sc && Math.abs(sc.scrollTop - y) > 1) sc.scrollTop = y;
+    requestAnimationFrame(() => { if (view) view.style.minHeight = ''; });
+  }
+}
+
+export function scrollToTop(){ const sc = scroller(); if (sc) sc.scrollTop = 0; }
+
 /* ---------------- on-screen keyboard ----------------
    On iOS the keyboard covers the page rather than resizing it, so a fixed
    bottom sheet can end up behind it and you type blind. The sheet is
@@ -292,10 +310,14 @@ let kbRelease = () => {};
    test for; the only reliable cure is to make the page scroll. A one-pixel
    scroll and back, in consecutive frames, makes WebKit recompute the
    viewport. It is invisible, and harmless when nothing was stuck. */
-export function unstick(y = window.scrollY){
+export function unstick(y = scroller()?.scrollTop || 0){
   try{
-    window.scrollTo(0, y + 1);
-    requestAnimationFrame(() => { window.scrollTo(0, y); requestAnimationFrame(() => window.scrollTo(0, y)); });
+    const sc = scroller();
+    window.scrollTo(0, 0);                    // the document itself, in case something scrolled it
+    if (sc){
+      sc.scrollTop = y + 1;
+      requestAnimationFrame(() => { sc.scrollTop = y; requestAnimationFrame(() => { sc.scrollTop = y; }); });
+    }
   }catch{ /* no window, or blocked: nothing to do */ }
 }
 
@@ -324,7 +346,7 @@ function watchKeyboard(){
   document.addEventListener('focusin', e => {
     clearTimeout(backT);
     if (!isTyping(e.target)) return;
-    if (!wasTyping) y0 = window.scrollY;
+    if (!wasTyping) y0 = scroller()?.scrollTop || 0;
     wasTyping = true;
     soon();
     // If the sheet is taller than the space left, bring the field into view once, without animation.
@@ -336,6 +358,8 @@ function watchKeyboard(){
   const release = () => {
     // Focus often hops straight to another field; only act if it does not.
     clearTimeout(backT);
+    // Opening or closing a sheet that never raised the keyboard must not touch the scroll position.
+    if (!wasTyping) { setKb(0); return; }
     backT = setTimeout(() => {
       if (isTyping(document.activeElement)) return;
       wasTyping = false;

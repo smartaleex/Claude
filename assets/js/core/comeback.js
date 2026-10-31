@@ -6,9 +6,13 @@
    1. The week back is where people get hurt or quit. Walking back in at
       full volume and full weights after a break is how a tendon flares or
       a session wrecks you and the next one never happens. So a gap of ten
-      days or more starts a three-week ramp on its own (volume 60%, 75%,
-      90%; weights opened a little under last time), and it can be
-      switched off. Nothing about it is a penalty: two sessions in a week
+      days or more starts a three-week ramp on its own, and it can be
+      switched off. The ramp never touches the number of sets (the program
+      stays 4, 3, 3 as written). It eases in through the two things that
+      cost the joints and tendons least to dial down: the reps asked for
+      (bottom of the range, then the middle, then the full range) and the
+      weight (opened a little under last time, then climbing back).
+      Nothing about it is a penalty. Nothing about it is a penalty: two sessions in a week
       counts as a win while it runs.
 
    2. A plan, written from what the app already knows (sessions, weight,
@@ -19,9 +23,9 @@
 
 export const GAP_DAYS = 10;
 export const RAMP = [
-  { factor: 0.60, weights: 0.85, rpe: 'RPE 6 to 7. Stop with 3 reps in the tank.' },
-  { factor: 0.75, weights: 0.90, rpe: 'RPE 7. Stop with 2 to 3 reps in the tank.' },
-  { factor: 0.90, weights: 0.95, rpe: 'RPE 7 to 8. Nearly normal.' },
+  { reps: 'bottom', weights: 0.85, rpe: 'RPE 6 to 7. Stop with 3 reps in the tank.' },
+  { reps: 'mid',    weights: 0.90, rpe: 'RPE 7. Stop with 2 to 3 reps in the tank.' },
+  { reps: 'full',   weights: 0.95, rpe: 'RPE 7 to 8. Nearly normal.' },
 ];
 const MIN_LOG = 300;          // below this a day's food log is "forgot to log"
 
@@ -61,7 +65,7 @@ export function rampState(c, todayKey){
   if (d < 0 || d >= weeks * 7) return { active:false, finished:true };
   const week = Math.floor(d / 7) + 1;
   const r = RAMP[week - 1] || RAMP[RAMP.length - 1];
-  return { active:true, week, weeks, factor:r.factor, weights:r.weights, rpe:r.rpe, daysLeft: weeks * 7 - d };
+  return { active:true, week, weeks, reps:r.reps, weights:r.weights, rpe:r.rpe, daysLeft: weeks * 7 - d };
 }
 
 /** Start one automatically after a long gap, once per gap. */
@@ -73,8 +77,34 @@ export function shouldStartRamp(c, sessions, todayKey){
   return !c || !(String(c.start) > l);                   // not already offered for this gap
 }
 
-/** Sets to do during the ramp. Never below 1, and never touches a single set. */
-export const scaleSets = (n, factor = 1) => n <= 1 ? n : Math.max(1, Math.round(n * factor));
+/**
+ * The reps to ask for during the ramp. Sets are never touched; reps come off
+ * the top of the range, then climb back.
+ *   '8–10'  -> week 1: '8'   week 2: '9'    week 3: '8–10'
+ *   '12–15' -> '12'          '13'            '12–15'
+ *   '15'    -> '12'          '13'            '15'
+ *   '10 each' keeps its 'each'. Anything that is not a plain number or range
+ *   (timed holds, '12 + 8 partials', 'max', drop sets) is left exactly as written.
+ * Returns { text, changed }.
+ */
+export function reviseReps(reps, mode){
+  const raw = String(reps ?? '').trim();
+  const same = { text: raw, changed: false };
+  if (!mode || mode === 'full') return same;
+  const m = raw.match(/^(\d{1,2})(?:\s*[–-]\s*(\d{1,2}))?(\s+each(?:\s+(?:side|leg))?)?$/i);
+  if (!m) return same;
+  const a = +m[1], b = m[2] ? +m[2] : null, tail = m[3] || '';
+  let n;
+  if (b != null){
+    if (b < a) return same;
+    n = mode === 'bottom' ? a : Math.floor((a + b) / 2);
+  } else {
+    n = mode === 'bottom' ? a - Math.max(2, Math.round(a * 0.2)) : a - Math.round(a * 0.1);
+  }
+  n = Math.max(5, Math.min(n, b ?? a));
+  const text = `${n}${tail}`;
+  return { text, changed: text !== raw };
+}
 
 const step = kg => kg >= 20 ? Math.round(kg / 2.5) * 2.5 : Math.max(1, Math.round(kg));
 /** A weight to open with, a little under the last one. */
@@ -104,7 +134,7 @@ export function backOnTrack({ sessions, todayKey, weights = {}, fuel = {}, physi
     k:'train', title:'Training',
     tone: gap != null && gap >= GAP_DAYS ? 'warn' : 'good',
     body: ramp?.active
-      ? `Comeback week ${ramp.week} of ${ramp.weeks}: sets are at ${Math.round(ramp.factor * 100)}% and weights open about ${Math.round((1 - ramp.weights) * 100)}% under last time. Aim for ${target} sessions. ${ramp.rpe} Two sessions still counts as a win.`
+      ? `Comeback week ${ramp.week} of ${ramp.weeks}: every set stays as written, reps ${ramp.reps === 'bottom' ? 'start at the bottom of the range' : ramp.reps === 'mid' ? 'sit in the middle of the range' : 'are back to the full range'} and weights open about ${Math.round((1 - ramp.weights) * 100)}% under last time. Aim for ${target} sessions. ${ramp.rpe} Two sessions still counts as a win.`
       : gap != null && gap >= GAP_DAYS
         ? 'Start the comeback ramp: three weeks building back to full volume. It is the fastest way to be at full strength without a setback.'
         : `Aim for ${target} sessions a week. Two is a win; zero is the only bad week.`,

@@ -4,7 +4,7 @@
 
 import { initAI, aiStatus, setKey, aiSettings, setTabOrder, testKey, discoverModels } from './core/ai.js';
 import { exportAll, importAll, Slice, today } from './core/store.js';
-import { esc, $, toast, openSheet, closeSheet, sheetVal, bindActions, haptic } from './core/ui.js';
+import { esc, $, toast, openSheet, closeSheet, sheetVal, bindActions, haptic, scrollToTop } from './core/ui.js';
 import { icon } from './core/icons.js';
 import { openLift } from './core/lift.js';
 import { DAILY } from './data/lift.js';
@@ -129,7 +129,7 @@ export async function navigate(route, opts = {}){
   const [appId] = route.split('/');
   current = appId;
   applyAccent(appId);
-  window.scrollTo({ top:0, behavior: opts.keepScroll ? 'auto' : 'instant' });
+  if (!opts.keepScroll) scrollToTop();
 
   if (appId === 'home')      { view.innerHTML = await homeHTML(); bindHome(); }
   else if (appId === 'more') { view.innerHTML = moreHTML(); }

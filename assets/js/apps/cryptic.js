@@ -21,7 +21,7 @@
 
 import { Slice, today, shiftDay, fmtDayShort } from '../core/store.js';
 import {
-  esc, num, toast, bindActions, empty, stat, haptic, openSheet, closeSheet,
+  esc, num, toast, bindActions, empty, stat, haptic, openSheet, closeSheet, holdScroll,
 } from '../core/ui.js';
 import { icon } from '../core/icons.js';
 import { ALL, DEVICES, SHORTHAND, clueFor } from '../data/cryptic.js';
@@ -185,9 +185,7 @@ function paintView(){
    the top — which is what happened every time a set or a number was
    logged. Capture the offset, repaint, put it back. */
 function render(){
-  const y = window.scrollY;
-  paintView();
-  if (Math.abs(window.scrollY - y) > 1) window.scrollTo(0, y);
+  holdScroll(paintView);
 }
 
 /* ---------------- the clue ---------------- */

@@ -14,7 +14,7 @@ import { Slice, today, dayKey, daysBetween, uid, fmtDayShort, shiftDay } from '.
 import { ask } from '../core/ai.js';
 import {
   esc, toast, openSheet, closeSheet, sheetVal, sheetNum, bindActions,
-  empty, stat, haptic, avatarStyle, initials, num,
+  empty, stat, haptic, avatarStyle, initials, num, holdScroll,
 } from '../core/ui.js';
 import { icon } from '../core/icons.js';
 import { layoutOrbit, RING } from '../core/orbit.js';
@@ -114,9 +114,7 @@ function paintView(){
    the top — which is what happened every time a set or a number was
    logged. Capture the offset, repaint, put it back. */
 function render(){
-  const y = window.scrollY;
-  paintView();
-  if (Math.abs(window.scrollY - y) > 1) window.scrollTo(0, y);
+  holdScroll(paintView);
 }
 
 /* ---------------- orbit ----------------

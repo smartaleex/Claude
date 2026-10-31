@@ -15,7 +15,7 @@ import { Slice, today, dayKey, daysBetween, uid, shiftDay } from '../core/store.
 import { ask } from '../core/ai.js';
 import {
   esc, num, toast, openSheet, closeSheet, sheetVal, bindActions,
-  empty, stat, haptic,
+  empty, stat, haptic, holdScroll,
 } from '../core/ui.js';
 import { icon } from '../core/icons.js';
 import { LESSONS, LEVELS, SCENARIOS, lessonsIn } from '../data/spanish.js';
@@ -125,9 +125,7 @@ function paintView(){
    the top — which is what happened every time a set or a number was
    logged. Capture the offset, repaint, put it back. */
 function render(){
-  const y = window.scrollY;
-  paintView();
-  if (Math.abs(window.scrollY - y) > 1) window.scrollTo(0, y);
+  holdScroll(paintView);
 }
 
 /* ---------------- learn ---------------- */

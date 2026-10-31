@@ -9,7 +9,7 @@
 import { Slice, today, dayKey, keyToDate, daysBetween, uid, fmtDayShort } from '../core/store.js';
 import { ask, aiStatus } from '../core/ai.js';
 import {
-  esc, num, round, toast, openSheet, closeSheet, sheetVal, sheetNum, sheetRoot,
+  esc, num, round, toast, openSheet, closeSheet, sheetVal, sheetNum, sheetRoot, holdScroll,
   bindActions, empty, stat, haptic,
 } from '../core/ui.js';
 import { icon } from '../core/icons.js';
@@ -79,11 +79,17 @@ function checkComeback(){
     store.update(s => { s.comeback = { start: today(), weeks: 3, off: false, auto: true }; });
   }
 }
-/* Sets to do for an exercise today: the program's number, scaled while the
-   ramp runs (and without focus boosts, which wait until it is over). */
+/* Sets to do for an exercise today: always the program's number (4, 3, 3 and
+   so on). The comeback ramp eases in through reps and weight, never by
+   cutting sets. Focus boosts wait until the ramp is over. */
 function targetSets(ex, dk, orig){
-  const base = parseInt(ex.sets, 10) || 1, r = ramp();
-  return r.active ? cb.scaleSets(base, r.factor) : base + coach.bonusFor(BONUS, dk, orig ?? ex.name);
+  const base = parseInt(ex.sets, 10) || 1;
+  return ramp().active ? base : base + coach.bonusFor(BONUS, dk, orig ?? ex.name);
+}
+/* The reps to show: the program's range, or the eased-in version during the ramp. */
+function repsFor(ex){
+  const r = ramp();
+  return r.active ? cb.reviseReps(ex.reps, r.reps) : { text: String(ex.reps), changed: false };
 }
 const weekGoal = () => cb.weekTarget(ramp());
 const weekInBlock = () => Math.floor(daysBetween(store.get().blockStart, today()) / 7) + 1;
@@ -205,10 +211,8 @@ function paintView(){
    the top — which is what happened every time a set or a number was
    logged. Capture the offset, repaint, put it back. */
 function render(){
-  const y = window.scrollY;
-  try{ paintView(); }
-  catch (e){ console.error(e); snag(e); return; }
-  if (Math.abs(window.scrollY - y) > 1) window.scrollTo(0, y);
+  try{ holdScroll(paintView); }
+  catch (e){ console.error(e); snag(e); }
 }
 
 /* If a screen cannot be drawn, say so and offer a way out, rather than
@@ -324,7 +328,7 @@ function comebackBannerHTML(rp){
       <span class="tiny muted">${rp.daysLeft} day${rp.daysLeft === 1 ? '' : 's'} left</span>
     </div>
     <div class="card-note" style="margin-top:7px;line-height:1.6">
-      Sets are at ${Math.round(rp.factor * 100)}% and weights open about ${Math.round((1 - rp.weights) * 100)}% under last time. ${esc(rp.rpe)}
+      Every set stays as written. Reps ${rp.reps === 'bottom' ? 'start at the bottom of each range' : rp.reps === 'mid' ? 'sit in the middle of each range' : 'are back to the full range'} and weights open about ${Math.round((1 - rp.weights) * 100)}% under last time. ${esc(rp.rpe)}
       Aim for ${cb.weekTarget(rp)} sessions; ${cb.weekMinimum} still counts. Easing in is how you get back to full strength without a setback.
     </div>
     <button class="btn btn-ghost btn-sm" style="margin-top:8px" data-act="rampoff">I do not need this, run the full program</button>
@@ -365,7 +369,7 @@ function sessionHTML(sess){
           <span class="tiny" style="color:${d.color};font-weight:800">${d.label}</span>
         </div>
         <div class="card-note" style="margin-top:3px">${esc(d.subtitle)}</div>
-        <div class="tiny muted" style="margin-top:6px">${doneSets} of ${totalSets} sets logged${ramp().active ? ` · comeback week ${ramp().week}, sets at ${Math.round(ramp().factor*100)}%` : ''}</div>
+        <div class="tiny muted" style="margin-top:6px">${doneSets} of ${totalSets} sets logged${ramp().active ? ` · comeback week ${ramp().week}, lighter reps and weights` : ''}</div>
       </div>
       <button class="btn btn-sm btn-plain" data-act="abandon">Exit</button>
     </div>
@@ -458,6 +462,7 @@ function exerciseHTML(ex0, key, sess, d, hasNext){
   const swapped = ex.name !== ex.orig;
   const logged = sess.sets[key] || [];
   const rp = ramp();
+  const rv = repsFor(ex);
   const bonus = rp.active ? 0 : coach.bonusFor(BONUS, d.key, ex.orig);
   const target = targetSets(ex, d.key, ex.orig);
   const prev = store.get().lastByEx[ex.name];
@@ -476,7 +481,7 @@ function exerciseHTML(ex0, key, sess, d, hasNext){
         <div style="font-weight:700;font-size:15px;margin-top:6px;${doneAll?'opacity:.55':''}">${esc(ex.name)}</div>
         ${swapped ? `<div class="tiny" style="margin-top:2px;color:var(--accent-1);font-weight:700">Swapped from ${esc(ex.orig)}</div>` : ''}
         <div class="tiny muted mono" style="margin-top:3px">
-          ${logged.length}/${target} sets · ${esc(ex.reps)} reps ·
+          ${logged.length}/${target} sets · ${esc(rv.text)}${/each/i.test(rv.text) ? '' : ' reps'}${rv.changed ? ` (usually ${esc(ex.reps)})` : ''} ·
           ${straightInto ? `<span style="color:${d.color};font-weight:700">→ straight into next</span>` : `${esc(ex.rest)} rest`}
           ${ease != null ? ` · ease in at ~${ease}kg${stackNote(ex.name, ease)} (last ${prev.w}kg)`
             : prev?.w != null ? ` · ${prev.est ? 'try ' : 'last '}${prev.w}kg${stackNote(ex.name, prev.w)}${prev.est ? ' (est.)' : ''}` : ''}

@@ -7,7 +7,7 @@ import { Slice, today, shiftDay, lastNDays, fmtDay, fmtDayShort, uid } from '../
 import { ask, fileToImage, clean, aiStatus } from '../core/ai.js';
 import {
   esc, num, round, pct, toast, openSheet, closeSheet, sheetNum, bindActions,
-  meter, stat, empty, barChart, haptic, $$, tok,
+  meter, stat, empty, barChart, haptic, $$, tok, holdScroll,
 } from '../core/ui.js';
 import { icon } from '../core/icons.js';
 import { offlineMatch, offlineSuggest, looksBranded } from '../data/foods.js';
@@ -184,9 +184,7 @@ function paintView(){
    the top — which is what happened every time a set or a number was
    logged. Capture the offset, repaint, put it back. */
 function render(){
-  const y = window.scrollY;
-  paintView();
-  if (Math.abs(window.scrollY - y) > 1) window.scrollTo(0, y);
+  holdScroll(paintView);
 }
 
 /* ---------------- day view ---------------- */

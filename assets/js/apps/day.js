@@ -28,7 +28,7 @@ import { Slice, today, dayKey, shiftDay, lastNDays, daysBetween, uid, fmtDayShor
 import { icon } from '../core/icons.js';
 import {
   esc, num, round, toast, openSheet, closeSheet, sheetVal, sheetNum,
-  bindActions, empty, stat, haptic,
+  bindActions, empty, stat, haptic, holdScroll,
 } from '../core/ui.js';
 
 /* Anchors are physical and small on purpose. "Meditate" is not here —
@@ -300,9 +300,7 @@ function paintView(){
    the top — which is what happened every time a set or a number was
    logged. Capture the offset, repaint, put it back. */
 function render(){
-  const y = window.scrollY;
-  paintView();
-  if (Math.abs(window.scrollY - y) > 1) window.scrollTo(0, y);
+  holdScroll(paintView);
 }
 
 /* ---------------- today ---------------- */
