@@ -322,8 +322,9 @@ export function unstick(y = scroller()?.scrollTop || 0){
 }
 
 function watchKeyboard(){
+  if (typeof window === 'undefined' || typeof document === 'undefined') return;   // loaded outside a browser (tests)
   const vv = window.visualViewport;
-  if (!vv || typeof document === 'undefined') return;
+  if (!vv) return;
   const root = document.documentElement;
   let y0 = 0, raf = 0, backT = 0, wasTyping = false;
 

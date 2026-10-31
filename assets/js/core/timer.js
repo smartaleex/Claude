@@ -252,7 +252,7 @@ async function keepAwake(on){
 /* The OS drops the wake lock whenever the page is hidden, so take it
    back when the user returns — and re-sync so a rest that finished while
    the phone was locked shows as finished rather than frozen. */
-document.addEventListener('visibilitychange', () => {
+if (typeof document !== 'undefined') document.addEventListener('visibilitychange', () => {
   if (document.hidden) return;
   if (sessionLive()){ keepAwake(true); tick(); }
 });

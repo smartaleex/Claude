@@ -18,6 +18,7 @@ import {
   stackToKg, kgToStack, stackConfigFor, defaultStack,
 } from '../data/swaps.js';
 import * as cb from '../core/comeback.js';
+import { openingFor as nextWeight } from '../core/sets.js';
 import { compress, addPhoto, listPhotos, deletePhoto, updatePhoto, blobToImage, urlFor, releaseUrls } from '../core/photos.js';
 import * as timer from '../core/timer.js';
 import * as coach from '../core/coach.js';
@@ -431,19 +432,19 @@ function stackNote(name, kg){
 
 /* One tap for the common case: you did the sets the plan said, at the
    weight you usually use. Fills every remaining set. */
-function openingFor(exName){
-  const prev = store.get().lastByEx[exName], rp = ramp();
-  return rp.active && prev?.w != null && !prev.est ? cb.openingWeight(prev.w, rp.weights) : (prev?.w ?? null);
+/* The weight a new set for this exercise should open with (see core/sets.js). */
+function openingFor(exName, key){
+  const sess = store.get().sessions[store.get().activeId];
+  return nextWeight({ logged: sess?.sets[key] || [], prev: store.get().lastByEx[exName], ramp: ramp() });
 }
 
 function fillSets(key, exName, count){
-  const prev = store.get().lastByEx[exName];
-  const w = openingFor(exName);
+  const { w } = openingFor(exName, key);
   store.update(s => {
     const sess = s.sessions[s.activeId];
     if (!sess.sets[key]) sess.sets[key] = [];
     for (let i = 0; i < count; i++) sess.sets[key].push({ w });
-    if (w != null && !(prev?.w === w)) s.lastByEx[exName] = { w };
+    if (w !== null) s.lastByEx[exName] = { w };
   });
   haptic(14);
   render();
@@ -466,7 +467,7 @@ function exerciseHTML(ex0, key, sess, d, hasNext){
   const bonus = rp.active ? 0 : coach.bonusFor(BONUS, d.key, ex.orig);
   const target = targetSets(ex, d.key, ex.orig);
   const prev = store.get().lastByEx[ex.name];
-  const ease = rp.active && prev?.w != null && !prev.est ? cb.openingWeight(prev.w, rp.weights) : null;
+  const open = openingFor(ex.name, key);                 // what the next set will start at, and why
   const remaining = Math.max(0, target - logged.length);
   const doneAll = logged.length >= target;
   const ts = TAG_STYLE[ex.tag] || TAG_STYLE.Isolation;
@@ -483,8 +484,10 @@ function exerciseHTML(ex0, key, sess, d, hasNext){
         <div class="tiny muted mono" style="margin-top:3px">
           ${logged.length}/${target} sets · ${esc(rv.text)}${/each/i.test(rv.text) ? '' : ' reps'}${rv.changed ? ` (usually ${esc(ex.reps)})` : ''} ·
           ${straightInto ? `<span style="color:${d.color};font-weight:700">→ straight into next</span>` : `${esc(ex.rest)} rest`}
-          ${ease != null ? ` · ease in at ~${ease}kg${stackNote(ex.name, ease)} (last ${prev.w}kg)`
-            : prev?.w != null ? ` · ${prev.est ? 'try ' : 'last '}${prev.w}kg${stackNote(ex.name, prev.w)}${prev.est ? ' (est.)' : ''}` : ''}
+          ${open.why === 'session' ? ` · next set ${open.w}kg${stackNote(ex.name, open.w)}`
+            : open.why === 'ease' ? ` · ease in at ~${open.w}kg${stackNote(ex.name, open.w)} (last ${prev.w}kg)`
+            : open.why === 'est' ? ` · try ${open.w}kg${stackNote(ex.name, open.w)} (est.)`
+            : open.why === 'last' ? ` · last ${open.w}kg${stackNote(ex.name, open.w)}` : ''}
         </div>
       </div>
       <div style="display:flex;gap:7px;flex:none;align-items:center">
@@ -503,7 +506,7 @@ function exerciseHTML(ex0, key, sess, d, hasNext){
 
     ${remaining > 1 || (remaining === 1 && !logged.length) ? `<button class="btn btn-ghost btn-sm" style="margin-top:10px"
         data-act="fillsets" data-k="${key}" data-n="${esc(ex.name)}" data-c="${remaining}">
-        Log all ${remaining} as planned${(ease ?? prev?.w) != null ? ` at ${ease ?? prev.w}kg` : ''}</button>` : ''}
+        Log all ${remaining} as planned${open.w !== null ? ` at ${open.w}kg` : ''}</button>` : ''}
 
     ${logged.length ? `<div class="chips" style="margin-top:10px">
         ${logged.map((s,i) => `<button class="chip on" style="font-size:12.5px;padding:7px 13px"
@@ -1393,7 +1396,7 @@ function openSwap(exName, orig, dk){
 }
 
 function addSet(key, exName){
-  const w = openingFor(exName);
+  const { w } = openingFor(exName, key);
   store.update(s => {
     const sess = s.sessions[s.activeId];
     if (!sess.sets[key]) sess.sets[key] = [];
