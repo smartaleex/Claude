@@ -23,7 +23,11 @@ let t = await text();
 ok(/Up next/i.test(t) && /Phase 2/.test(t), 'plan: up-next hero and phase');
 ok(/Pick today's session/i.test(t) && /Back \+ Biceps/.test(t) && /Chest \+ Triceps/.test(t) && /Legs \+ Core/.test(t) && /Shoulders \+ Arms/.test(t), 'plan: all four days listed');
 ok(/How to progress/i.test(t), 'plan: progression rules');
-ok(/1 of 4 sessions done this week|0 of 4|2 of 4/.test(t), 'plan: weekly count (' + (t.match(/\d of \d sessions[^\n]*/) || [''])[0] + ')');
+// The seed is dated relative to today, so how many fall in "this week" depends on the weekday.
+const monday = new Date(); monday.setDate(monday.getDate() - ((monday.getDay() + 6) % 7));
+const mondayKey = dayKey((Date.now() - monday.getTime()) / 864e5 | 0);
+const thisWeek = Object.values(sessions).filter(x => x.done && x.dayKey >= mondayKey).length;
+ok(new RegExp(`\\b${thisWeek} of 4`).test(t), `plan: weekly count is ${thisWeek} of 4 (` + (t.match(/\d of \d sessions[^\n]*/) || [''])[0] + ')');
 
 // ---- Goal
 await tab('goal');
