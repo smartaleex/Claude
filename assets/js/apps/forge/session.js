@@ -11,6 +11,7 @@ import { gearOf, kgToStack, stackConfigFor } from '../../data/swaps.js';
 import { WARMUPS, TAG_STYLE } from '../../data/workouts.js';
 import * as timer from '../../core/timer.js';
 import * as coach from '../../core/coach.js';
+import { saveSessionToHealth } from '../../core/native-health.js';
 import { openingFor } from './logging.js';
 import { ui, dayOf, fmtSet, phase, ramp, render, repsFor, resolve, store, targetSets } from './state.js';
 
@@ -166,11 +167,13 @@ export function startSession(k){ newSession(k); haptic(); render(); }
 /* Finishing never requires logged sets — plenty of sessions happen
    without touching the phone, and refusing those makes history lie. */
 export function finishSession(){
+  let span = null;
   store.update(st => {
     const sess = st.sessions[st.activeId];
     if (sess){
       sess.done = true;
       sess.endedAt = Date.now();
+      span = [sess.startedAt, sess.endedAt];
       /* Only keep a duration that is plausibly a workout. Forget to finish
          until the next morning and "14 hours" is noise, not data. */
       const mins = sess.startedAt ? Math.round((sess.endedAt - sess.startedAt) / 60000) : 0;
@@ -179,6 +182,7 @@ export function finishSession(){
     st.activeId = null;
   });
   timer.stop();
+  if (span) saveSessionToHealth(...span);       // iPhone app + Apple Health, if switched on
   haptic(20);
   toast('Session done ✓');
   render();

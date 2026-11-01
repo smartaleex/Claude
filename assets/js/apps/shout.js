@@ -14,7 +14,7 @@ import { Slice, today, daysBetween, uid, fmtDayShort, shiftDay } from '../core/s
 import { ask } from '../core/ai.js';
 import {
   esc, toast, openSheet, closeSheet, sheetVal, bindActions,
-  empty, stat, haptic, avatarStyle, initials, num, holdScroll,
+  empty, stat, haptic, avatarStyle, initials, num, holdScroll, copyText,
 } from '../core/ui.js';
 import { icon } from '../core/icons.js';
 import { layoutOrbit, RING } from '../core/orbit.js';
@@ -510,8 +510,8 @@ Respond with ONLY this JSON:
     bindActions(document.querySelector('.sheet'), {
       ...currentSheetHandlers(m),
       copy: async d => {
-        try{ await navigator.clipboard.writeText(d.t); toast('Copied ✓'); }
-        catch{ toast('Copy failed — select and copy manually'); }
+        if (await copyText(d.t)) toast('Copied ✓');
+        else toast('Copy failed — select and copy manually');
       },
       makeplan: d => {
         store.update(s => s.plans.push({ id:uid(), mateIds:[d.m], what:d.w, when:shiftDay(today(),7), done:false }));

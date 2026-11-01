@@ -49,6 +49,7 @@ assets/
       dump.js             the brain dump
       backup.js           download / restore a backup file
       worker.js           service worker registration and update reload
+      native-settings.js  the iPhone-only block in Settings (lock, reminders, Health)
     core/               logic and helpers shared by tools
       store.js            Slice: saved state (localStorage, debounced)
       ui.js               sheets, toasts, charts, bindActions, scroll and keyboard handling
@@ -62,6 +63,9 @@ assets/
       lift.js             the "Lift me" sheet
       orbit.js            People: where each person sits
       photos.js           photos in IndexedDB
+      native.js           the doorway to the iPhone app (no-ops in a browser)
+      native-prefs.js     what is switched on in the iPhone app (reminders, Health)
+      native-health.js    Apple Health offers (sleep, weight) and saving workouts
       cryptic-ai.js       machine-made cryptic clues, verified
     apps/               one file (or folder) per tool
       day.js              Day: meds, sleep, mood, anchors
@@ -79,6 +83,7 @@ assets/
       lift.js             jokes, quotes, daily lines (tagged, never generated)
       spanish.js          the Spanish curriculum
       cryptic*.js         clues and the wordplay verifier
+ios/                    the iPhone app: Xcode project, Swift, widget. See ios/README.md
 tests/
   run.mjs               one command runs everything (npm test)
   lib.mjs               shared helpers: static server, headless phone, checks
@@ -137,6 +142,8 @@ that module's `actions`.
 | Which quote shows today | `core/mind.js` | |
 | AI not answering | `core/ai.js`, `shell/ai-setup.js` | tiers: Claude artifact, Gemini, offline |
 | Phone shows an old build | `sw.js` | bump `CACHE`; Settings has "Force update" |
+| Something only the iPhone app can do | `core/native.js` + `ios/AlexHQ/NativeBridge.swift` | add a `case` in Swift and a wrapper in JS; `tests/unit/ios-project.test.mjs` checks they match |
+| iPhone app will not build | `ios/README.md`, `ios/tools/make_project.rb` | the project file is generated; regenerate after adding a Swift file |
 
 ## How state is saved
 

@@ -110,6 +110,14 @@ npm run audit       # dead exports, duplicates, files that have grown too big
 
 ---
 
+## iPhone app
+
+Alex HQ also builds as a real iPhone app (real haptics, a lock-screen rest timer, reminders,
+Apple Health, Face ID, a home-screen widget). It contains this web app unchanged; see
+[ios/README.md](ios/README.md) for the setup steps.
+
+---
+
 ## Changing the code
 
 Start with [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md). It has the file map and a

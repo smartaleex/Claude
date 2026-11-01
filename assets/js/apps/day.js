@@ -26,9 +26,10 @@
 
 import { Slice, today, lastNDays, uid, fmtDayShort } from '../core/store.js';
 import { icon } from '../core/icons.js';
+import { offerFromHealth } from '../core/native-health.js';
 import {
   esc, toast, openSheet, closeSheet, sheetVal, sheetNum,
-  bindActions, stat, haptic, holdScroll,
+  bindActions, stat, haptic, holdScroll, copyText,
 } from '../core/ui.js';
 
 /* Anchors are physical and small on purpose. "Meditate" is not here —
@@ -669,8 +670,8 @@ function openReport(){
   `);
   bindActions(document.querySelector('.sheet'), {
     copy: async () => {
-      try{ await navigator.clipboard.writeText(text); toast('Copied ✓'); }
-      catch{ toast('Select the text and copy it manually'); }
+      if (await copyText(text)) toast('Copied ✓');
+      else toast('Select the text and copy it manually');
     },
     close: closeSheet,
   });
@@ -791,6 +792,7 @@ function openSleep(){
     },
     close: closeSheet,
   });
+  offerFromHealth('sleep', 'sl-h');        // iPhone app: last night from Apple Health, one tap
 }
 
 function openReset(id){

@@ -3,6 +3,8 @@
    No framework: template strings + delegated events.
    ============================================================ */
 
+import { haptic as nativeHaptic, copyText as nativeCopy } from './native.js';
+
 /** Escape untrusted text before it goes into innerHTML. */
 export const esc = s => String(s ?? '').replace(/[&<>"']/g, c => (
   { '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[c]
@@ -22,7 +24,31 @@ export const num = n => Math.round(n).toLocaleString('en-AU');
 export const money = (n, dp = 0) => (n < 0 ? '-' : '') + '$' + Math.abs(n).toLocaleString('en-AU',
   { minimumFractionDigits: dp, maximumFractionDigits: dp });
 
-export const haptic = (ms = 12) => { try{ navigator.vibrate?.(ms); }catch{} };
+/* A tap you can feel. In the iPhone app this is a real haptic (Safari on
+   iPhone has no vibration API, so on the web it does nothing there); the
+   old millisecond argument maps to a light, selection or medium tap. */
+export const haptic = (ms = 12) => {
+  nativeHaptic(ms <= 8 ? 'selection' : ms >= 20 ? 'medium' : 'light');
+  try{ navigator.vibrate?.(ms); }catch{}
+};
+
+/* Is this colour dark? Reads "#RRGGBB", "#RGB" or "rgb(r, g, b)". */
+export function isDarkColor(c){
+  let r, g, b;
+  const hex = /^#([0-9a-f]{3}|[0-9a-f]{6})$/i.exec(String(c).trim());
+  if (hex){
+    const h = hex[1].length === 3 ? hex[1].replace(/./g, x => x + x) : hex[1];
+    [r, g, b] = [0, 2, 4].map(i => parseInt(h.slice(i, i + 2), 16));
+  } else {
+    const m = /rgba?\(\s*(\d+)[ ,]+(\d+)[ ,]+(\d+)/i.exec(String(c));
+    if (!m) return false;
+    [r, g, b] = [m[1], m[2], m[3]].map(Number);
+  }
+  return (0.299 * r + 0.587 * g + 0.114 * b) < 128;
+}
+
+/** Copy text to the clipboard, in the app or the browser. Resolves to true if it worked. */
+export const copyText = text => nativeCopy(text);
 
 /* ---------------- toast ---------------- */
 let toastEl, toastTimer;

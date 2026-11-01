@@ -12,6 +12,7 @@ import { rerender } from './router.js';
 import { SKINS, setSkin, setTheme } from './look.js';
 import { openAISetup } from './ai-setup.js';
 import { doExport, doImport } from './backup.js';
+import { nativeSlotHTML, fillNativeBlock } from './native-settings.js';
 
 function aiBlockHTML(){
   const ai = aiStatus();
@@ -156,11 +157,13 @@ export function openSettings(){
     ${themeHTML(theme)}
     ${lookHTML(skin, theme)}
     ${orderHTML()}
+    ${nativeSlotHTML()}
     ${dataHTML()}
     ${buildHTML()}
     <button class="btn btn-ghost block" style="margin-top:16px" data-act="close">Done</button>
   `);
   showBuild();
+  fillNativeBlock();        // the iPhone-only block; does nothing in a browser
 
   bindActions(document.querySelector('.sheet'), {
     ai: openAISetup,

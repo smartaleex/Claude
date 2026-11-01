@@ -10,6 +10,7 @@ import { homeScreen } from './shell/home.js';
 import { moreScreen } from './shell/more.js';
 import { applyStoredLook } from './shell/look.js';
 import { registerWorker } from './shell/worker.js';
+import { watchAutoBackup } from './shell/backup.js';
 import { toast } from './core/ui.js';
 
 (async function boot(){
@@ -30,4 +31,5 @@ import { toast } from './core/ui.js';
   window.addEventListener('unhandledrejection', e => { console.error(e.reason); snag(); });
 
   registerWorker();
+  watchAutoBackup();     // iPhone app only: a daily copy to the Files app
 })();

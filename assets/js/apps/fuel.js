@@ -10,6 +10,7 @@ import {
   meter, stat, empty, barChart, haptic, tok, holdScroll,
 } from '../core/ui.js';
 import { icon } from '../core/icons.js';
+import { offerFromHealth } from '../core/native-health.js';
 import { offlineMatch, offlineSuggest, looksBranded } from '../data/foods.js';
 
 /* Targets carried over verbatim from the original Fuel artifact
@@ -793,6 +794,7 @@ function openWeight(){
     },
     close: closeSheet,
   });
+  offerFromHealth('weight', 'w-kg');       // iPhone app: latest weight from Apple Health, one tap
 }
 
 /* ---------------- events ---------------- */

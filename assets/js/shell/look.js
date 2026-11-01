@@ -7,6 +7,8 @@
    ============================================================ */
 
 import { navigate, currentApp } from './router.js';
+import { theme as nativeTheme } from '../core/native.js';
+import { isDarkColor } from '../core/ui.js';
 
 export const SKINS = [
   ['paper',      'Paper',      'Warm paper, black ink, one red. Serif headlines and ruled lines.'],
@@ -15,11 +17,14 @@ export const SKINS = [
   ['lichen',     'Lichen',     'Sage and moss with a little terracotta. Soft serif, rounded, calm.'],
 ];
 
-/* Keep the phone's status bar the same colour as the page. */
+/* Keep the phone's status bar the same colour as the page. In the iPhone app
+   this also tells the native frame, so its background and status bar text match. */
 export function syncThemeColor(){
   setTimeout(() => {
     const c = getComputedStyle(document.documentElement).getPropertyValue('--bg').trim();
-    if (c) document.querySelector('meta[name="theme-color"]')?.setAttribute('content', c);
+    if (!c) return;
+    document.querySelector('meta[name="theme-color"]')?.setAttribute('content', c);
+    nativeTheme(c, isDarkColor(c));
   }, 0);
 }
 

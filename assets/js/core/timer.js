@@ -22,6 +22,7 @@
    ============================================================ */
 
 import { icon } from './icons.js';
+import * as native from './native.js';
 
 /* ---------------- pure helpers (unit-tested) ---------------- */
 
@@ -66,6 +67,13 @@ const persist = () => { try{ rest ? sessionStorage.setItem(KEY, JSON.stringify(r
 
 /* ---------------- public API ---------------- */
 
+/* In the iPhone app a rest also becomes a notification for when it ends and
+   a countdown on the lock screen, because iOS freezes this page the moment the
+   phone locks. */
+function tellPhone(){
+  if (rest) native.restStart(restRemaining(rest), 'Next set');
+}
+
 /** Forge calls this after every render with what the timer needs to know. */
 export function configure({ session, options, minutes, openSettings }){
   getSession = () => session || null;
@@ -83,6 +91,7 @@ export function startRest(seconds){
   persist();
   lastMode = '';            // force the dock to redraw into "running"
   sync();
+  tellPhone();
 }
 
 export function adjustRest(delta){
@@ -92,12 +101,13 @@ export function adjustRest(delta){
   rest.fired = false;
   if (restRemaining(rest) <= 0) return clearRest();
   persist(); lastMode = ''; sync();
+  tellPhone();
 }
 
-export function clearRest(){ rest = null; persist(); lastMode = ''; sync(); }
+export function clearRest(){ rest = null; persist(); lastMode = ''; sync(); native.restStop(); }
 
 /** Called when the session ends or is abandoned. */
-export function stop(){ rest = null; persist(); hide(); }
+export function stop(){ rest = null; persist(); hide(); native.restStop(); }
 
 /* ---------------- dock ---------------- */
 
@@ -220,7 +230,9 @@ function unlockAudio(){
 }
 
 function alertDone(){
-  try{ navigator.vibrate?.([220, 90, 220]); }catch{}      // ignored on iOS, works on Android
+  native.haptic('success');                                 // the iPhone app: a real tap
+  native.restStop();                                        // the countdown is over; clear the lock-screen one
+  try{ navigator.vibrate?.([220, 90, 220]); }catch{}      // ignored on iOS Safari, works on Android
   if (!opts.beep || !audio) return;
   try{
     [0, 0.22].forEach(off => {

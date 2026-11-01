@@ -16,6 +16,7 @@ import { readContext, dailyFor } from '../core/mind.js';
 import { APPS, appOrder } from './registry.js';
 import { navigate } from './router.js';
 import { loadItems, openItems, tickItem, openDump } from './dump.js';
+import { snapshot } from '../core/native.js';
 import { openSettings } from './settings.js';
 import { openAISetup } from './ai-setup.js';
 
@@ -134,17 +135,23 @@ function onMindHTML(todo){
 /* Four tiles, fixed order, always the same shape, so you learn where to
    look instead of reading it fresh each time. Numbers only; anything that
    needs a sentence belongs further down the page. */
-function glanceHTML(cards){
+function glanceItems(cards){
   const get = id => cards.find(c => c.id === id) || {};
   const fuel = get('fuel'), forge = get('forge'), clear = get('clear'), day = get('day');
 
-  const items = [
+  return [
     // One short word each — anything longer ellipsises at four across.
     { label:'Eaten', value: (fuel.headline || '—').split('/')[0].trim(), sub:'kcal',   go:'fuel' },
     { label:'Gym',   value: (forge.badge || '—'),                        sub:'wk',     go:'forge' },
     { label:'Done',  value: (day.headline || '—').replace(' done','').replace(' of ','/'), sub:'anchors', go:'day' },
     { label:'Zyn',   value: (clear.detail || '').match(/(\d+)\s*pouch/)?.[1] ?? '—', sub:'today', go:'clear' },
   ];
+}
+
+function glanceHTML(cards){
+  const items = glanceItems(cards);
+  // The iPhone app's home-screen widget shows these same four numbers.
+  snapshot(items.map(({ label, value, sub }) => ({ label, value, sub })));
 
   return `
   <div class="glance in in-2">
