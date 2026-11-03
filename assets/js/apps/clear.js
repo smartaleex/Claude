@@ -32,6 +32,7 @@ const store = new Slice('clear', {
 const TAGS = ['waking','coffee','after food','work','driving','stress','boredom','social','drinking','wind-down'];
 
 let tab = 'today';
+let pendingTag = null;     // the reason picked before logging; the next pouch takes it, then it clears
 let root = null;
 let tickTimer = null;
 
@@ -243,7 +244,16 @@ function todayHTML(){
     </div>` : ''}
   </div>
 
-  <div class="sec">Log one</div>
+  <div class="sec">What prompted it?</div>
+  <div class="chips in">
+    ${TAGS.map(t => `<button class="chip ${pendingTag===t?'on':''}" data-act="why" data-t="${esc(t)}"
+      style="font-size:13px;padding:9px 13px">${esc(t)}</button>`).join('')}
+  </div>
+  <div class="tiny muted" style="margin:8px 0 0">
+    Optional. Pick the reason first, then tap a strength. Two weeks of this and the pattern gets obvious.
+  </div>
+
+  <div class="sec">Log one${pendingTag ? ' &middot; ' + esc(pendingTag) : ''}</div>
   <div class="chips in">
     ${s.strengths.map(mg => `<button class="chip" data-act="log" data-mg="${mg}"
       style="font-size:16px;font-weight:700;padding:14px 22px">${mg}mg</button>`).join('')}
@@ -418,14 +428,17 @@ function planHTML(){
 
 /* ---------------- actions ---------------- */
 function logPouch(mg){
+  const tag = pendingTag;
+  pendingTag = null;
   store.update(s => {
-    s.logs.push({ id:uid(), t:Date.now(), mg, tag:null });
+    s.logs.push({ id:uid(), t:Date.now(), mg, tag });
     if (!s.strengths.includes(mg)) s.strengths = [...s.strengths, mg].sort((a,b) => a-b);
   });
   haptic();
   const t = today();
   const over = mgOn(t) > budgetFor(t);
-  toast(over ? `${mg}mg logged — over budget now` : `${mg}mg logged ✓`);
+  const why = tag ? ` · ${tag}` : '';
+  toast(over ? `${mg}mg logged${why} — over budget now` : `${mg}mg logged${why} ✓`);
   render();
 }
 
@@ -525,6 +538,7 @@ function bind(){
   bindActions(root, {
     tab: d => { tab = d.v; render(); },
     log: d => logPouch(+d.mg),
+    why: d => { pendingTag = pendingTag === d.t ? null : d.t; haptic(6); render(); },
     custom: openCustom,
     tag: d => openTag(d.id),
     reuse: d => {

@@ -11,9 +11,9 @@ import { theme as nativeTheme } from '../core/native.js';
 import { isDarkColor } from '../core/ui.js';
 
 export const SKINS = [
-  ['paper',      'Paper',      'Warm paper, black ink, one red. Serif headlines and ruled lines.'],
-  ['instrument', 'Instrument', 'Near-black with amber. Condensed capitals, mono readouts, square corners.'],
-  ['poster',     'Poster',     'White, black rules, cobalt and signal yellow. Heavy type, no curves.'],
+  ['paper',      'Paper',      'Warm paper, soft ink, muted terracotta. Serif headlines, fine ruled lines.'],
+  ['instrument', 'Instrument', 'Charcoal with muted amber. Clean sans, mono readouts, near-square corners.'],
+  ['poster',     'Poster',     'Clean white, hairline rules, dusty cobalt. Crisp sans, gently squared.'],
   ['lichen',     'Lichen',     'Sage and moss with a little terracotta. Soft serif, rounded, calm.'],
 ];
 

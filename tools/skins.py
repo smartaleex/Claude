@@ -23,96 +23,94 @@ OUT = pathlib.Path(__file__).resolve().parent.parent / 'assets' / 'css' / 'skins
 SKINS = {
 
   # ---- PAPER ------------------------------------------------------------
-  # A field notebook. Warm paper, black ink, one vermilion. Serif headlines,
+  # A field notebook. Warm paper, soft ink, one muted terracotta. Serif headlines,
   # typewriter labels, hairline rules, almost no rounding, no shadows.
   'paper': dict(
-    name='Paper', blurb='Warm paper, black ink, one red. Serif headlines, ruled lines.',
+    name='Paper', blurb='Warm paper, soft ink, muted terracotta. Serif headlines, fine ruled lines.',
     auto='system',
     light=dict(
       bg='#EEE9DD', bg_sunk='#E0D9C7', surface='#F8F4EA', surface_2='#EAE4D5',
       line='#C9C1AB', line_soft='#DCD5C2',
-      ink='#1C1A15', ink_2='#443F37', muted='#665F52', faint='#888270',
-      accent='#AC2F10', accent_2='#1C1A15', on_accent='#FBF5E8',
+      ink='#2A2720', ink_2='#4A453B', muted='#686154', faint='#837D6C',
+      accent='#9C4A2E', accent_2='#2A2720', on_accent='#FBF5E8',
       good='#2A6747', warn='#8F5300', bad='#A3261B',
-      hues=['#AC2F10', '#2E4E7E', '#566B2A', '#69395B', '#8F5F08'],
+      hues=['#9C4A2E', '#3F5C86', '#5E7036', '#74476A', '#8F6A1A'],
     ),
     dark=dict(
       bg='#15130E', bg_sunk='#0E0C08', surface='#1F1C15', surface_2='#29251C',
       line='#3A352A', line_soft='#2D291F',
-      ink='#EFE9DA', ink_2='#CBC4B1', muted='#A39C88', faint='#746F5F',
-      accent='#F0714A', accent_2='#EFE9DA', on_accent='#1E0D06',
+      ink='#E9E3D4', ink_2='#C6BFAC', muted='#A0997F', faint='#746F5F',
+      accent='#E08A68', accent_2='#E9E3D4', on_accent='#1E0D06',
       good='#6FC499', warn='#E3A63D', bad='#F0786C',
-      hues=['#F0714A', '#86A4D6', '#A8BE72', '#CC93BC', '#E3A63D'],
+      hues=['#E08A68', '#86A4D6', '#A8BE72', '#CC93BC', '#E3A63D'],
     ),
     shared={
       'f-display': "'Newsreader','Iowan Old Style','Palatino Linotype',Georgia,serif",
       'f-body': "'Public Sans',system-ui,-apple-system,'Segoe UI',sans-serif",
       'f-mono': "'IBM Plex Mono',ui-monospace,'SF Mono',Menlo,Consolas,monospace",
       'f-num': 'var(--f-display)',
-      'w-display': '600', 'ls-display': '-.014em', 'tt-display': 'none', 'st-display': '100%', 'lh-display': '1.06',
-      'fs-h1': '36px', 'fs-hero': '58px', 'fs-stat': '30px', 'fs-card': '19px',
+      'w-display': '500', 'ls-display': '-.012em', 'tt-display': 'none', 'st-display': '100%', 'lh-display': '1.08',
+      'fs-h1': '32px', 'fs-hero': '44px', 'fs-stat': '27px', 'fs-card': '18px',
       'f-label': 'var(--f-mono)', 'fs-label': '10.5px', 'ls-label': '.14em', 'tt-label': 'uppercase', 'w-label': '500',
       'f-btn': 'var(--f-body)', 'tt-btn': 'none', 'ls-btn': '0', 'w-btn': '600',
       'r-xs': '2px', 'r-sm': '3px', 'r-md': '4px', 'r-lg': '5px', 'r-xl': '6px',
       'r-ctl': '3px', 'r-bar': '1px', 'r-av': '2px', 'r-round': '999px',
-      'bd': '1px solid var(--line)', 'bd-soft': '1px solid var(--line-soft)', 'bd-strong': '1px solid var(--ink)',
-      'sh-card': 'none', 'sh-pop': '0 14px 34px -16px rgba(28,26,21,.38)', 'sh-inset': 'none', 'sh-press': 'none',
+      'bd': '1px solid var(--line)', 'bd-soft': '1px solid var(--line-soft)', 'bd-strong': '1px solid var(--ink-2)',
+      'sh-card': 'none', 'sh-pop': '0 14px 34px -16px rgba(28,26,21,.30)', 'sh-inset': 'none', 'sh-press': 'none',
       'clay': '0 0 0 1px var(--line)', 'clay-sm': '0 0 0 1px var(--line)', 'clay-in': 'inset 0 0 0 1px var(--line)',
-      'clay-press': 'inset 0 0 0 1px var(--ink)',
+      'clay-press': 'inset 0 0 0 1px var(--ink-2)',
       'focus': '0 0 0 2px var(--accent-1)',
       'bar-h': '6px', 'meter-h': '6px',
       'tabbar-h': '56px', 'tb-inset': '0px', 'tb-bottom': '0px', 'tb-r': '0px',
-      'tb-wrap-bg': 'var(--surface)', 'tb-wrap-bd': '1px solid var(--ink)', 'tb-in-bg': 'transparent', 'tb-in-bd': 'none', 'tb-sh': 'none',
-      'seg-on-bg': 'var(--surface)', 'seg-on-fg': 'var(--ink)', 'seg-on-bd': '1px solid var(--ink)',
+      'tb-wrap-bg': 'var(--surface)', 'tb-wrap-bd': '1px solid var(--line)', 'tb-in-bg': 'transparent', 'tb-in-bd': 'none', 'tb-sh': 'none',
+      'seg-on-bg': 'var(--surface)', 'seg-on-fg': 'var(--ink)', 'seg-on-bd': '1px solid var(--line)',
       'tab-ind': '2px', 'tab-on-bg': 'transparent', 'tab-on-fg': 'var(--accent-1)', 'tab-on-sh': 'none', 'tab-r': '0px',
       'icon-w': '1.5', 'icon-cap': 'round', 'icon-join': 'round',
       'ease-squish': 'cubic-bezier(.2,.7,.2,1)',
       'wash': 'none',
       'grain': "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.8' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 .1 0 0 0 0 .08 0 0 0 0 .05 0 0 0 .07 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E\")",
-      'hero-bg': 'var(--ink)', 'hero-fg': 'var(--bg)', 'hero-deco': 'none',
-      'now-bg': 'var(--accent-1)', 'now-fg': 'var(--on-accent)',
+      'hero-deco': 'none',
       'calm-bg': 'var(--surface-2)', 'calm-fg': 'var(--ink)',
-      'tile-bg': 'var(--ink)', 'tile-fg': 'var(--bg)',
-      'sec-rule': '1px solid var(--line)', 'hero-bd': 'none', 'now-bd': 'none',
-      'scrim': 'color-mix(in srgb, var(--ink) 48%, transparent)', 'scrim-blur': '0px',
+      'sec-rule': '1px solid var(--line)', 'hero-bd': '1px solid var(--line)', 'now-bd': '1px solid var(--line)',
+      'scrim': 'color-mix(in srgb, var(--ink) 40%, transparent)', 'scrim-blur': '0px',
       'grip-w': '34px', 'grip-h': '2px',
       'av-s': '28%', 'av-l': '38%',
     },
   ),
 
   # ---- INSTRUMENT -------------------------------------------------------
-  # A gauge cluster. Near-black, amber, condensed capitals, monospaced
+  # A gauge cluster, turned down. Charcoal, muted amber, clean sans, monospaced
   # readouts, square corners, graph-paper hero. Built for the gym at night.
   'instrument': dict(
-    name='Instrument', blurb='Near-black with amber. Condensed caps, mono readouts, square corners.',
+    name='Instrument', blurb='Charcoal with muted amber. Clean sans, mono readouts, near-square corners.',
     auto='dark',
     light=dict(
       bg='#E5E5DE', bg_sunk='#D6D6CD', surface='#F2F2EC', surface_2='#E1E1D8',
       line='#BDBDB1', line_soft='#D2D2C7',
-      ink='#10110E', ink_2='#3A3B34', muted='#5F6056', faint='#7E7F76',
-      accent='#9A4600', accent_2='#10110E', on_accent='#FFF7EE',
+      ink='#24261F', ink_2='#44463D', muted='#62645A', faint='#7A7C72',
+      accent='#835418', accent_2='#24261F', on_accent='#FFF7EE',
       good='#1D6633', warn='#8E5200', bad='#B3261B',
-      hues=['#9A4600', '#0A64B0', '#2B7A38', '#7436B5', '#B3261B'],
+      hues=['#8A5A1C', '#2A6AA3', '#3A7A44', '#7A4DA8', '#B0392E'],
     ),
     dark=dict(
-      bg='#0B0C0A', bg_sunk='#070806', surface='#141512', surface_2='#1C1D19',
-      line='#2C2E28', line_soft='#21231E',
-      ink='#ECEBE3', ink_2='#BEBDB2', muted='#92938A', faint='#696A61',
-      accent='#FFB000', accent_2='#ECEBE3', on_accent='#171000',
-      good='#7BDB9B', warn='#FF8F3F', bad='#FF6A5E',
-      hues=['#FFB000', '#62BDFF', '#8EE093', '#C9A0FF', '#FF6A5E'],
+      bg='#121310', bg_sunk='#0C0D0B', surface='#1A1B17', surface_2='#232420',
+      line='#34362F', line_soft='#292B25',
+      ink='#E6E5DC', ink_2='#BDBCB0', muted='#94958A', faint='#72736A',
+      accent='#DDA64A', accent_2='#E6E5DC', on_accent='#171000',
+      good='#7BDB9B', warn='#F09A55', bad='#F28074',
+      hues=['#DDA64A', '#7FB8E8', '#98D49C', '#BFA3EA', '#F28074'],
     ),
     shared={
       'f-display': "'Archivo','Arial Narrow','Helvetica Neue',Arial,sans-serif",
       'f-body': "'Archivo',system-ui,-apple-system,'Segoe UI',sans-serif",
       'f-mono': "'IBM Plex Mono',ui-monospace,'SF Mono',Menlo,Consolas,monospace",
       'f-num': 'var(--f-mono)', 'w-num': '500', 'st-num': '100%', 'ls-num': '-.02em',
-      'w-display': '800', 'ls-display': '.004em', 'tt-display': 'uppercase', 'st-display': '76%', 'lh-display': '1',
-      'fs-h1': '38px', 'fs-hero': '60px', 'fs-stat': '28px', 'fs-card': '17px',
+      'w-display': '600', 'ls-display': '-.01em', 'tt-display': 'none', 'st-display': '94%', 'lh-display': '1.05',
+      'fs-h1': '32px', 'fs-hero': '44px', 'fs-stat': '26px', 'fs-card': '17px',
       'f-label': 'var(--f-mono)', 'fs-label': '10.5px', 'ls-label': '.16em', 'tt-label': 'uppercase', 'w-label': '500',
-      'f-btn': 'var(--f-mono)', 'tt-btn': 'uppercase', 'ls-btn': '.08em', 'w-btn': '500',
-      'r-xs': '1px', 'r-sm': '2px', 'r-md': '2px', 'r-lg': '3px', 'r-xl': '3px',
-      'r-ctl': '2px', 'r-bar': '0px', 'r-av': '2px', 'r-round': '999px',
+      'f-btn': 'var(--f-body)', 'tt-btn': 'none', 'ls-btn': '0', 'w-btn': '600',
+      'r-xs': '2px', 'r-sm': '3px', 'r-md': '4px', 'r-lg': '6px', 'r-xl': '8px',
+      'r-ctl': '4px', 'r-bar': '0px', 'r-av': '2px', 'r-round': '999px',
       'bd': '1px solid var(--line)', 'bd-soft': '1px solid var(--line-soft)', 'bd-strong': '1px solid var(--ink-2)',
       'sh-card': 'none', 'sh-pop': '0 18px 40px -18px rgba(0,0,0,.7)', 'sh-inset': 'none', 'sh-press': 'none',
       'clay': '0 0 0 1px var(--line)', 'clay-sm': '0 0 0 1px var(--line)', 'clay-in': 'inset 0 0 0 1px var(--line)',
@@ -126,70 +124,65 @@ SKINS = {
       'icon-w': '1.6', 'icon-cap': 'square', 'icon-join': 'miter',
       'ease-squish': 'cubic-bezier(.2,.7,.2,1)',
       'wash': 'none', 'grain': 'none',
-      'hero-bg': 'var(--accent-1)', 'hero-fg': 'var(--on-accent)',
-      'hero-deco': 'repeating-linear-gradient(0deg, transparent 0 15px, rgba(0,0,0,.10) 15px 16px), repeating-linear-gradient(90deg, transparent 0 15px, rgba(0,0,0,.10) 15px 16px)',
-      'now-bg': 'var(--ink)', 'now-fg': 'var(--bg)',
+      'hero-deco': 'none',
       'calm-bg': 'var(--surface-2)', 'calm-fg': 'var(--ink)',
-      'tile-bg': 'var(--surface-2)', 'tile-fg': 'var(--accent-1)',
-      'sec-rule': '1px solid var(--line)', 'hero-bd': 'none', 'now-bd': 'none',
-      'scrim': 'color-mix(in srgb, #000 62%, transparent)', 'scrim-blur': '0px',
+      'sec-rule': '1px solid var(--line)', 'hero-bd': '1px solid var(--line)', 'now-bd': '1px solid var(--line)',
+      'scrim': 'color-mix(in srgb, #000 52%, transparent)', 'scrim-blur': '0px',
       'grip-w': '28px', 'grip-h': '3px',
       'av-s': '0%', 'av-l': '30%',
     },
   ),
 
   # ---- POSTER -----------------------------------------------------------
-  # Swiss poster. White, black rules, one cobalt, one signal yellow.
+  # Swiss poster, turned down. White, hairline rules, one dusty cobalt.
   # Heavy grotesk, enormous numerals, zero rounding, no shadows anywhere.
   'poster': dict(
-    name='Poster', blurb='White, black rules, cobalt and signal yellow. Heavy type, no curves.',
+    name='Poster', blurb='Clean white, hairline rules, dusty cobalt. Crisp sans, gently squared.',
     auto='system',
     light=dict(
       bg='#F3F3EF', bg_sunk='#E6E6E0', surface='#FFFFFF', surface_2='#EDEDE7',
       line='#C9C9C0', line_soft='#DEDED6',
-      ink='#0D0D0D', ink_2='#383836', muted='#5C5C56', faint='#878780',
-      accent='#1B3BD6', accent_2='#FFD400', on_accent='#FFFFFF',
-      good='#0A6E3C', warn='#8A5000', bad='#C0190A',
-      hues=['#1B3BD6', '#CC2A18', '#0A6E3C', '#0D0D0D', '#8A6A00'],
+      ink='#27272B', ink_2='#4A4A4E', muted='#5F5F5A', faint='#82827B',
+      accent='#3B4FB0', accent_2='#C9A21B', on_accent='#FFFFFF',
+      good='#1F6E47', warn='#8A5000', bad='#B3382C',
+      hues=['#3B4FB0', '#B3382C', '#1F6E47', '#4A4A4E', '#8A6A10'],
     ),
     dark=dict(
-      bg='#0B0B0C', bg_sunk='#050506', surface='#151517', surface_2='#1E1E21',
-      line='#3A3A3F', line_soft='#27272B',
-      ink='#F3F3EF', ink_2='#CFCFC9', muted='#9D9D96', faint='#696962',
-      accent='#7C93FF', accent_2='#FFD400', on_accent='#0A1030',
-      good='#4FD08A', warn='#FFB43D', bad='#FF6B5A',
-      hues=['#7C93FF', '#FF6F5E', '#4FD08A', '#F3F3EF', '#FFD400'],
+      bg='#131315', bg_sunk='#0D0D0F', surface='#1B1B1E', surface_2='#242427',
+      line='#3A3A3F', line_soft='#2B2B2F',
+      ink='#EDEDE8', ink_2='#C9C9C3', muted='#9B9B94', faint='#74746D',
+      accent='#93A4F0', accent_2='#E9C94A', on_accent='#0A1030',
+      good='#5DCB92', warn='#F0B050', bad='#F2796B',
+      hues=['#93A4F0', '#F2796B', '#5DCB92', '#EDEDE8', '#E9C94A'],
     ),
     shared={
       'f-display': "'Archivo','Helvetica Neue',Helvetica,Arial,sans-serif",
       'f-body': "'Archivo',system-ui,-apple-system,'Segoe UI',sans-serif",
       'f-mono': "'IBM Plex Mono',ui-monospace,'SF Mono',Menlo,Consolas,monospace",
       'f-num': 'var(--f-display)',
-      'w-display': '800', 'ls-display': '-.035em', 'tt-display': 'none', 'st-display': '100%', 'lh-display': '.98',
-      'fs-h1': '42px', 'fs-hero': '72px', 'fs-stat': '32px', 'fs-card': '19px',
+      'w-display': '600', 'ls-display': '-.022em', 'tt-display': 'none', 'st-display': '100%', 'lh-display': '1.04',
+      'fs-h1': '34px', 'fs-hero': '46px', 'fs-stat': '27px', 'fs-card': '18px',
       'f-label': 'var(--f-mono)', 'fs-label': '10.5px', 'ls-label': '.12em', 'tt-label': 'uppercase', 'w-label': '500',
-      'f-btn': 'var(--f-body)', 'tt-btn': 'none', 'ls-btn': '-.005em', 'w-btn': '700',
-      'r-xs': '0px', 'r-sm': '0px', 'r-md': '0px', 'r-lg': '0px', 'r-xl': '0px',
-      'r-ctl': '0px', 'r-bar': '0px', 'r-av': '0px', 'r-round': '0px',
-      'bd': '1.5px solid var(--ink)', 'bd-soft': '1px solid var(--line)', 'bd-strong': '1.5px solid var(--ink)',
-      'sh-card': 'none', 'sh-pop': 'none', 'sh-inset': 'none', 'sh-press': 'none',
-      'clay': '0 0 0 1.5px var(--ink)', 'clay-sm': '0 0 0 1.5px var(--ink)', 'clay-in': 'inset 0 0 0 1px var(--line)',
-      'clay-press': 'inset 0 0 0 2px var(--ink)',
-      'focus': '0 0 0 3px var(--accent-2)',
-      'bar-h': '10px', 'meter-h': '8px',
+      'f-btn': 'var(--f-body)', 'tt-btn': 'none', 'ls-btn': '0', 'w-btn': '600',
+      'r-xs': '3px', 'r-sm': '5px', 'r-md': '7px', 'r-lg': '9px', 'r-xl': '12px',
+      'r-ctl': '6px', 'r-bar': '2px', 'r-av': '5px', 'r-round': '999px',
+      'bd': '1px solid var(--line)', 'bd-soft': '1px solid var(--line-soft)', 'bd-strong': '1px solid var(--ink-2)',
+      'sh-card': 'none', 'sh-pop': '0 14px 32px -18px rgba(0,0,0,.35)', 'sh-inset': 'none', 'sh-press': 'none',
+      'clay': '0 0 0 1px var(--line)', 'clay-sm': '0 0 0 1px var(--line)', 'clay-in': 'inset 0 0 0 1px var(--line)',
+      'clay-press': 'inset 0 0 0 1px var(--ink-2)',
+      'focus': '0 0 0 2px var(--accent-1)',
+      'bar-h': '7px', 'meter-h': '7px',
       'tabbar-h': '56px', 'tb-inset': '0px', 'tb-bottom': '0px', 'tb-r': '0px',
-      'tb-wrap-bg': 'var(--surface)', 'tb-wrap-bd': '1.5px solid var(--ink)', 'tb-in-bg': 'transparent', 'tb-in-bd': 'none', 'tb-sh': 'none',
-      'seg-on-bg': 'var(--ink)', 'seg-on-fg': 'var(--bg)', 'seg-on-bd': '1.5px solid var(--ink)',
-      'tab-ind': '0px', 'tab-on-bg': 'var(--ink)', 'tab-on-fg': 'var(--bg)', 'tab-on-sh': 'none', 'tab-r': '0px',
-      'icon-w': '1.9', 'icon-cap': 'butt', 'icon-join': 'miter',
+      'tb-wrap-bg': 'var(--surface)', 'tb-wrap-bd': '1px solid var(--line)', 'tb-in-bg': 'transparent', 'tb-in-bd': 'none', 'tb-sh': 'none',
+      'seg-on-bg': 'var(--surface)', 'seg-on-fg': 'var(--ink)', 'seg-on-bd': '1px solid var(--ink-2)',
+      'tab-ind': '0px', 'tab-on-bg': 'var(--accent-tint)', 'tab-on-fg': 'var(--accent-1)', 'tab-on-sh': 'none', 'tab-r': '6px',
+      'icon-w': '1.7', 'icon-cap': 'round', 'icon-join': 'round',
       'ease-squish': 'cubic-bezier(.2,.7,.2,1)',
       'wash': 'none', 'grain': 'none',
-      'hero-bg': 'var(--accent-1)', 'hero-fg': 'var(--on-accent)', 'hero-deco': 'none',
-      'now-bg': 'var(--accent-2)', 'now-fg': '#0D0D0D',
-      'calm-bg': 'var(--ink)', 'calm-fg': 'var(--bg)',
-      'tile-bg': 'var(--ink)', 'tile-fg': 'var(--bg)',
-      'sec-rule': '2px solid var(--ink)', 'hero-bd': 'none', 'now-bd': '1.5px solid var(--ink)',
-      'scrim': 'color-mix(in srgb, #000 55%, transparent)', 'scrim-blur': '0px',
+      'hero-deco': 'none',
+      'calm-bg': 'var(--surface-2)', 'calm-fg': 'var(--ink)',
+      'sec-rule': '1px solid var(--line)', 'hero-bd': '1px solid var(--line)', 'now-bd': '1px solid var(--line)',
+      'scrim': 'color-mix(in srgb, #000 48%, transparent)', 'scrim-blur': '0px',
       'grip-w': '0px', 'grip-h': '0px',
       'av-s': '0%', 'av-l': '12%',
     },
@@ -204,26 +197,26 @@ SKINS = {
     light=dict(
       bg='#E6EBDF', bg_sunk='#D6DDCB', surface='#F5F8F0', surface_2='#E0E7D6',
       line='#BFC9B2', line_soft='#D2DAC6',
-      ink='#19231C', ink_2='#3B493F', muted='#586659', faint='#788579',
-      accent='#2F5E46', accent_2='#A9532E', on_accent='#F3F8EE',
-      good='#27704A', warn='#865406', bad='#A8312A', now_fg='#FFF8F2',
-      hues=['#2F5E46', '#A9532E', '#356B8A', '#76527F', '#8E6B12'],
+      ink='#26322A', ink_2='#44524A', muted='#5A685B', faint='#758277',
+      accent='#3A6B52', accent_2='#A5593B', on_accent='#F3F8EE',
+      good='#27704A', warn='#865406', bad='#A8312A',
+      hues=['#3A6B52', '#A5593B', '#3D708E', '#7A5A83', '#8E6B12'],
     ),
     dark=dict(
       bg='#101612', bg_sunk='#0B100D', surface='#18201A', surface_2='#212B23',
       line='#344036', line_soft='#27322A',
-      ink='#E7EEE3', ink_2='#C3CEBF', muted='#95A495', faint='#677569',
-      accent='#8DC6A3', accent_2='#E58A62', on_accent='#0B1A10',
-      good='#7BD1A0', warn='#E3AE45', bad='#F28074', now_fg='#1B0E07',
-      hues=['#8DC6A3', '#E58A62', '#83B6D4', '#BE97CB', '#DDB650'],
+      ink='#E3EBDF', ink_2='#C0CBBC', muted='#93A293', faint='#677569',
+      accent='#8DC6A3', accent_2='#E0916E', on_accent='#0B1A10',
+      good='#7BD1A0', warn='#E3AE45', bad='#F28074',
+      hues=['#8DC6A3', '#E0916E', '#83B6D4', '#BE97CB', '#DDB650'],
     ),
     shared={
       'f-display': "'Young Serif','Iowan Old Style',Georgia,serif",
       'f-body': "'Karla',system-ui,-apple-system,'Segoe UI',sans-serif",
       'f-mono': "'IBM Plex Mono',ui-monospace,'SF Mono',Menlo,Consolas,monospace",
       'f-num': 'var(--f-body)', 'w-num': '700', 'ls-num': '-.02em',
-      'w-display': '400', 'ls-display': '-.005em', 'tt-display': 'none', 'st-display': '100%', 'lh-display': '1.1',
-      'fs-h1': '34px', 'fs-hero': '54px', 'fs-stat': '28px', 'fs-card': '18px',
+      'w-display': '400', 'ls-display': '-.005em', 'tt-display': 'none', 'st-display': '100%', 'lh-display': '1.12',
+      'fs-h1': '31px', 'fs-hero': '42px', 'fs-stat': '26px', 'fs-card': '17px',
       'f-label': 'var(--f-body)', 'fs-label': '11.5px', 'ls-label': '.1em', 'tt-label': 'uppercase', 'w-label': '700',
       'f-btn': 'var(--f-body)', 'tt-btn': 'none', 'ls-btn': '0', 'w-btn': '700',
       'r-xs': '9px', 'r-sm': '12px', 'r-md': '16px', 'r-lg': '20px', 'r-xl': '26px',
@@ -241,12 +234,10 @@ SKINS = {
       'icon-w': '1.7', 'icon-cap': 'round', 'icon-join': 'round',
       'ease-squish': 'cubic-bezier(.22,.8,.3,1)',
       'wash': 'none', 'grain': 'none',
-      'hero-bg': 'var(--accent-1)', 'hero-fg': 'var(--on-accent)', 'hero-deco': 'none',
-      'now-bg': 'var(--accent-2)',
+      'hero-deco': 'none',
       'calm-bg': 'var(--surface-2)', 'calm-fg': 'var(--ink)',
-      'tile-bg': 'var(--accent-1)', 'tile-fg': 'var(--on-accent)',
-      'sec-rule': 'none', 'hero-bd': 'none', 'now-bd': 'none',
-      'scrim': 'color-mix(in srgb, var(--ink) 40%, transparent)', 'scrim-blur': '3px',
+      'sec-rule': 'none', 'hero-bd': '1px solid var(--line)', 'now-bd': '1px solid var(--line)',
+      'scrim': 'color-mix(in srgb, var(--ink) 34%, transparent)', 'scrim-blur': '3px',
       'grip-w': '40px', 'grip-h': '4px',
       'av-s': '30%', 'av-l': '40%',
     },
@@ -276,6 +267,25 @@ def ratio(a, b):
 
 def mix(a, b, pct):          # pct of a over b
     return tuple(round(a[i] * pct + b[i] * (1 - pct)) for i in range(3))
+
+def hx(c):
+    return '#%02X%02X%02X' % tuple(c)
+
+def finish():
+    """The big blocks (the hero number panel, the Right-now card, the icon tiles) used to be
+    solid accent or black. They are now a light wash of the skin's accent over its surface,
+    with normal ink on top, so nothing on a screen shouts. A skin can still set any of
+    hero_bg / now_bg / tile_bg (and the _fg) itself."""
+    for skin in SKINS.values():
+        for mode, (hero, now, tile) in (('light', (.09, .12, .15)), ('dark', (.13, .17, .20))):
+            p = skin[mode]
+            c = {k: rgb(v) for k, v in p.items() if isinstance(v, str) and v.startswith('#')}
+            p.setdefault('hero_bg', hx(mix(c['accent'], c['surface'], hero)))
+            p.setdefault('hero_fg', p['ink'])
+            p.setdefault('now_bg', hx(mix(c['accent'], c['surface'], now)))
+            p.setdefault('now_fg', p['ink'])
+            p.setdefault('tile_bg', hx(mix(c['accent'], c['surface'], tile)))
+            p.setdefault('tile_fg', p['accent'])
 
 def resolve(skin, mode):
     """The concrete colours a skin resolves to, for the checks."""
@@ -311,7 +321,7 @@ def checks(key, skin):
         pair('accent on accent-tint', c['accent'], mix(c['accent'], c['surface'], .14))
         # hero / now / tile pairs depend on how the skin points them
         def tok(name):
-            if name == 'now-fg' and 'now_fg' in skin[mode]: return rgb(skin[mode]['now_fg'])
+            if name.replace('-', '_') in c: return c[name.replace('-', '_')]
             v = sh[name]
             m = re.fullmatch(r'var\(--([a-z0-9-]+)\)', v)
             if m:
@@ -342,7 +352,8 @@ def colour_block(skin, mode):
     for n in names:
         k = src.get(n, n.replace('-', '_'))
         out.append(f'--{n}:{p[k]};')
-    if 'now_fg' in p: out.append(f"--now-fg:{p['now_fg']};")
+    for k in ('hero_bg', 'hero_fg', 'now_bg', 'now_fg', 'tile_bg', 'tile_fg'):
+        if k in p: out.append(f"--{k.replace('_', '-')}:{p[k]};")
     h = p['hues']
     for i, v in enumerate(h[:4]): out.append(f'--d{i+1}:{v};')
     out.append(f'--g-barbell:{h[0]}; --g-machine:{h[1]}; --g-cable:{h[2]}; --g-dumbbell:{h[3]}; --g-body:{h[4]};')
@@ -411,6 +422,8 @@ def manifest():
     for key, s in SKINS.items():
         rows.append((key, s['name'], s['blurb'], s['auto']))
     return rows
+
+finish()
 
 if __name__ == '__main__':
     problems = []
