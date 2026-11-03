@@ -4,9 +4,9 @@ Eight tools, one app, on your phone. No build step, no server, no subscription.
 
 | Tool | What it does |
 |---|---|
-| **Day** | Meds, sleep, mood and the daily anchors, with a summary you can show a doctor. |
+| **Day** | Meds (with a medication schedule you can type in plain words), sleep, mood and the daily anchors, with a summary you can show a doctor. |
 | **Food** | Macro tracking for the lean bulk. Photo a label or a plate, or describe what you ate; suggestions are built around what is left in the day. |
-| **Training** | The swimmer build: a four-day split that works around an unstable shoulder, a sore triceps tendon and knee valgus. Comeback ramp after a gap, swaps when a machine is busy, progress photos. |
+| **Training** | The swimmer build: a four-day split that works around an unstable shoulder, a sore triceps tendon and knee valgus. Comeback ramp after a gap, swaps when a machine is busy, progress photos, and changes made in plain words that are checked against your shoulder, elbow, knees and goal before they happen. |
 | **Nicotine** | The taper. A daily budget that steps down each week. |
 | **People** | Mates roster. Shows who has drifted, drafts the text, suggests something worth doing. |
 | **Money** | Budget tracking, plus property scenarios: repayments, strata, stamp duty, what a rate rise does. |

@@ -7,6 +7,7 @@
 import { esc, toast, bindActions, haptic } from '../core/ui.js';
 import * as native from '../core/native.js';
 import { nativePrefs, REMINDERS, parseTime, reminderId } from '../core/native-prefs.js';
+import { medStore } from '../core/meds.js';
 
 /* The empty slot Settings puts in the sheet. */
 export const nativeSlotHTML = () => native.isNative() ? '<div id="native-block"></div>' : '';
@@ -16,6 +17,7 @@ const chip = (on, act, extra = '') =>
 
 function blockHTML(info){
   const p = nativePrefs.get();
+  const scheduled = medStore.get().list.length > 0;     // a medication schedule has its own reminders (Day)
   const lockName = info.biometry && info.biometry !== 'none' ? info.biometry : 'Passcode';
   return `
     <label class="label" style="margin-top:20px">On this iPhone</label>
@@ -33,7 +35,8 @@ function blockHTML(info){
     <div class="card tight sunk" style="margin-top:10px">
       <div class="card-title">Reminders</div>
       <div class="card-note" style="margin:3px 0 10px">Off until you turn one on. They arrive even when the app is closed.</div>
-      ${REMINDERS.map(r => `
+      ${scheduled ? `<div class="tiny muted" style="padding:4px 0 8px;line-height:1.55">Medication reminders follow your schedule: Day &rarr; Medication schedule.</div>` : ''}
+      ${REMINDERS.filter(r => !(scheduled && r.id === 'meds')).map(r => `
         <div class="spread" style="padding:7px 0;gap:10px">
           <div class="grow" style="font-size:14.5px">${esc(r.label)}</div>
           <input class="input" type="time" value="${esc(p.reminders[r.id].time)}" data-time="1" data-id="${r.id}"
@@ -68,6 +71,12 @@ export async function fillNativeBlock(){
   const slot = document.getElementById('native-block');
   if (!slot) return;
   await nativePrefs.load();
+  await medStore.load();
+  // The simple 8am "Meds" reminder gives way to the schedule's own, so one dose is never reminded twice.
+  if (medStore.get().list.length && nativePrefs.get().reminders.meds.on){
+    nativePrefs.update(s => { s.reminders.meds.on = false; });
+    await native.cancelReminders([reminderId('meds')]);
+  }
   const info = (await native.info()) || {};
   if (!document.body.contains(slot)) return;           // sheet closed while we asked
   paint(slot, info);

@@ -27,6 +27,8 @@
 import { Slice, today, lastNDays, uid, fmtDayShort } from '../core/store.js';
 import { icon } from '../core/icons.js';
 import { offerFromHealth } from '../core/native-health.js';
+import { medStore, slotsFor, fmtShort, slotText } from '../core/meds.js';
+import { openMedSchedule } from './day-meds.js';
 import {
   esc, toast, openSheet, closeSheet, sheetVal, sheetNum,
   bindActions, stat, haptic, holdScroll, copyText,
@@ -122,19 +124,22 @@ const doneOn     = d => store.get().done[d] || {};
 /* Meds are a count, not a checkbox — three doses a day means a single
    tick either lies about two of them or makes the day look failed when
    two were taken. Everything else stays boolean. */
-const medDoses   = () => Math.max(1, store.get().medDoses || 1);
+/* Doses a day. With a medication schedule it is the number of times of day something is due on that
+   day (core/meds.js); without one it is the plain count set in Settings, as it always was. */
+const medSlots   = d => slotsFor(medStore.get()?.list, d);
+const medDoses   = (d = today()) => medSlots(d).length || Math.max(1, store.get().medDoses || 1);
 const medsTaken  = d => {
   const v = doneOn(d).meds;
-  return typeof v === 'number' ? v : (v ? medDoses() : 0);
+  return typeof v === 'number' ? v : (v ? medDoses(d) : 0);
 };
-const medsAllIn  = d => medsTaken(d) >= medDoses();
+const medsAllIn  = d => medsTaken(d) >= medDoses(d);
 const isDone     = (d, id) => id === 'meds' ? medsAllIn(d) : !!doneOn(d)[id];
 
 function bumpMeds(d, delta){
   store.update(s => {
     if (!s.done[d]) s.done[d] = {};
     const cur = medsTaken(d);
-    const next = Math.min(medDoses(), Math.max(0, cur + delta));
+    const next = Math.min(medDoses(d), Math.max(0, cur + delta));
     if (next === 0) delete s.done[d].meds; else s.done[d].meds = next;
   });
 }
@@ -177,7 +182,7 @@ function medsRate(n = 14){
   const full = days.filter(d => medsAllIn(d)).length;
   const any  = days.filter(d => medsAnyOn(d)).length;
   const doses = days.reduce((a,d) => a + medsTaken(d), 0);
-  return { taken: full, any, of: days.length, doses, ofDoses: days.length * medDoses(),
+  return { taken: full, any, of: days.length, doses, ofDoses: days.reduce((n, dd) => n + medDoses(dd), 0),
            pct: Math.round(full / days.length * 100) };
 }
 
@@ -216,7 +221,7 @@ function nextFromDay(){
 
 /* ---------------- summary (HQ) ---------------- */
 export async function summary(){
-  await store.load();
+  await store.load(); await medStore.load();
   const d = today();
   const vis = visibleAnchors(d);
   const n = doneCount(d);
@@ -228,7 +233,7 @@ export async function summary(){
        still unlogged here rather than a dose count he does not want. */
     detail: isHeavy(d)
       ? 'Heavy day — just the essentials'
-      : track && !medsAllIn(d) ? `Meds ${medsTaken(d)}/${medDoses()}`
+      : track && !medsAllIn(d) ? `Meds ${medsTaken(d)}/${medDoses(d)}`
       : !mo ? 'Mood not logged yet'
       : !sl ? 'Sleep not logged yet'
       : 'Mood and sleep logged',
@@ -239,7 +244,7 @@ export async function summary(){
     next: nextFromDay(),
     pips: vis.map(a => ({
       id: a.id,
-      label: a.id === 'meds' ? `Meds ${medsTaken(d)}/${medDoses()}` : a.label,
+      label: a.id === 'meds' ? `Meds ${medsTaken(d)}/${medDoses(d)}` : a.label,
       on: isDone(d, a.id),
       partial: a.id === 'meds' && medsTaken(d) > 0 && !medsAllIn(d),
     })),
@@ -249,17 +254,17 @@ export async function summary(){
 /** Called from the HQ hero so anchors can be ticked without navigating. */
 /* Home opens these directly so a one-tap instruction stays one tap. */
 export async function openFromHome(what){
-  await store.load();
+  await store.load(); await medStore.load();
   if (what === 'mood')  return openMood();
   if (what === 'sleep') return openSleep();
   if (what === 'meds')  { bumpMeds(today(), 1); haptic(); return true; }
 }
 
 export async function tickFromHome(id){
-  await store.load();
+  await store.load(); await medStore.load();
   const d = today();
   if (id === 'meds'){
-    bumpMeds(d, medsAllIn(d) ? -medDoses() : 1);   // step up, or reset if complete
+    bumpMeds(d, medsAllIn(d) ? -medDoses(d) : 1);   // step up, or reset if complete
   } else {
     store.update(s => {
       if (!s.done[d]) s.done[d] = {};
@@ -271,7 +276,7 @@ export async function tickFromHome(id){
 /* ---------------- mount ---------------- */
 export async function mount(el){
   root = el;
-  await store.load();
+  await store.load(); await medStore.load();
   render();
 }
 
@@ -483,9 +488,12 @@ function todayHTML(){
 /* Three doses a day needs three targets, not one checkbox. Each pip is
    its own tap, so a partial day records as partial rather than failed. */
 function medsRowHTML(d){
-  const n = medsTaken(d), of = medDoses();
+  const n = medsTaken(d), of = medDoses(d);
   const all = n >= of;
-  const labels = of === 3 ? ['Morning','Midday','Night'] : of === 2 ? ['Morning','Night'] : ['Today'];
+  // With a schedule each pip is a time of day ("8am") and what is due then is listed underneath.
+  const slots = medSlots(d);
+  const labels = slots.length ? slots.map(sl => fmtShort(sl.time))
+               : of === 3 ? ['Morning','Midday','Night'] : of === 2 ? ['Morning','Night'] : ['Today'];
   return `
   <div class="rowcard" style="align-items:flex-start">
     <span style="width:38px;height:38px;border-radius:var(--r-av);flex:none;display:grid;place-items:center;margin-top:2px;
@@ -510,6 +518,9 @@ function medsRowHTML(d){
             ${esc(labels[i] || 'Dose ' + (i+1))}
           </button>`).join('')}
       </div>
+      ${slots.length ? `<div class="tiny muted" style="margin-top:9px;line-height:1.65">${slots.map((sl, i) =>
+        `<div style="${i < n ? 'opacity:.55;text-decoration:line-through' : ''}"><b>${esc(fmtShort(sl.time))}</b> &nbsp;${esc(slotText(sl))}</div>`).join('')}</div>` : ''}
+      <button class="btn btn-ghost btn-sm" style="margin-top:8px;padding-left:0" data-act="medsched">${slots.length ? 'Medication schedule' : 'Set up a medication schedule'}</button>
     </div>
   </div>`;
 }
@@ -699,7 +710,7 @@ function trendHTML(){
     <div class="card-note" style="margin:4px 0 14px">Fourteen days. Grey means not logged, which is not the same as not taken.</div>
     <div class="row" style="gap:5px">
       ${days.map(d => {
-        const t = medsTaken(d), of = medDoses();
+        const t = medsTaken(d), of = medDoses(d);
         // Partial days show partial fill rather than reading as a miss.
         return `<div style="flex:1;height:34px;border-radius:8px;overflow:hidden;position:relative;
           background:var(--bg-sunk);box-shadow:var(--clay-in)" title="${esc(fmtDayShort(d))} — ${t}/${of}">
@@ -873,6 +884,7 @@ function bind(){
       haptic();
       render();
     },
+    medsched: () => openMedSchedule(render),
     sleep: openSleep,
     mood: openMood,
     report: openReport,

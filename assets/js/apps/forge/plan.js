@@ -5,6 +5,7 @@
 
 import { today } from '../../core/store.js';
 import { esc, toast, haptic } from '../../core/ui.js';
+import { icon } from '../../core/icons.js';
 import { PROGRESSION, LEGS_HONESTLY, sessionMinutes, totalExercises } from '../../data/workouts.js';
 import * as cb from '../../core/comeback.js';
 import { doneToday, nextDay, phase, ramp, render, store, thisWeekCount, weekGoal } from './state.js';
@@ -61,6 +62,7 @@ export function planHTML(){
   <div class="tiny muted" style="margin:8px 2px 0">
     Tap the circle to tick a session off, or the name to open it and log sets.
   </div>
+  <button class="btn btn-plain block" style="margin-top:12px" data-act="editwords">${icon('spark', 17)} Change it in your own words${(store.get().edits || []).length ? ` (${store.get().edits.length} made)` : ''}</button>
 
   ${store.get().legs !== 'original' ? legsHonestlyHTML() : ''}
 

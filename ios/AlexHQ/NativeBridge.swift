@@ -103,6 +103,14 @@ final class NativeBridge: NSObject, WKScriptMessageHandlerWithReply {
                 hour: Int(hour), minute: Int(minute), route: text(a, "route"))
             return true
 
+        case "notify.sync":
+            // Only ever touches reminders the app itself named, never anything else on the phone.
+            guard let prefix = text(a, "prefix"), prefix.hasPrefix("alexhq-"), prefix.count >= 8 else {
+                throw BridgeError.failed("A reminder group needs a prefix that starts with alexhq-")
+            }
+            try await Reminders.sync(prefix: prefix, items: (a["items"] as? [[String: Any]]) ?? [])
+            return true
+
         case "notify.cancel":
             Reminders.cancel(ids: (a["ids"] as? [String]) ?? [])
             return true

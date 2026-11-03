@@ -11,6 +11,7 @@ import { defaultStack } from '../../data/swaps.js';
 import { PHASES, kindLegs } from '../../data/workouts.js';
 import * as cb from '../../core/comeback.js';
 import * as coach from '../../core/coach.js';
+import { applyEdits } from '../../core/training-edit.js';
 
 export const store = new Slice('forge', {
   blockIndex: 1,          // Phase 2 was current in the original artifact
@@ -19,6 +20,7 @@ export const store = new Slice('forge', {
   lastByEx: {},           // exercise name -> { w, est? }  (est = converted from another machine, not lifted yet)
   swaps: {},              // 'dayKey|program exercise' -> the alternative you chose; applies everywhere until reverted
   custom: {},             // equivalents you typed in: name -> { gear, idx }
+  edits: [],              // changes made in plain words: { id, t, text, ops, undo }, newest last (see edit-apply.js)
   legs: 'kind',           // 'kind' = the back-friendly leg day, 'original' = the program as first written
   comeback: null,         // { start, weeks, off } the return-to-training ramp
   stack: structuredClone(defaultStack),   // how this gym labels cable and machine stacks
@@ -40,16 +42,19 @@ export const fmtSet = s => {
 };
 
 /* The phase as it is run right now: the program with the back-friendly leg
-   day swapped in unless that is switched off. Cached, because it is read
+   day swapped in unless that is switched off, then any changes made in plain
+   words laid on top (core/training-edit.js). Cached, because it is read
    constantly and must return the same objects between renders. */
 const phaseCache = new Map();
 
 export const phase = () => {
   const i = store.get().blockIndex % PHASES.length, kind = store.get().legs !== 'original';
-  const k = `${i}|${kind}`;
+  const edits = store.get().edits || [];
+  const k = `${i}|${kind}|${edits.map(e => e.id).join()}`;
   if (!phaseCache.has(k)){
     const base = PHASES[i];
-    phaseCache.set(k, kind ? { ...base, days: base.days.map(kindLegs) } : base);
+    const days = kind ? base.days.map(kindLegs) : base.days;
+    phaseCache.set(k, kind || edits.length ? { ...base, days: edits.length ? applyEdits(days, edits, base.phase) : days } : base);
   }
   return phaseCache.get(k);
 };

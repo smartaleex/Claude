@@ -11,6 +11,7 @@ import { moreScreen } from './shell/more.js';
 import { applyStoredLook } from './shell/look.js';
 import { registerWorker } from './shell/worker.js';
 import { watchAutoBackup } from './shell/backup.js';
+import { syncMedReminders } from './apps/day-meds.js';
 import { toast } from './core/ui.js';
 
 (async function boot(){
@@ -32,4 +33,5 @@ import { toast } from './core/ui.js';
 
   registerWorker();
   watchAutoBackup();     // iPhone app only: a daily copy to the Files app
+  syncMedReminders();    // iPhone app only: keep the phone's reminders in step with the schedule
 })();

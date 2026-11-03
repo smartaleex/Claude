@@ -12,7 +12,7 @@ iPhone app the next time it is built. Nothing is written twice.
 |---|---|
 | **Real haptics** | Taps you can feel. iPhone Safari has no vibration, so the web version is silent. |
 | **Rest timer on the lock screen** | A countdown on the lock screen and in the Dynamic Island, and a notification when the rest ends, even with the phone locked. Web pages freeze the moment iOS locks. |
-| **Reminders** | Meds, food and an evening check-in. Off until you turn them on in Settings, and the wording is plain and kind. They arrive with the app closed. |
+| **Reminders** | Food and an evening check-in, and a full **medication schedule** (Day, then Medication schedule): several medications, several times a day, weekday-only ones, with-food notes. Off until you turn them on, the lock screen says "Time for your meds." rather than a name unless you choose otherwise, and they arrive with the app closed and no signal. |
 | **Apple Health** | Last night's sleep and your bodyweight offered with one tap (never filled in for you), and finished gym sessions saved to Health. |
 | **Face ID lock** | Optional. Asks each time the app opens and hides it in the app switcher. |
 | **Home-screen widget** | Eaten, gym this week, anchors done and pouches. Small, medium and lock-screen sizes. |

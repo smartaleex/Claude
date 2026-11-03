@@ -59,6 +59,10 @@ export const askNotifications = () => send('notify.permission');
 export const scheduleDaily = r => send('notify.daily', r);
 export const cancelReminders = ids => send('notify.cancel', { ids });
 
+/** Replace every reminder whose id starts with `prefix` by `items` in one step, so the phone never
+    holds a stale half of an old schedule. Each item: { id, title, body, hour, minute, weekdays?, route }. */
+export const syncReminders = (prefix, items) => send('notify.sync', { prefix, items });
+
 /* ---------------- rest timer ---------------- */
 
 /** A notification for when the rest ends, plus the lock-screen countdown. */

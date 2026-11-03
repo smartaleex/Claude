@@ -40,6 +40,38 @@ enum Reminders {
         try await center.add(UNNotificationRequest(identifier: id, content: content, trigger: trigger))
     }
 
+    /* Replaces every reminder whose id starts with `prefix` by `items`. One call, so the phone is
+       never left holding half of an old schedule. An item with `weekdays` (1 = Sunday ... 7 =
+       Saturday) becomes one reminder per weekday; without, one that repeats every day. */
+    static func sync(prefix: String, items: [[String: Any]]) async throws {
+        let pending = await center.pendingNotificationRequests()
+        let stale = pending.map { $0.identifier }.filter { $0.hasPrefix(prefix) }
+        center.removePendingNotificationRequests(withIdentifiers: stale)
+
+        for item in items {
+            guard let id = item["id"] as? String, id.hasPrefix(prefix),
+                  let hour = (item["hour"] as? NSNumber)?.intValue,
+                  let minute = (item["minute"] as? NSNumber)?.intValue else { continue }
+            let content = UNMutableNotificationContent()
+            content.title = item["title"] as? String ?? "Alex HQ"
+            content.body = item["body"] as? String ?? ""
+            content.sound = .default
+            if let route = item["route"] as? String { content.userInfo = ["route": route] }
+
+            let weekdays = (item["weekdays"] as? [NSNumber])?.map { $0.intValue }.filter { (1...7).contains($0) } ?? []
+            let days: [Int?] = weekdays.isEmpty ? [nil] : weekdays.map { Optional($0) }
+            for day in days {
+                var when = DateComponents()
+                when.hour = hour
+                when.minute = minute
+                when.weekday = day
+                let trigger = UNCalendarNotificationTrigger(dateMatching: when, repeats: true)
+                let requestID = day.map { "\(id)-d\($0)" } ?? id
+                try await center.add(UNNotificationRequest(identifier: requestID, content: content, trigger: trigger))
+            }
+        }
+    }
+
     static func scheduleRestEnd(seconds: Double, title: String, body: String) async throws {
         let content = UNMutableNotificationContent()
         content.title = title

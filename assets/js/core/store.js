@@ -109,7 +109,10 @@ export class Slice {
 
 /* ---------------- whole-app backup ---------------- */
 
-const ALL_SLICES = ['fuel','forge','ledger','shout','clear','vale','settings'];
+/* Every saved store. A store missing from this list is silently left out of backups, so
+   tests/unit/backup-slices.test.mjs fails if one is added to the app and not added here.
+   (Photos live in IndexedDB and are not part of the JSON file.) */
+export const ALL_SLICES = ['day','fuel','forge','ledger','shout','clear','vale','cryptic','capture','meds','native','settings'];
 
 export async function exportAll(){
   const out = { _app:'Alex HQ', _version:1, _exported:new Date().toISOString() };

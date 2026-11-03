@@ -7,7 +7,7 @@
    Bump CACHE on every deploy or phones keep serving the old build.
    ============================================================ */
 
-const CACHE = 'alexhq-v41';
+const CACHE = 'alexhq-v42';
 
 const SHELL = [
   './assets/css/fonts.css',
@@ -44,6 +44,8 @@ const SHELL = [
   './assets/js/core/comeback.js',
   './assets/js/core/sets.js',
   './assets/js/core/native.js',
+  './assets/js/core/training-edit.js',
+  './assets/js/core/meds.js',
   './assets/js/core/native-prefs.js',
   './assets/js/core/native-health.js',
   './assets/js/core/timer.js',
@@ -53,6 +55,7 @@ const SHELL = [
   './assets/js/core/ui.js',
   './assets/js/core/ai.js',
   './assets/js/apps/day.js',
+  './assets/js/apps/day-meds.js',
   './assets/js/apps/fuel.js',
   './assets/js/apps/forge/index.js',
   './assets/js/apps/forge/state.js',
@@ -66,6 +69,8 @@ const SHELL = [
   './assets/js/apps/forge/photos.js',
   './assets/js/apps/forge/physique-ai.js',
   './assets/js/apps/forge/advice.js',
+  './assets/js/apps/forge/edit.js',
+  './assets/js/apps/forge/edit-apply.js',
   './assets/js/apps/forge/settings.js',
   './assets/js/apps/ledger.js',
   './assets/js/apps/shout.js',

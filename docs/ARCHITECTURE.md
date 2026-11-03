@@ -66,11 +66,14 @@ assets/
       native.js           the doorway to the iPhone app (no-ops in a browser)
       native-prefs.js     what is switched on in the iPhone app (reminders, Health)
       native-health.js    Apple Health offers (sleep, weight) and saving workouts
+      training-edit.js    plain-English changes to the program, and checking them against the person
+      meds.js             medication schedule: model, plain-English reader, dose slots, reminder items
       cryptic-ai.js       machine-made cryptic clues, verified
     apps/               one file (or folder) per tool
       day.js              Day: meds, sleep, mood, anchors
+      day-meds.js         Day: the medication schedule screens and phone reminders
       fuel.js             Food: macros and the bulk
-      forge/              Training (13 files, see below)
+      forge/              Training (15 files, see below)
       clear.js            Nicotine: the taper
       shout.js            People: mates and plans
       ledger.js           Money: budget and the house
@@ -115,6 +118,8 @@ unrelated files. The app does not use them and the deploy ignores them.
 | `physique-ai.js` | The Gemini calls on photos, with consent |
 | `physique-views.js` | How those readings are drawn |
 | `advice.js` | "Ask the coach" |
+| `edit.js` | "Change it in your own words": type a change, see the verdict and reasons, apply, undo |
+| `edit-apply.js` | Applying and undoing those changes, and the body context they are checked against |
 | `settings.js` | Training settings sheet |
 
 Each module that responds to taps exports an `actions` map; `index.js` merges
@@ -134,6 +139,10 @@ that module's `actions`.
 | "Machine busy" suggestions | `data/swaps.js`, `apps/forge/swap.js` | |
 | Home screen block | `shell/home.js` | one function per block |
 | Bottom bar, which tools show | `shell/registry.js`, `shell/router.js` | order is user-editable in Settings |
+| A plain-English training change is read wrongly | `core/training-edit.js` (`parseEdits`, `findExercise`) | `tests/unit/training-edit.test.mjs` pins the phrasings |
+| A change is judged too harshly or too softly | `core/training-edit.js` (`PROFILE`, `LIMITS`, `benchmark`) | the person's joints, goal and limits live there |
+| A medication phrasing is read wrongly | `core/meds.js` (`parseMedText`) | `tests/unit/meds.test.mjs` |
+| Medication reminders | `apps/day-meds.js`, `core/meds.js` (`reminderItems`), `ios/AlexHQ/Reminders.swift` (`sync`) | off until switched on; the lock screen never shows names by default |
 | Add a tool | `shell/registry.js` + `apps/<name>.js` + `sw.js` | export `mount()` and `summary()` |
 | Colours, fonts, shape of a skin | `tools/skins.py`, then `npm run skins` | never edit `skins.css` |
 | Component styling | `css/app.css` | use tokens (`var(--accent-1)`), not colours |
@@ -146,6 +155,8 @@ that module's `actions`.
 | iPhone app will not build | `ios/README.md`, `ios/tools/make_project.rb` | the project file is generated; regenerate after adding a Swift file |
 
 ## How state is saved
+
+**Every store must be in the backup.** If you add a `new Slice('name', ...)`, add `'name'` to `ALL_SLICES` in `core/store.js`; `tests/unit/backup-slices.test.mjs` fails if you forget. (It once left out Day, which is where mood, sleep and meds live.)
 
 `core/store.js` exports `Slice`. Each tool makes one:
 
