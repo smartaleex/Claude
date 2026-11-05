@@ -29,10 +29,12 @@ export function historyHTML(){
         ? 'Ticked off'
         : `${nSets} set${nSets>1?'s':''}${weighted.length ? ` · ${num(vol)}kg total` : ''}`;
       const took = s.mins ? ` · ${s.mins} min` : '';
-      return `<div class="rowcard" style="border-left:3px solid ${d?.color || 'var(--line)'}">
+      const tap = nSets ? `data-act="balance" data-id="${s.id}"` : '';
+      return `<${nSets ? 'button' : 'div'} class="rowcard" ${tap} style="border-left:3px solid ${d?.color || 'var(--line)'};${nSets ? 'width:100%;text-align:left' : ''}">
         <div class="grow"><b>${esc(d?.title || s.day)}</b>
           <span class="sub">${esc(fmtDayShort(s.dayKey))} · ${detail}${took}</span></div>
-      </div>`;
+        ${nSets ? '<span class="tiny" style="color:var(--accent-1);font-weight:700">Balance</span>' : ''}
+      </${nSets ? 'button' : 'div'}>`;
     }).join('')}
   </div>`;
 }

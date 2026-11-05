@@ -12,6 +12,8 @@ import { WARMUPS, TAG_STYLE } from '../../data/workouts.js';
 import * as timer from '../../core/timer.js';
 import * as coach from '../../core/coach.js';
 import { saveSessionToHealth } from '../../core/native-health.js';
+import { snapshotSession } from '../../core/balance.js';
+import { openBalance } from './balance.js';
 import { openingFor } from './logging.js';
 import { ui, dayOf, fmtSet, phase, ramp, render, repsFor, resolve, store, targetSets } from './state.js';
 
@@ -167,13 +169,17 @@ export function startSession(k){ newSession(k); haptic(); render(); }
 /* Finishing never requires logged sets — plenty of sessions happen
    without touching the phone, and refusing those makes history lie. */
 export function finishSession(){
-  let span = null;
+  let span = null, finished = null;
   store.update(st => {
     const sess = st.sessions[st.activeId];
     if (sess){
       sess.done = true;
       sess.endedAt = Date.now();
       span = [sess.startedAt, sess.endedAt];
+      /* Keep what was planned and what was actually done (with any swaps), so "how it balanced"
+         stays true later even if the swaps change. */
+      sess.ex = snapshotSession(dayOf(sess.day), sess.sets, ex => resolve(ex, sess.day).name);
+      finished = sess.ex.some(r => r.d > 0) ? sess.id : null;
       /* Only keep a duration that is plausibly a workout. Forget to finish
          until the next morning and "14 hours" is noise, not data. */
       const mins = sess.startedAt ? Math.round((sess.endedAt - sess.startedAt) / 60000) : 0;
@@ -186,6 +192,7 @@ export function finishSession(){
   haptic(20);
   toast('Session done ✓');
   render();
+  if (finished) openBalance(finished);          // did it all balance out?
 }
 
 export function quickComplete(k){

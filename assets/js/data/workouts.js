@@ -741,13 +741,16 @@ const MUSCLE_RULES = [
   [/curl|preacher|bayesian|hammer/i,                            'Biceps'],
   [/pushdown|triceps|tricep|close-grip|overhead.*extension/i,   'Triceps'],
   [/pulldown|pull-up|pullup|straight-arm|dead hang/i,           'Lats'],
+  [/high row|vertical row/i,                                    'Lats'],
   [/row/i,                                                      'Upper back'],
   [/shoulder press|ohp|overhead press/i,                        'Front delts'],
   [/incline|chest press|pec deck|pec-deck|fly|crossover|push-up|dip|bench|flat db press/i, 'Chest'],
 ];
 
 export function muscleOf(name){
-  for (const [re, m] of MUSCLE_RULES) if (re.test(name)) return m;
+  // "iso-lateral" is how a machine moves (each arm alone), not a lateral raise
+  const n = String(name).replace(/\biso-?\s*lateral\s*/gi, '');
+  for (const [re, m] of MUSCLE_RULES) if (re.test(n)) return m;
   return 'Other';
 }
 

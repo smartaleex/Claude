@@ -33,6 +33,8 @@ const RULES = [
      machine chest press to the vertical-pull list. */
   [/pulldown|pull-?ups?\b|\bchin-?ups?\b/i,
       m => /straight-arm|straight arm/i.test(m) ? 'straightArm' : 'verticalPull'],
+  /* a "high row" pulls down and back like a pulldown, so it is vertical pull despite the word row */
+  [/high row|vertical row/i,                                     'verticalPull'],
   [/row/i,                                                       'horizontalPull'],
   [/fly|crossover|pec deck/i,                                    'chestFly'],
   [/ohp|shoulder press|overhead press|military/i,                'overheadPress'],
@@ -45,9 +47,14 @@ const RULES = [
   [/crunch|leg raise|knee raise|pallof|hanging|plank|dead hang|dead bug/i, 'core'],
 ];
 
+/* "Iso-lateral" means each arm moves on its own (a machine feature, not a muscle), so it is
+   ignored when working out what an exercise is: "Machine iso-lateral row" is a row, not a lateral raise. */
+export const plainName = name => String(name).replace(/\biso-?\s*lateral\s*/gi, '');
+
 export function patternOf(name){
+  const n = plainName(name);
   for (const [re, val] of RULES){
-    if (re.test(name)) return typeof val === 'function' ? val(name) : val;
+    if (re.test(n)) return typeof val === 'function' ? val(n) : val;
   }
   return null;
 }
@@ -64,6 +71,8 @@ export const SWAPS = {
       { name:'Single-arm cable pulldown',      gear:'cable',      note:'One side at a time, so one free cable station is enough.' },
       { name:'Band-assisted pull-up',          gear:'bodyweight', note:'Needs only a bar. Loop the band under one knee.' },
       { name:'Straight-arm pulldown + row',    gear:'cable',      note:'Last resort — two movements to cover what one was doing.' },
+      { name:'Iso-lateral high row (machine)', gear:'machine',    note:'Each arm works on its own, pulling down and back like a pulldown. Keeps the lat-width work when the pulldown is busy.' },
+      { name:'Pull-up / chin-up (bodyweight)', gear:'bodyweight', note:'The hardest version of the same pattern. Use the assisted machine until you can do the full set.' },
     ],
   },
   horizontalPull: {
@@ -75,6 +84,9 @@ export const SWAPS = {
       { name:'Single-arm DB row',              gear:'dumbbell',   note:'One dumbbell and a bench. Almost always available.' },
       { name:'Single-arm cable row',           gear:'cable',      note:'Standing or seated. Good if only one station is free.' },
       { name:'Inverted row (bar or rings)',    gear:'bodyweight', note:'Set the bar around hip height and walk your feet out.' },
+      { name:'Machine iso-lateral row',        gear:'machine',    note:'Each arm pulls on its own, chest on the pad. Builds mid-back thickness. It is a row, not a pulldown, so it does not replace the vertical pull for lat width.' },
+      { name:'Iso-lateral low row (machine)',  gear:'machine',    note:'Pulls up and back from a low handle, a little more lat than a flat row. Chest pad takes the lower back out.' },
+      { name:'T-bar row (chest-supported)',    gear:'machine',    note:'Neutral grip, chest on the pad. A strong thickness builder with no lower-back cost.' },
     ],
   },
   inclinePress: {
@@ -85,6 +97,7 @@ export const SWAPS = {
       { name:'Incline DB press (30–45°)',      gear:'dumbbell',   note:'Any adjustable bench. Do not go past 45° or it becomes a shoulder press.' },
       { name:'Low-to-high cable press',        gear:'cable',      note:'Two low pulleys, pressing up and in. Very shoulder-friendly.' },
       { name:'Incline push-up (feet low)',     gear:'bodyweight', note:'Hands elevated hits lower chest — feet elevated is the upper-chest version.' },
+      { name:'Iso-lateral incline press (machine)', gear:'machine', note:'Each arm presses on its own on a fixed incline path. Easy on an unstable shoulder.' },
     ],
   },
   flatPress: {
@@ -96,6 +109,7 @@ export const SWAPS = {
       { name:'Chest dip (lean forward)',       gear:'bodyweight', note:'Leaning forward makes it chest; staying upright makes it triceps.' },
       { name:'Cable press (mid pulley)',       gear:'cable',      note:'Constant tension, easy on the joints.' },
       { name:'Push-up (feet elevated)',        gear:'bodyweight', note:'Zero equipment. Slow the lowering down to make it hard.' },
+      { name:'Iso-lateral chest press (machine)', gear:'machine', note:'Each arm presses on its own on a fixed path, so a weaker side cannot hide.' },
     ],
   },
   chestFly: {
@@ -115,6 +129,7 @@ export const SWAPS = {
       { name:'Machine shoulder press',         gear:'machine',    note:'Best option for an unstable shoulder. Fixed path, no balancing.' },
       { name:'Seated DB press (back support)', gear:'dumbbell',   note:'Neutral grip is kinder to the shoulder than palms-forward.' },
       { name:'Landmine press',                 gear:'barbell',    note:'The most shoulder-friendly pressing angle there is.' },
+      { name:'Iso-lateral shoulder press (machine)', gear:'machine', note:'Fixed path, each arm independent. Kinder to an unstable shoulder than free weights.' },
       { name:'Arnold press (light)',           gear:'dumbbell',   note:'Only if the shoulder is feeling good that day.' },
     ],
   },
@@ -309,6 +324,9 @@ const K = {
   'Cable press (mid pulley)':0.35, 'Push-up (feet elevated)':null,
   'Pec deck':1, 'Cable crossover (high to low)':0.45, 'Low-to-high cable fly':0.35, 'Incline DB fly':0.25,
   'Machine shoulder press':1, 'Seated DB press (back support)':0.4, 'Landmine press':0.5, 'Arnold press (light)':0.3,
+  'Iso-lateral high row (machine)':1, 'Pull-up / chin-up (bodyweight)':null,
+  'Machine iso-lateral row':0.9, 'Iso-lateral low row (machine)':0.9, 'T-bar row (chest-supported)':1,
+  'Iso-lateral incline press (machine)':1, 'Iso-lateral chest press (machine)':1, 'Iso-lateral shoulder press (machine)':1,
   'Cable lateral raise (one arm)':1, 'DB lateral raise':1, 'Machine lateral raise':2,
   'Band lateral raise':null, 'Lean-away DB raise':0.9,
   'Cable front raise (rope, neutral grip)':1, 'DB front raise (neutral grip)':0.7, 'Plate front raise':1.1, 'Band front raise':null,

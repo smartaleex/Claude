@@ -67,13 +67,15 @@ assets/
       native-prefs.js     what is switched on in the iPhone app (reminders, Health)
       native-health.js    Apple Health offers (sleep, weight) and saving workouts
       training-edit.js    plain-English changes to the program, and checking them against the person
+      library.js          every exercise the app knows, grouped by muscle, with search (the swap dropdown)
+      balance.js          did the session and the week still balance out after swaps? (pure logic)
       meds.js             medication schedule: model, plain-English reader, dose slots, reminder items
       cryptic-ai.js       machine-made cryptic clues, verified
     apps/               one file (or folder) per tool
       day.js              Day: meds, sleep, mood, anchors
       day-meds.js         Day: the medication schedule screens and phone reminders
       fuel.js             Food: macros and the bulk
-      forge/              Training (15 files, see below)
+      forge/              Training (16 files, see below)
       clear.js            Nicotine: the taper
       shout.js            People: mates and plans
       ledger.js           Money: budget and the house
@@ -120,6 +122,7 @@ unrelated files. The app does not use them and the deploy ignores them.
 | `advice.js` | "Ask the coach" |
 | `edit.js` | "Change it in your own words": type a change, see the verdict and reasons, apply, undo |
 | `edit-apply.js` | Applying and undoing those changes, and the body context they are checked against |
+| `balance.js` | "How it balanced": opens when a session is finished and from History |
 | `settings.js` | Training settings sheet |
 
 Each module that responds to taps exports an `actions` map; `index.js` merges
@@ -141,6 +144,9 @@ that module's `actions`.
 | Bottom bar, which tools show | `shell/registry.js`, `shell/router.js` | order is user-editable in Settings |
 | A plain-English training change is read wrongly | `core/training-edit.js` (`parseEdits`, `findExercise`) | `tests/unit/training-edit.test.mjs` pins the phrasings |
 | A change is judged too harshly or too softly | `core/training-edit.js` (`PROFILE`, `LIMITS`, `benchmark`) | the person's joints, goal and limits live there |
+| An exercise is filed under the wrong muscle or movement | `data/workouts.js` (`MUSCLE_RULES`), `data/swaps.js` (`RULES`) | "iso-lateral" is ignored on purpose (it is how a machine moves) |
+| An exercise is missing from the swap dropdown | `data/swaps.js` (`SWAPS` options and `K` load index) | the dropdown is built from `core/library.js` |
+| "How it balanced" says something odd | `core/balance.js` | `tests/unit/balance.test.mjs` has the assisted pull-up to iso-lateral row example |
 | A medication phrasing is read wrongly | `core/meds.js` (`parseMedText`) | `tests/unit/meds.test.mjs` |
 | Medication reminders | `apps/day-meds.js`, `core/meds.js` (`reminderItems`), `ios/AlexHQ/Reminders.swift` (`sync`) | off until switched on; the lock screen never shows names by default |
 | Add a tool | `shell/registry.js` + `apps/<name>.js` + `sw.js` | export `mount()` and `summary()` |

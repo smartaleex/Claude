@@ -7,7 +7,7 @@
    Bump CACHE on every deploy or phones keep serving the old build.
    ============================================================ */
 
-const CACHE = 'alexhq-v42';
+const CACHE = 'alexhq-v43';
 
 const SHELL = [
   './assets/css/fonts.css',
@@ -45,6 +45,8 @@ const SHELL = [
   './assets/js/core/sets.js',
   './assets/js/core/native.js',
   './assets/js/core/training-edit.js',
+  './assets/js/core/library.js',
+  './assets/js/core/balance.js',
   './assets/js/core/meds.js',
   './assets/js/core/native-prefs.js',
   './assets/js/core/native-health.js',
@@ -71,6 +73,7 @@ const SHELL = [
   './assets/js/apps/forge/advice.js',
   './assets/js/apps/forge/edit.js',
   './assets/js/apps/forge/edit-apply.js',
+  './assets/js/apps/forge/balance.js',
   './assets/js/apps/forge/settings.js',
   './assets/js/apps/ledger.js',
   './assets/js/apps/shout.js',

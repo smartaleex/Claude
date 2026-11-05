@@ -103,6 +103,11 @@ await p.click('.sheet.on [data-act="tm-restart"]'); await p.waitForTimeout(400);
 await tapEl(p, '[data-act="finish"]'); await p.waitForTimeout(500);
 ok(!(await p.$('[data-act="abandon"]')) && !!(await p.$('[data-act="start"]')), 'finish: back to the plan');
 ok(await p.evaluate(() => { const d = document.getElementById('tmdock'); return !d || d.hidden; }), 'finish: the timer dock goes away');
+// finishing a session with sets logged now opens "How it balanced"
+if (await p.$('.sheet.on')){
+  ok(/how it balanced/i.test(await sheet()), 'finish: opens "How it balanced" when sets were logged');
+  await p.click('.sheet.on [data-act="close"]'); await p.waitForTimeout(350);
+}
 await tab('log');
 ok(/Sessions all time/.test(await text()) && /4/.test((await text()).match(/Sessions all time[\s\S]{0,12}/)?.[0] || '') || /Back \+ Biceps/.test(await text()), 'finish: the session shows up in History');
 

@@ -24,6 +24,7 @@ import { actions as physiqueActions } from './physique-ai.js';
 import { historyHTML } from './history.js';
 import { actions as adviceActions } from './advice.js';
 import { actions as editActions } from './edit.js';
+import { actions as balanceActions } from './balance.js';
 import { actions as settingsActions } from './settings.js';
 
 export async function summary(){
@@ -133,6 +134,6 @@ function bind(){
   bindActions(ui.root, {
     tab: d => { ui.tab = d.v; render(); },
     ...planActions, ...sessionActions, ...loggingActions, ...swapActions, ...goalActions,
-    ...photoActions, ...physiqueActions, ...adviceActions, ...editActions, ...settingsActions,
+    ...photoActions, ...physiqueActions, ...adviceActions, ...editActions, ...balanceActions, ...settingsActions,
   });
 }
