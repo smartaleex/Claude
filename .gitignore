@@ -1,0 +1,11 @@
+__pycache__/
+*.pyc
+node_modules/
+package-lock.json
+tests/out/
+
+# Xcode
+ios/**/xcuserdata/
+ios/**/*.xcuserstate
+ios/build/
+DerivedData/
