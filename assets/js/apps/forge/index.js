@@ -26,6 +26,9 @@ import { actions as adviceActions } from './advice.js';
 import { actions as editActions } from './edit.js';
 import { actions as balanceActions } from './balance.js';
 import { actions as settingsActions } from './settings.js';
+import { actions as formActions } from './form-sheet.js';
+import { actions as muscleActions } from './muscles.js';
+import { actions as coachActions, bindCoach } from './coach-panel.js';
 
 export async function summary(){
   await store.load();
@@ -135,5 +138,7 @@ function bind(){
     tab: d => { ui.tab = d.v; render(); },
     ...planActions, ...sessionActions, ...loggingActions, ...swapActions, ...goalActions,
     ...photoActions, ...physiqueActions, ...adviceActions, ...editActions, ...balanceActions, ...settingsActions,
+    ...formActions, ...muscleActions, ...coachActions,
   });
+  bindCoach(ui.root);
 }

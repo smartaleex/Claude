@@ -17,15 +17,20 @@ await p.click('[data-act="editwords"]'); await p.waitForTimeout(500);
 ok(/change it in your own words/i.test(await sheet()) && await p.$('#ed-q') !== null, 'the sheet opens with a box to type in');
 ok((await p.$$('[data-act="ex"]')).length >= 3, 'with examples to tap');
 
-// ---- a good change: more of a width muscle
+// ---- sets are fixed by the 4 / 3 / 3 format: explained, never applied
 await p.fill('#ed-q', 'make side delts 5 sets on shoulders day');
 await p.click('[data-act="check"]'); await p.waitForTimeout(900);
 let s = await sheet();
-ok(/DB lateral raise \+ partials: 5 sets/.test(s), 'it reads the words into a change: ' + (s.match(/DB lateral[^\n]*/) || [''])[0]);
-ok(/good fit/i.test(s), 'and calls it a good fit');
-ok(/Side delts[^\n]*4 → 5 sets|Side delts\s*4\s*→\s*5/.test(s.replace(/\s+/g, ' ')), 'it shows the weekly sets it changes');
-ok(/Shoulders \+ Arms[\s\S]*min/.test(s), 'and the session length');
+ok(/Sets stay at 4 \/ 3 \/ 3/.test(s) && await p.$('[data-act="apply"]') === null, 'a sets change is explained, not applied: the format is fixed');
 ok(/read with simple rules/i.test(s), 'it says how it read it (AI is off here)');
+
+// ---- a good change: a swap that moves sets between muscles
+await p.fill('#ed-q', 'swap face pull for cable lateral raise');
+await p.click('[data-act="check"]'); await p.waitForTimeout(900);
+s = await sheet();
+ok(/Face pull[^\n]*→ Cable lateral raise/.test(s), 'it reads the words into a change: ' + (s.match(/Face pull[^\n]*/) || [''])[0]);
+ok(/good fit|worth a look/i.test(s), 'and gives it a verdict');
+ok(/what it does to your week/i.test(s), 'it shows what it does to the week');
 ok(/eating|74\.5kg/.test(s), 'it says what it checked against');
 
 // ---- a change that should be questioned
@@ -47,7 +52,7 @@ await p.click('[data-act="check"]'); await p.waitForTimeout(700);
 ok(/Could not read/.test(await sheet()) && await p.$('[data-act="apply"]') === null, 'nonsense is a note, never a change');
 
 // ---- apply a real change and see the program change
-await p.fill('#ed-q', 'make side delts 5 sets on shoulders day and set pec deck rest to 2 minutes');
+await p.fill('#ed-q', 'set lateral raise reps to 15 on shoulders day and set pec deck rest to 2 minutes');
 await p.click('[data-act="check"]'); await p.waitForTimeout(900);
 ok(/Apply 2 changes/.test(await sheet()), 'two changes in one sentence: ' + (await sheet()).match(/Apply[^\n]*/));
 await p.click('[data-act="apply"]'); await p.waitForTimeout(600);
@@ -55,7 +60,7 @@ let f = await forge();
 ok((f.edits || []).length === 1 && f.edits[0].ops.length === 2, 'saved as one batch');
 await p.evaluate(() => document.querySelector('.sheet.on [data-act="close"]')?.click()); await p.waitForTimeout(300);
 await p.click('[data-act="start"][data-d="d4"]'); await p.waitForTimeout(700);
-ok(/5 sets/.test(await text()) || /0\/5|5 sets/.test(await p.$eval('#view', e => e.innerHTML)), 'the lateral raise now shows 5 sets in the session');
+ok(/0\/4 sets · 15 reps/.test(await text()), 'the lateral raise now shows 15 reps, still 4 sets, in the session');
 await p.click('[data-act="abandon"]').catch(() => {}); await p.waitForTimeout(300);
 await p.evaluate(() => { const b = document.querySelector('[data-act="abandon"]'); if (b) b.click(); });
 await p.waitForTimeout(300);
@@ -104,9 +109,9 @@ await p.evaluate(async () => { const m = await import('./assets/js/apps/forge/ed
 await p.fill('#ed-q', 'drop the face pulls');
 await p.click('[data-act="check"]'); await p.waitForTimeout(800);
 ok(/finish or exit your open session/i.test(await sheet()) && await p.$('[data-act="apply"]') === null, 'removing an exercise waits until the open session is finished');
-await p.fill('#ed-q', 'make side delts 4 sets');
+await p.fill('#ed-q', 'set pec deck rest to 90s');
 await p.click('[data-act="check"]'); await p.waitForTimeout(800);
-ok(await p.$('[data-act="apply"]') !== null, 'but changing sets, reps and rest is fine mid-session');
+ok(await p.$('[data-act="apply"]') !== null, 'but changing reps and rest is fine mid-session');
 
 // ---- with Gemini on: it is asked with your context, and its reasoning shows next to the rule-based check
 await p.evaluate(() => document.querySelector('.sheet.on [data-act="close"]')?.click()); await p.waitForTimeout(300);

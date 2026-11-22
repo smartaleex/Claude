@@ -78,3 +78,28 @@ export function searchLibrary(list, query){
     return q.every(w => hay.has(w) || (w.length >= 3 && [...hay].some(h => h.startsWith(w))));
   });
 }
+
+/** What to show under the swap search box. With nothing typed: suggestions for the exercise being
+    swapped (its listed alternates first, then anything else for the same muscle). As you type: every
+    match, best first (names that start with what you typed, then names that contain it, then the
+    same muscle), so the right one is usually on top after a few letters.
+    Returns { items, total, suggested }. */
+export function rankLibrary(list, query, { muscle = null, pattern = null, options = [], limit = 12 } = {}){
+  const q = words(query);
+  if (!q.length){
+    const byName = new Map(list.map(it => [it.name, it]));
+    const first = options.map(n => byName.get(n)).filter(Boolean);
+    const rest = list.filter(it => it.muscle === muscle && !options.includes(it.name))
+      .sort((a, b) => (a.pattern === pattern ? 0 : 1) - (b.pattern === pattern ? 0 : 1) || a.patternLabel.localeCompare(b.patternLabel) || a.name.localeCompare(b.name));
+    const items = [...first, ...rest];
+    return { items: items.slice(0, 8), total: items.length, suggested: true };
+  }
+  const found = searchLibrary(list, query);
+  const score = it => {
+    const n = words(it.name);
+    const nameHit = q.every(w => n.some(x => x === w || (w.length >= 3 && x.startsWith(w))));
+    return (n[0]?.startsWith(q[0]) ? 0 : nameHit ? 1 : 2) * 2 + (it.muscle === muscle ? 0 : 1);
+  };
+  const items = found.map(it => [score(it), it]).sort((a, b) => a[0] - b[0] || a[1].name.localeCompare(b[1].name)).map(x => x[1]);
+  return { items: items.slice(0, limit), total: items.length, suggested: false };
+}

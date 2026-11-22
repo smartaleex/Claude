@@ -67,7 +67,10 @@ assets/
       native-prefs.js     what is switched on in the iPhone app (reminders, Health)
       native-health.js    Apple Health offers (sleep, weight) and saving workouts
       training-edit.js    plain-English changes to the program, and checking them against the person
-      library.js          every exercise the app knows, grouped by muscle, with search (the swap dropdown)
+      library.js          every exercise the app knows, grouped by muscle, with the ranked type-ahead search the swap sheet uses
+      form.js             the moving stick-figure diagram of how an exercise is done, matched by keywords
+      musclemap.js        front and back of the body shaded by sets (pure: counting and an SVG string)
+      coach-chat.js       the session coach: its prompt, its offline answer, and which changes it may make
       balance.js          did the session and the week still balance out after swaps? (pure logic)
       meds.js             medication schedule: model, plain-English reader, dose slots, reminder items
       cryptic-ai.js       machine-made cryptic clues, verified
@@ -75,14 +78,14 @@ assets/
       day.js              Day: meds, sleep, mood, anchors
       day-meds.js         Day: the medication schedule screens and phone reminders
       fuel.js             Food: macros and the bulk
-      forge/              Training (16 files, see below)
+      forge/              Training (19 files, see below)
       clear.js            Nicotine: the taper
       shout.js            People: mates and plans
       ledger.js           Money: budget and the house
       vale.js             Spanish
       cryptic.js          Cryptic: one clue a day
     data/               content, no logic
-      workouts.js         the four-day program and the reasoning behind it
+      workouts.js         the four-day program, the reasoning behind it, and FORMAT (every session 3 supersets at 4 / 3 / 3)
       swaps.js            equivalents, cable/machine stacks, custom kit
       foods.js            offline food database and portion parser
       lift.js             jokes, quotes, daily lines (tagged, never generated)
@@ -113,7 +116,7 @@ unrelated files. The app does not use them and the deploy ignores them.
 | `plan.js` | Plan tab, the comeback banner, the legs note |
 | `session.js` | A live session: exercise cards, start / finish / undo, rest timer sheet |
 | `logging.js` | Logging a set, "log all as planned", the weight pad |
-| `swap.js` | "Machine busy / using something else" |
+| `swap.js` | "Machine busy / using something else": one search box with suggestions, a live list as you type, form and balance for the one you open |
 | `goal.js` | Goal tab: weight trend, back-on-track plan, volume, focus |
 | `history.js` | Past sessions |
 | `photos.js` | Photos tab, before/after slider, goal photos |
@@ -124,6 +127,9 @@ unrelated files. The app does not use them and the deploy ignores them.
 | `edit-apply.js` | Applying and undoing those changes, and the body context they are checked against |
 | `balance.js` | "How it balanced": opens when a session is finished and from History |
 | `settings.js` | Training settings sheet |
+| `form-sheet.js` | One exercise up close: the animated form diagram, cues, swap or ask the coach |
+| `muscles.js` | The muscle map card: today or the week, on the session screen and the Plan |
+| `coach-panel.js` | The coach on the session screen: ask, see proposed swaps with their verdict, apply, undo |
 
 Each module that responds to taps exports an `actions` map; `index.js` merges
 them. To add a button: put `data-act="thing"` in the HTML and `thing(){}` in
@@ -145,7 +151,11 @@ that module's `actions`.
 | A plain-English training change is read wrongly | `core/training-edit.js` (`parseEdits`, `findExercise`) | `tests/unit/training-edit.test.mjs` pins the phrasings |
 | A change is judged too harshly or too softly | `core/training-edit.js` (`PROFILE`, `LIMITS`, `benchmark`) | the person's joints, goal and limits live there |
 | An exercise is filed under the wrong muscle or movement | `data/workouts.js` (`MUSCLE_RULES`), `data/swaps.js` (`RULES`) | "iso-lateral" is ignored on purpose (it is how a machine moves) |
-| An exercise is missing from the swap dropdown | `data/swaps.js` (`SWAPS` options and `K` load index) | the dropdown is built from `core/library.js` |
+| An exercise is missing from the swap search | `data/swaps.js` (`SWAPS` options and `K` load index) | the list is built and ranked in `core/library.js` (`rankLibrary`) |
+| A form diagram is wrong or missing | `core/form.js` (`RULES` name to movement, `POSES` the two key positions) | `tests/unit/form.test.mjs` checks every library exercise has one |
+| The muscle map shades the wrong place | `core/musclemap.js` (`REGIONS`), `data/workouts.js` (`MUSCLE_RULES`) | |
+| The coach says or proposes something odd | `core/coach-chat.js` (`coachPrompt`, `offlineCoach`) | it may only swap, or change reps and rest |
+| A session is not 3 supersets at 4 / 3 / 3 | `data/workouts.js` (`FORMAT`, `fitFormat`) | `tests/unit/format.test.mjs` pins every phase |
 | "How it balanced" says something odd | `core/balance.js` | `tests/unit/balance.test.mjs` has the assisted pull-up to iso-lateral row example |
 | A medication phrasing is read wrongly | `core/meds.js` (`parseMedText`) | `tests/unit/meds.test.mjs` |
 | Medication reminders | `apps/day-meds.js`, `core/meds.js` (`reminderItems`), `ios/AlexHQ/Reminders.swift` (`sync`) | off until switched on; the lock screen never shows names by default |

@@ -154,6 +154,8 @@ export const ui = {
   cmpA: null, cmpB: null, // chosen before / after photo ids (null = first / latest)
   askText: '',            // the question typed above "Send to Gemini"
   busy: null,             // 'progress' | 'benchmark' | null: an AI call is in flight
+  mapView: 'day',         // the muscle map: this session or the whole week
+  coach: { text: '', focus: null, busy: false, result: null },   // the coach on the session screen (coach-panel.js)
 };
 
 /* Any screen file can ask for a redraw; index.js decides what that means. */

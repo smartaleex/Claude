@@ -75,21 +75,20 @@ ok(resolveOps([{ type: 'explode', exercise: 'x' }], days).notes.length === 1, 'u
 const edit = ops => [{ ops }];
 let after = applyEdits(days, edit(read('3 sets of 10 on pec deck').ops));
 const pd = after.find(d => d.key === 'd2').supersets[0].exercises[1];
-ok(pd.sets === '3' && pd.reps === '10', 'sets and reps change on the right exercise');
+ok(pd.sets === '4' && pd.reps === '10', 'reps change on the right exercise; sets stay at the 4 / 3 / 3 format');
 ok(days.find(d => d.key === 'd2').supersets[0].exercises[1].sets === '4', 'the original program is not touched');
 after = applyEdits(days, edit(read('drop the face pulls').ops));
 ok(!after.find(d => d.key === 'd4').supersets.flatMap(s => s.exercises).some(e => /Face pull/.test(e.name)), 'remove takes the exercise out');
 after = applyEdits(days, edit(read('add cable lateral raise 3x15 to shoulders day').ops));
 const d4 = after.find(d => d.key === 'd4');
-ok(d4.supersets.length === days.find(d => d.key === 'd4').supersets.length + 1 && d4.supersets.at(-1).exercises[0].added, 'add goes in as a new last superset, so nothing before it moves');
+ok(d4.supersets.length === 3 && d4.extra.exercises[0].name === 'Cable lateral raise', 'add lands in extra time, so the three supersets and their positions do not move');
 ok(isStructural({ type: 'add' }) && isStructural({ type: 'remove' }) && !isStructural({ type: 'sets' }), 'add and remove are the ones that shift positions');
 ok(applyEdits(days, []) === days, 'no edits returns the same program');
 
 // ---- what it does to the week
 let im = impact(days, read('make side delts 4 sets on shoulders day').ops.map(o => ({ ...o, sets: 6 })));
 const sd = im.volume.find(v => v.muscle === 'Side delts');
-ok(sd && sd.before === 4 && sd.after === 6, 'side delts 4 to 6 sets a week');
-ok(im.minutes.length === 1 && im.minutes[0].after > im.minutes[0].before, 'and that day runs a little longer');
+ok(!sd && !im.minutes.length, 'a sets change does nothing to the week: the format holds');
 
 // ---- checking against the person
 const ctx = { days, phase: { phase: 2 }, ramp: { active: false }, body: { kcalAvg: 2800, kcalTarget: 2800 } };
@@ -108,12 +107,8 @@ b = bm('swap straight bar pushdown for skull crushers');
 ok(b.level === 'check' && /triceps|elbow|lockout/i.test(b.reasons.join(' ')), 'skull crushers are flagged for the triceps tendon');
 b = bm('swap bulgarian split squat for walking lunges');
 ok(b.level === 'check' && /knee/i.test(b.reasons.join(' ')), 'lunges are flagged for knees that cave');
-b = benchmark({ type: 'sets', day: 'd4', orig: 'DB lateral raise + partials', exercise: 'DB lateral raise + partials', sets: 5 }, ctx);
-ok(b.level === 'good' && /side delts/i.test(b.reasons.join(' ')), 'more side delts is praised as the goal: ' + b.reasons[0]);
 b = benchmark({ type: 'sets', day: 'd4', orig: 'DB lateral raise + partials', exercise: 'DB lateral raise + partials', sets: 6 }, ctx);
 ok(b.level === 'check' && /past the point/i.test(b.reasons.join(' ')), 'six sets of one exercise is past the cap');
-b = benchmark({ type: 'sets', day: 'd4', orig: 'DB lateral raise + partials', exercise: 'DB lateral raise + partials', sets: 2 }, ctx);
-ok(b.level === 'check' && /width/i.test(b.reasons.join(' ')), 'cutting a width muscle is flagged');
 b = bm('drop the face pulls');
 ok(b.level === 'check', 'dropping a posture and rear-delt exercise is worth a look');
 b = bm('drop the reverse ez-bar curl');

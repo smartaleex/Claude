@@ -20,7 +20,7 @@
    Types: swap, sets, reps, rest, add, remove, stack.
    ============================================================ */
 
-import { muscleOf, weeklyVolume, sessionMinutes, PHYSIQUE } from '../data/workouts.js';
+import { muscleOf, weeklyVolume, sessionMinutes, PHYSIQUE, fitFormat } from '../data/workouts.js';
 import { patternOf, gearOf, swapsFor, SWAPS } from '../data/swaps.js';
 
 /* ---------------- who this is for ---------------- */
@@ -334,7 +334,7 @@ export function applyEdits(days, edits, phaseNo){
       }));
       supersets = supersets.map(ss => ({ ...ss, exercises: ss.exercises.filter(Boolean) })).filter(ss => ss.exercises.length);
     }
-    return { ...d, supersets };
+    return fitFormat({ ...d, supersets });
   });
 }
 
@@ -476,5 +476,6 @@ Each op is one of:
 {"type":"add","day":"d4","exercise":"name","sets":3,"reps":"12–15","rest":"60s","why":"one line"}
 {"type":"remove","day":"d4","exercise":"exact name","why":"one line"}
 {"type":"stack","gear":"cable|machine","unit":"kg|lb","ratio":2}
+THE FORMAT IS FIXED: every session is 3 supersets, the first for 4 sets and the second and third for 3. Never return a "sets" change. An "add" lands in the optional extra-time block.
 Rules: use the exact exercise names above. Leave out "day" only when the request is for every day that has that exercise; "add" always needs a day. Keep "why" to one plain sentence about THIS person. Only include changes the request asked for. If the request is unclear, return {"ops":[],"say":"what you need to know"}.`;
 }

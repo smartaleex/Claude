@@ -20,7 +20,7 @@ import { applyBatch, undoLast, bodyContext, contextNow } from './edit-apply.js';
 
 const EXAMPLES = [
   'Swap incline press for the DB version, my shoulder clicks',
-  'Side delts to 5 sets on shoulders day',
+  'Rest 60s on the leg curl',
   'Drop the face pulls',
   'Cable stack reads in lb and is 2:1',
 ];
@@ -35,7 +35,10 @@ async function interpret(text){
     offline: () => parseEdits(text, days, swaps),
   });
   const raw = Array.isArray(res.data) ? res.data : res.data?.ops;
-  const { ops, notes } = resolveOps(raw, days, swaps);
+  const read = resolveOps(raw, days, swaps);
+  /* Sets are fixed by the 4 / 3 / 3 format (FORMAT in data/workouts.js), so a sets change is explained, not applied. */
+  const ops = read.ops.filter(o => o.type !== 'sets');
+  const notes = [...read.notes, ...(ops.length < read.ops.length ? ['Sets stay at 4 / 3 / 3: the first superset 4 sets, the second and third 3. Change the reps or the exercise instead.'] : [])];
   const ctx = contextNow();
   const active = !!store.get().activeId;
   const props = ops.map(op => {
@@ -104,7 +107,7 @@ function historyHTML() {
 export function openEdit(){
   openSheet(`
     <h2>Change it in your own words</h2>
-    <p class="sub">Swap an exercise, change sets, reps or rest, add or drop one, or say how your gym's stacks read. Each change is checked against your shoulder, elbow, knees, back and the physique you are building before anything happens.</p>
+    <p class="sub">Swap an exercise, change reps or rest, add or drop one, or say how your gym's stacks read. Each change is checked against your shoulder, elbow, knees, back and the physique you are building before anything happens.</p>
     <textarea class="textarea" id="ed-q" placeholder="e.g. Swap incline press for the DB version, my shoulder clicks"></textarea>
     <div class="chips" style="margin-top:8px">
       ${EXAMPLES.map((t, i) => `<button class="chip" data-act="ex" data-i="${i}" style="font-size:12px;padding:7px 11px">${esc(t)}</button>`).join('')}

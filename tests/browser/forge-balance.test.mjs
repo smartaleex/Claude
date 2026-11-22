@@ -1,4 +1,4 @@
-/* The user's own example: assisted pull-ups swapped for a machine iso-lateral row, picked from a dropdown of the whole
+/* The user's own example: assisted pull-ups swapped for a machine iso-lateral row, found by typing into a search of the whole
    library, then at the end of the workout: did it all balance out? */
 import { launch, open, go, ok, done, forgeSeed, dayKey } from '../lib.mjs';
 
@@ -22,24 +22,27 @@ const closeSheet = async () => { await p.evaluate(() => document.querySelector('
 await p.click('[data-act="start"][data-d="d1"]'); await p.waitForTimeout(700);
 ok(/Assisted pull-up \(wide grip\)/.test(await view()), 'the session opens on Back + Biceps with the assisted pull-up');
 
-// ---- the dropdown
+// ---- the search: suggestions before you type, a live list as you type
+const rows = () => p.$$eval('#lib-res [data-act="libpick"]', els => els.map(e => e.dataset.n));
 await p.click('[data-act="swap"][data-o="Assisted pull-up (wide grip)"]'); await p.waitForTimeout(500);
-ok(await p.$('#lib-pick') !== null && /pick any exercise from the library/i.test(await sheet()), 'the swap sheet has a library dropdown');
-const total = await p.$$eval('#lib-pick option', o => o.length - 1);
-ok(total > 100, `the dropdown holds the whole library: ${total} exercises`);
-const groupNames = await p.$$eval('#lib-pick optgroup', g => g.map(x => x.label));
-ok(groupNames[0] === 'Lats' && groupNames.includes('Upper back') && groupNames.includes('Chest'), 'grouped by muscle: ' + groupNames.slice(0, 4).join(', ') + '…');
-ok(await p.$$eval('#lib-pick option', o => o.some(x => x.value === 'Machine iso-lateral row')), 'the machine iso-lateral row is in it');
-
+ok(await p.$('#lib-q') !== null && await p.$('#lib-pick') === null, 'the swap sheet has a search box, no dropdown');
+let r = await rows();
+ok(/suggested/i.test(await sheet()) && r.length >= 4 && r.length <= 8, 'before typing it suggests swaps: ' + r.slice(0, 4).join(' | '));
+ok(/pull-?up|pulldown/i.test(r[0]), 'same movement first: ' + r[0]);
+ok(await p.$$eval('#lib-res svg.fm', e => e.length) === r.length, 'every row has a form diagram');
+await p.type('#lib-q', 'iso'); await p.waitForTimeout(200);
+r = await rows();
+ok(r.length >= 3 && r.every(n => /iso/i.test(n)), 'three letters already narrow it: ' + r.join(' | '));
 await p.fill('#lib-q', 'iso lateral row'); await p.waitForTimeout(200);
-const narrowed = await p.$$eval('#lib-pick option', o => o.slice(1).map(x => x.value));
-ok(narrowed.length <= 4 && narrowed.includes('Machine iso-lateral row'), 'typing narrows the dropdown: ' + narrowed.join(' | '));
+r = await rows();
+ok(r.length <= 4 && r.includes('Machine iso-lateral row'), 'typing narrows the list: ' + r.join(' | '));
 await p.fill('#lib-q', 'zzzz'); await p.waitForTimeout(150);
-ok(await p.$$eval('#lib-pick option', o => o.length) === 1, 'nonsense leaves nothing to pick');
+ok((await rows()).length === 0 && /nothing matches/i.test(await sheet()), 'nonsense says nothing matches');
 await p.fill('#lib-q', 'iso lateral row'); await p.waitForTimeout(150);
 
 // ---- before committing: what does it change?
-await p.selectOption('#lib-pick', 'Machine iso-lateral row'); await p.waitForTimeout(400);
+await p.click('#lib-res [data-n="Machine iso-lateral row"]'); await p.waitForTimeout(400);
+ok(await p.$('#lib-detail svg.fm') !== null, 'opening one shows its form');
 let s = await sheet();
 ok(/what this changes/i.test(s) && /vertical pull became horizontal pull/i.test(s), 'picking it explains the change: vertical pull becomes horizontal pull');
 ok(/lats lose 4 sets/.test(s) && /upper back gains 4 sets/.test(s), 'lats lose 4 sets, upper back gains 4');
@@ -55,7 +58,8 @@ ok(/Swapped from Assisted pull-up \(wide grip\)/.test(await view()) && /Machine 
 
 // ---- a same-movement pick does convert the weight
 await p.click('[data-act="swap"][data-o="Wide-grip lat pulldown"]'); await p.waitForTimeout(500);
-await p.selectOption('#lib-pick', 'Iso-lateral high row (machine)'); await p.waitForTimeout(400);
+await p.fill('#lib-q', 'high row'); await p.waitForTimeout(200);
+await p.click('#lib-res [data-n="Iso-lateral high row (machine)"]'); await p.waitForTimeout(400);
 s = await sheet();
 ok(/Start around 50kg \(est\.\)/.test(s) && /Same movement, different kit/.test(s), 'same movement: starts around 50kg and says nothing shifts');
 await closeSheet();
@@ -63,7 +67,9 @@ await closeSheet();
 // ---- an exercise with no listed alternates can still be swapped from the library
 await p.evaluate(async () => { const m = await import('./assets/js/apps/forge/swap.js'); m.openSwap('Farmer carry', 'Farmer carry', 'd1'); });
 await p.waitForTimeout(500);
-ok(await p.$('#lib-pick') !== null && !/quick alternates for this movement/i.test(await sheet()), 'an exercise with no alternates still gets the library');
+ok(await p.$('#lib-q') !== null, 'an exercise with no alternates still gets the library search');
+await p.fill('#lib-q', 'lat'); await p.waitForTimeout(150);
+ok((await rows()).length > 0, 'and finds anything you type');
 await closeSheet();
 
 // ---- do the session, then finish
@@ -108,4 +114,4 @@ await closeSheet();
 ok(await p.$('.sheet.on') === null, 'no sheet left open');
 ok(errs.length === 0, 'no script errors ' + (errs[0] || ''));
 await b.close();
-done('training: library dropdown and session balance');
+done('training: library search and session balance');

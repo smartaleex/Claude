@@ -15,6 +15,9 @@ import { saveSessionToHealth } from '../../core/native-health.js';
 import { snapshotSession } from '../../core/balance.js';
 import { openBalance } from './balance.js';
 import { openingFor } from './logging.js';
+import { formSVG } from '../../core/form.js';
+import { musclesHTML } from './muscles.js';
+import { coachHTML } from './coach-panel.js';
 import { ui, dayOf, fmtSet, phase, ramp, render, repsFor, resolve, store, targetSets } from './state.js';
 
 export function sessionHTML(sess){
@@ -35,12 +38,17 @@ export function sessionHTML(sess){
         <div class="card-note" style="margin-top:3px">${esc(d.subtitle)}</div>
         <div class="tiny muted" style="margin-top:6px">${doneSets} of ${totalSets} sets logged${ramp().active ? ` · comeback week ${ramp().week}, lighter reps and weights` : ''}</div>
       </div>
-      <button class="btn btn-sm btn-plain" data-act="abandon">Exit</button>
+      <div style="display:flex;flex-direction:column;gap:6px;flex:none">
+        <button class="btn btn-sm btn-plain" data-act="abandon">Exit</button>
+        <button class="btn btn-sm btn-soft" data-act="tocoach">Coach</button>
+      </div>
     </div>
     <div class="bar" style="background:rgba(0,0,0,.08);margin-top:14px">
       <i style="width:${totalSets ? doneSets/totalSets*100 : 0}%;background:${d.color}"></i>
     </div>
   </div>
+
+  <div style="margin-top:14px">${musclesHTML(d)}</div>
 
   ${wu ? `<div class="card in in-2" style="margin-top:14px">
     <div class="spread" data-act="togglewu">
@@ -82,6 +90,8 @@ export function sessionHTML(sess){
         </div>`).join('')}
     </div>` : ''}
 
+  ${coachHTML(d)}
+
   <button class="btn btn-primary block" style="margin:20px 0 8px" data-act="finish">Finish session ✓</button>`;
 }
 
@@ -103,6 +113,8 @@ function exerciseHTML(ex0, key, sess, d, hasNext){
   return `
   <div style="padding:15px 16px;${hasNext ? 'border-bottom:1px solid var(--line-soft)' : ''}">
     <div class="spread" style="align-items:flex-start;gap:10px">
+      ${formSVG(ex.name) ? `<button class="fm-thumb" data-act="form" data-n="${esc(ex.name)}" data-o="${esc(ex.orig)}" data-dk="${d.key}"
+          aria-label="How to do ${esc(ex.name)}">${formSVG(ex.name, { size: 44 })}</button>` : ''}
       <div class="grow">
         <span class="badge" style="background:${ts.bg};color:${ts.fg}">${esc(ex.tag)}</span>
         ${bonus ? `<span class="badge accent" style="margin-left:6px" title="Added from your goal benchmark">+${bonus} focus</span>` : ''}
@@ -261,4 +273,5 @@ export const actions = {
   tick: d => quickComplete(d.d),
   undo: d => undoToday(d.d),
   finish: finishSession,
+  tocoach: () => document.getElementById('coach')?.scrollIntoView({ block: 'start', behavior: 'smooth' }),
 };

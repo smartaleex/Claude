@@ -603,7 +603,7 @@ const PHASE3_DAYS = [
    ============================================================ */
 export function kindLegs(day){
   if (!day || day.key !== 'd3') return day;
-  return {
+  return fitFormat({
     ...day,
     subtitle: 'Back-friendly legs · about 30 min',
     warmup: 'legsKind',
@@ -629,8 +629,8 @@ export function kindLegs(day){
         ],
       },
       {
-        label: 'SS3 — Bonus (skip it on a flat day)',
-        rationale: 'If you have done the first two pairs, legs are done. This is a bonus, not a requirement.',
+        label: 'SS3 — Leg Extension + Core',
+        rationale: 'Quad finisher, and core while the legs rest. On a flat day the first two pairs are the job.',
         exercises: [
           { name:'Leg extension', sets:'2', reps:'12–15', rest:'0s', tag:'Isolation',
             notes:'Light and controlled. Toes point straight up, no swinging.' },
@@ -646,7 +646,7 @@ export function kindLegs(day){
         { name:'Couch stretch', sets:'2', reps:'40s each side', note:'Do this on the days you skip the warm-up too.' },
       ],
     },
-  };
+  });
 }
 
 /* Shown on the Plan, not buried: what to try, and when to stop trying. */
@@ -679,9 +679,35 @@ const FRONT_DELTS = {
       notes:'Cable low, rope in both hands, thumbs up. Raise to eye height and no higher, no swinging. Keep it light. If the front of the shoulder pinches, stop and drop the weight.' },
   ],
 };
+/* Every session is three supersets (see FORMAT below), so the front raise rides in the optional
+   extra-time block on the shoulder day rather than as a fourth superset. */
 for (const days of [PHASE1_DAYS, PHASE2_DAYS, PHASE3_DAYS]){
   const d4 = days.find(d => d.key === 'd4');
-  if (d4 && !d4.supersets.some(ss => ss.label === FRONT_DELTS.label)) d4.supersets.push(FRONT_DELTS);
+  const fr = FRONT_DELTS.exercises[0];
+  if (d4 && !d4.extra.exercises.some(e => e.name === fr.name)) d4.extra.exercises.unshift({ name: fr.name, sets: fr.sets, reps: fr.reps, note: fr.notes });
+}
+
+/* ---------------- the session format ----------------
+   Alex's rule for every session, every phase: exactly three supersets, the first done
+   for 4 sets and the second and third for 3. fitFormat() holds any day to it, whatever
+   the program, the back-friendly leg day or a change made in plain words says. A fourth
+   superset (an added exercise, say) moves into the optional extra-time block instead. */
+export const FORMAT = [4, 3, 3];
+
+export function fitFormat(day){
+  if (!day?.supersets) return day;
+  const keep = day.supersets.slice(0, FORMAT.length);
+  const spill = day.supersets.slice(FORMAT.length).flatMap(ss => ss.exercises);
+  const supersets = keep.map((ss, i) => ({
+    ...ss,
+    label: String(ss.label || '').replace(/^SS\d+/, `SS${i + 1}`),
+    exercises: ss.exercises.map(ex => ex.sets === String(FORMAT[i]) ? ex : { ...ex, sets: String(FORMAT[i]) }),
+  }));
+  const extra = spill.length
+    ? { label: day.extra?.label || 'Extra time? (+10 min)',
+        exercises: [...spill.map(ex => ({ name: ex.name, sets: ex.sets, reps: ex.reps, note: ex.added ? 'Added by you.' : (ex.notes || '') })), ...(day.extra?.exercises || [])] }
+    : day.extra;
+  return { ...day, supersets, extra };
 }
 
 /* ---------------- phases ---------------- */
@@ -690,19 +716,19 @@ export const PHASES = [
     phase: 1, name: 'Foundation', weeks: 'Weeks 1–6',
     focus: 'The foundation block. Lat width, chest priority, delt caps started.',
     note: "The foundation block you've been running. Keep it here for reference or fall back to it any time.",
-    days: PHASE1_DAYS,
+    days: PHASE1_DAYS.map(fitFormat),
   },
   {
     phase: 2, name: 'Specialisation', weeks: 'Weeks 7–14',
     focus: 'New variations. Chest specialisation, delt cap partials, abs 2x/week, posture baked in.',
     note: 'New exercise variations for fresh stimulus. Extra focus baked in: chest specialisation, delt caps (lateral raise partials), abs upgraded to a real training block 2x/week, and posture work (chest-supported rows, face pulls, wall slides) throughout. Take one easy deload week before starting.',
-    days: PHASE2_DAYS,
+    days: PHASE2_DAYS.map(fitFormat),
   },
   {
     phase: 3, name: 'Width Peak', weeks: 'Weeks 15–22',
     focus: 'Intensity techniques on delts and lats. Chest drops to maintenance.',
     note: 'Built on what was still lagging: width. Side delts move to twice a week, lats get 1.5-reps and drop sets, and chest drops to maintenance volume to free up recovery. Intensity techniques instead of heavier loads — kinder to the shoulder and elbow after 14 weeks of accumulated fatigue. Deload one week first.',
-    days: PHASE3_DAYS,
+    days: PHASE3_DAYS.map(fitFormat),
   },
 ];
 

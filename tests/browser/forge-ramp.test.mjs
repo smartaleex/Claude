@@ -21,10 +21,10 @@ await p.click('[data-act="start"][data-d="d3"]'); await p.waitForTimeout(500);
 txt = await p.$eval('#view',e=>e.innerText);
 ok(/Hip thrust/i.test(txt) && !(await p.$('[data-act="addset"][data-n="Romanian deadlift"]')),'legs session has hip thrust, no RDL');
 ok(/Lower prep, back-friendly/i.test(txt),'back-friendly warm-up');
-ok(/Bonus/i.test(txt),'SS3 labelled bonus');
+ok(/Leg Extension \+ Core/i.test(txt),'SS3 is leg extension and core');
 ok(/comeback week 1, lighter reps and weights/.test(txt),'session header notes the ramp');
-// sets are NEVER cut by the ramp: leg press stays 3 sets, calf raise 3, leg extension 2
-ok(/Leg press \(feet high\)[\s\S]{0,120}0\/3 sets/.test(txt),'leg press still 3 sets during the ramp');
+// sets are NEVER cut by the ramp: SS1 stays 4 sets, SS2 and SS3 3
+ok(/Leg press \(feet high\)[\s\S]{0,120}0\/4 sets/.test(txt),'leg press keeps its 4 sets (SS1) during the ramp');
 ok(!/0\/1 sets|0\/2 sets[\s\S]{0,60}Seated calf/.test(txt),'nothing was cut down to 1 or 2 sets');
 ok(/8–10|10–12/.test(txt) || /reps \(usually/.test(txt),'reps are shown, with the usual range when eased');
 ok(/10 reps \(usually 10–12\)/.test(txt),'10–12 shown as 10 reps (usually 10–12): '+(txt.match(/[^\n]*usually[^\n]*/)||[''])[0]);
@@ -32,9 +32,9 @@ ok(/ease in at ~85kg/.test(txt),'weights eased: 100 -> 85: '+(txt.match(/ease in
 // log all
 await p.click('[data-act="fillsets"][data-n="Leg press (feet high)"]'); await p.waitForTimeout(300);
 txt = await p.$eval('#view',e=>e.innerText);
-ok(/3\/3 sets/.test(txt),'one tap logged all three sets');
+ok(/4\/4 sets/.test(txt),'one tap logged all four sets');
 const chips = await p.$$eval('[data-act="editset"][data-n="Leg press (feet high)"]',els=>els.map(e=>e.innerText.trim()));
-ok(chips.length===3 && chips.every(c=>c==='85kg'),'sets carry the eased weight: '+chips);
+ok(chips.length===4 && chips.every(c=>c==='85kg'),'sets carry the eased weight: '+chips);
 
 // stack settings: cable 2:1
 await p.click('[data-act="settings"]'); await p.waitForTimeout(400);
