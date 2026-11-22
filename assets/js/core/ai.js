@@ -282,13 +282,22 @@ export async function ask({ prompt, images = [], offline = null, maxTokens = 120
         return { data: extractJSON(txt), source:'Claude', tier:1 };
       }catch(e){ errors.push('Claude: ' + e.message); }
     }
-    // Tier 2
+    // Tier 2. A first call often fails for reasons that clear on their own: a cold or
+    // overloaded model (5xx), a dropped connection, or a reply cut short so its JSON will
+    // not parse. Try once more before falling back, so a question never needs sending twice.
     if (s.geminiKey){
-      try{
-        const txt = await callGemini({ prompt, images, maxTokens, key:s.geminiKey });
-        bumpCount();
-        return { data: extractJSON(txt), source:'Gemini', tier:2 };
-      }catch(e){ errors.push('Gemini: ' + e.message); }
+      for (let attempt = 0; attempt < 2; attempt++){
+        try{
+          const txt = await callGemini({ prompt, images, maxTokens, key:s.geminiKey });
+          bumpCount();
+          return { data: extractJSON(txt), source:'Gemini', tier:2 };
+        }catch(e){
+          const st = e.status;
+          if (attempt === 0 && !(st >= 400 && st < 500)){ await new Promise(r => setTimeout(r, 700)); continue; }
+          errors.push('Gemini: ' + e.message);
+          break;
+        }
+      }
     }
   }
 

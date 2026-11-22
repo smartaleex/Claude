@@ -20,6 +20,7 @@
    be tested without a phone or an API key.
    ============================================================ */
 
+import { PUMP_RULE } from './pump.js';
 import { muscleOf } from '../data/workouts.js';
 
 /* The only muscles a suggestion may name. Matches muscleOf()'s labels so
@@ -99,7 +100,8 @@ const RULES = `RULES
 - Never recommend cutting, a calorie deficit, fasting or restricting food. If the logged intake is below target, say eating enough is the first lever.
 - Be honest rather than flattering, and kind rather than harsh. No shaming language.
 - Respect his limits: do not suggest more pressing volume, front-delt work or heavy triceps work.
-- Plain sentences. No emoji.`;
+- Plain sentences. No emoji.
+${PUMP_RULE}`;
 
 export function progressPrompt({ context, question, labels }){
   return `You are a strength and physique coach reading progress photos for one person.

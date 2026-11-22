@@ -26,7 +26,7 @@ async function interpret(text, day){
   const week = countSets(days, (ex, d) => resolve(ex, d.key).name, (ex, d) => targetSets(ex, d.key, ex.name));
   const res = await ask({
     prompt: coachPrompt({ text, day, days, swaps, body: bodyContext(), phase: phase(), ramp: contextNow().ramp, focus, week }),
-    maxTokens: 900,
+    maxTokens: 1400,
     offline: () => {
       const o = offlineCoach({ text, focus });
       if (o) return o;
@@ -40,6 +40,7 @@ async function interpret(text, day){
   return {
     reply: String(res.data?.reply || res.data?.say || 'Done.'),
     source: res.source,
+    aiError: res.error || null,          // AI is on but did not answer: say so and offer a retry
     notes,
     props: coachOps(ops).map(op => { const bm = benchmark(op, ctx); return { op, bm, on: bm.level !== 'no' }; }),
     applied: false,
@@ -64,7 +65,9 @@ function resultHTML(r, day){
   const on = r.props.filter(p => p.on);
   return `
     <div class="coach-reply">${esc(r.reply)}</div>
-    <div class="tiny muted" style="margin-top:6px">${r.source === 'Offline' ? 'Read with simple rules (AI is off or unavailable).' : `From ${esc(r.source)}.`}</div>
+    ${r.aiError ? `<div class="card tight sunk" style="margin-top:10px"><div class="tiny" style="line-height:1.55">The AI did not answer (${esc(r.aiError.replace(/^\w+: /, ''))}), so this is the rule-based answer.</div>
+        <button class="btn btn-sm btn-plain" style="margin-top:8px" data-act="coachask">Try the AI again</button></div>`
+      : `<div class="tiny muted" style="margin-top:6px">${r.source === 'Offline' ? 'Read with simple rules (AI is off).' : `From ${esc(r.source)}.`}</div>`}
     ${r.props.map((p, i) => `
       <div class="card tight coach-prop ${p.on ? '' : 'sunk'}">
         ${p.op.type === 'swap' && formSVG(p.op.to) ? `<span class="fm-thumb">${formSVG(p.op.to, { size: 40 })}</span>` : ''}

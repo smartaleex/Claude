@@ -9,6 +9,7 @@
    ============================================================ */
 
 import { muscleOf } from '../data/workouts.js';
+import { FRONT, BACK, OUTLINE, VIEWBOX } from './anatomy.js';
 
 /* Which painted regions each muscle group lights up. */
 const REGIONS = {
@@ -16,6 +17,8 @@ const REGIONS = {
   'Quads': ['quads'], 'Lats': ['lats'], 'Upper back': ['midback'], 'Rear delts & traps': ['reardelt', 'traps'], 'Traps': ['traps'],
   'Triceps': ['triceps'], 'Glutes': ['glutes'], 'Hamstrings': ['hamstrings'], 'Calves': ['calves'],
 };
+/* Regions the program counts; the rest (forearms, neck, shins...) are drawn but never shaded. */
+const COUNTED = new Set(Object.values(REGIONS).flat());
 
 /** Sets per muscle group for a list of days. nameOf gives the exercise as it is done (after swaps),
     setsOf the sets it gets. */
@@ -37,27 +40,16 @@ function regionSets(counts){
   return r;
 }
 
-/** One side of the body as an SVG string. side: 'front' | 'back'. */
+/* The deltoid is one shape per view: shade it by the busier head that view shows. */
+const MERGED = { 'delts-front': ['frontdelt', 'sidedelt'], 'delts-back': ['reardelt', 'sidedelt'] };
+
+/** One side of the body as an SVG string. side: 'front' | 'back'. Shapes from core/anatomy.js. */
 export function bodySVG(side, counts, scale){
   const r = regionSets(counts);
-  const c = k => `mm-${shade(r[k] || 0, scale)}`;
-  const two = (k, cx, cy, rx, ry) => `<g class="${c(k)}"><ellipse cx="${cx}" cy="${cy}" rx="${rx}" ry="${ry}"/><ellipse cx="${100 - cx}" cy="${cy}" rx="${rx}" ry="${ry}"/></g>`;
-  let s = `<svg class="mm" viewBox="0 0 100 200" role="img" aria-label="${side === 'front' ? 'Front' : 'Back'} of the body, shaded by sets"><g class="mm-base">` +
-    `<circle cx="50" cy="15" r="11"/><rect x="45" y="25" width="10" height="8" rx="3"/><rect x="36" y="36" width="28" height="70" rx="12"/>` +
-    `<rect x="38" y="100" width="24" height="22" rx="9"/><ellipse cx="22" cy="112" rx="4" ry="6"/><ellipse cx="78" cy="112" rx="4" ry="6"/>` +
-    `<ellipse cx="22" cy="93" rx="4" ry="12"/><ellipse cx="78" cy="93" rx="4" ry="12"/><ellipse cx="42" cy="192" rx="6" ry="4"/><ellipse cx="58" cy="192" rx="6" ry="4"/></g>`;
-  if (side === 'front'){
-    s += two('sidedelt', 28, 44, 7, 8) + two('frontdelt', 34, 49, 5, 7);
-    s += `<g class="${c('chest')}"><path d="M37 42 Q43 38 49 41 L49 62 Q42 66 37 61 Z"/><path d="M63 42 Q57 38 51 41 L51 62 Q58 66 63 61 Z"/></g>`;
-    s += two('biceps', 25, 68, 5, 11);
-    s += `<g class="${c('abs')}"><rect x="44" y="67" width="12" height="35" rx="4"/></g>`;
-    s += two('obliques', 39.5, 82, 3.5, 13) + two('quads', 42, 135, 8, 24) + two('calves', 42, 172, 4.5, 13);
-  } else {
-    s += `<g class="${c('traps')}"><path d="M50 27 L62 39 L56 58 L50 62 L44 58 L38 39 Z"/></g>`;
-    s += two('reardelt', 28, 45, 7, 8) + two('triceps', 25, 68, 5, 12);
-    s += `<g class="${c('lats')}"><path d="M37 50 L44 56 L46 84 Q40 82 37 76 Q34 64 37 50 Z"/><path d="M63 50 L56 56 L54 84 Q60 82 63 76 Q66 64 63 50 Z"/></g>`;
-    s += `<g class="${c('midback')}"><rect x="45" y="60" width="10" height="16" rx="3"/></g>`;
-    s += two('glutes', 43, 111, 8, 9) + two('hamstrings', 42, 140, 7, 20) + two('calves', 42, 172, 5.5, 13);
-  }
-  return s + '</svg>';
+  const cls = k => k === 'skin' ? 'mm-skin'
+    : MERGED[k] ? `mm-${Math.max(...MERGED[k].map(m => shade(r[m] || 0, scale)))}`
+    : COUNTED.has(k) ? `mm-${shade(r[k] || 0, scale)}` : 'mm-x';
+  const shapes = (side === 'front' ? FRONT : BACK).map(([k, d]) => `<path class="${cls(k)}" d="${d}"/>`).join('');
+  return `<svg class="mm" viewBox="${VIEWBOX[side]}" role="img" aria-label="${side === 'front' ? 'Front' : 'Back'} of the body, shaded by sets">` +
+    `<path class="mm-base" d="${OUTLINE[side]}"/>${shapes}</svg>`;
 }

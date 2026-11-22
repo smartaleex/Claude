@@ -22,6 +22,8 @@ import { esc, toast, openSheet, closeSheet, sheetVal, bindActions, empty } from 
 import { icon } from '../../core/icons.js';
 import { compress, addPhoto, listPhotos, deletePhoto, updatePhoto, urlFor } from '../../core/photos.js';
 import { goalHTML2, progressResultHTML } from './physique-views.js';
+import { compareNote, tagLabel } from '../../core/pump.js';
+import { autoTag, tagBadge, tagChooserHTML, setTag } from './photo-tags.js';
 import { ui, MAX_GOAL, render, store } from './state.js';
 
 export function loadPhotos(){
@@ -96,13 +98,14 @@ export function photosHTML(){
         <button data-act="viewphoto" data-id="${sh.id}" style="position:relative;border-radius:var(--r-sm);
                 overflow:hidden;box-shadow:var(--clay-sm);aspect-ratio:3/4">
           <img src="${urlFor(sh)}" style="width:100%;height:100%;object-fit:cover;display:block">
+          ${tagBadge(sh)}
           <span style="position:absolute;left:0;right:0;bottom:0;padding:5px;font-size:10px;font-weight:700;
                 color:#fff;background:linear-gradient(to top,rgba(0,0,0,.6),transparent)">
             ${esc(dateOf(sh))}</span>
         </button>`).join('')}
     </div>
     <div class="tiny muted center" style="margin-top:10px;line-height:1.55">
-      Tap a photo to change its date or delete it.
+      Tap a photo to change its date, mark it rested or post-workout, or delete it.
     </div>`}
 
   ${goalHTML2(ai, shots)}
@@ -119,14 +122,15 @@ function compareHTML(shots, a, b){
   const opt = (sel) => shots.map(sh =>
     `<option value="${sh.id}" ${sh.id === sel.id ? 'selected' : ''}>${esc(dateOf(sh))}</option>`).join('');
   const gap = Math.abs(daysBetween(dayKey(a.t), dayKey(b.t)));
+  const note = compareNote(a.after, b.after);
   return `
     <div class="sec">Then and now</div>
     <div class="card in" style="padding:0;overflow:hidden">
       <div class="cmp" id="cmp" style="--pos:50%">
         <img class="cmp-after"  src="${urlFor(b)}" alt="After">
         <img class="cmp-before" src="${urlFor(a)}" alt="Before">
-        <span class="cmp-tag l">${esc(dateOf(a))}</span>
-        <span class="cmp-tag r">${esc(dateOf(b))}</span>
+        <span class="cmp-tag l">${esc(dateOf(a))}${a.after ? ` · ${esc(tagLabel(a.after))}` : ''}</span>
+        <span class="cmp-tag r">${esc(dateOf(b))}${b.after ? ` · ${esc(tagLabel(b.after))}` : ''}</span>
         <span class="cmp-line"></span>
       </div>
       <div style="padding:14px 16px 4px">
@@ -141,6 +145,7 @@ function compareHTML(shots, a, b){
       </div>
       <div class="tiny muted center" style="padding:6px 12px 14px">
         ${gap} day${gap === 1 ? '' : 's'} apart
+        ${note ? `<div class="pump-note">${esc(note)}</div>` : ''}
       </div>
     </div>`;
 }
@@ -156,7 +161,7 @@ export async function capturePhoto(which, album = 'physique'){
       files = files.slice(0, Math.max(0, room));
     }
     try{
-      let dated = 0;
+      let dated = 0, tagged = null;
       for (const f of files){
         const blob = await compress(f);
         const meta = {};
@@ -167,10 +172,15 @@ export async function capturePhoto(which, album = 'physique'){
         if (album === 'physique' && f.lastModified && f.lastModified <= Date.now() && Date.now() - f.lastModified > 120000){
           meta.t = f.lastModified; dated++;
         }
+        if (album === 'physique'){
+          const tag = autoTag(meta.t || Date.now());
+          if (tag){ meta.after = tag; tagged = tag; }
+        }
         await addPhoto(album, blob, meta);
       }
       ui.photos = null; ui.goals = null;
-      toast(dated ? 'Added — dated from the file, tap a photo to correct it'
+      toast(tagged ? `Added, marked ${tagLabel(tagged).toLowerCase()}. The pump is allowed for.`
+          : dated ? 'Added — dated from the file, tap a photo to correct it'
           : files.length > 1 ? `${files.length} added` : 'Added');
       render();
     }catch(e){ toast(e.message || 'Could not save that photo'); }
@@ -193,6 +203,7 @@ export function viewPhoto(id){
     </div>
     <div class="tiny muted" style="margin-top:6px;line-height:1.5">
       Used for the order, the before/after picker and how many days apart two photos are.</div>
+    ${sh.album === 'physique' ? tagChooserHTML(sh) : ''}
 
     <button class="btn btn-ghost block" style="margin-top:14px;color:var(--bad)" data-act="rm">Delete this photo</button>
     <button class="btn btn-ghost block" data-act="close">Close</button>
@@ -207,6 +218,11 @@ export function viewPhoto(id){
       await updatePhoto(id, { t: new Date(y, m - 1, d, 12).getTime() });
       ui.photos = null;
       closeSheet(); toast('Date updated'); render();
+    },
+    tagset: async d => {
+      const tag = await setTag(sh, d.k);
+      ui.photos = null;
+      closeSheet(); toast(tag ? tagLabel(tag) : tag === null ? 'Marked rested' : 'Tag cleared'); render();
     },
     rm: async () => {
       await deletePhoto(id);

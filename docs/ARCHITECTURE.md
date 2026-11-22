@@ -70,6 +70,8 @@ assets/
       library.js          every exercise the app knows, grouped by muscle, with the ranked type-ahead search the swap sheet uses
       form.js             the moving stick-figure diagram of how an exercise is done, matched by keywords
       musclemap.js        front and back of the body shaded by sets (pure: counting and an SVG string)
+      anatomy.js          the anatomical figure it paints on: one path per muscle (MIT paths, see header)
+      pump.js             post-workout photos: which session a photo followed, what it pumped, the wording
       coach-chat.js       the session coach: its prompt, its offline answer, and which changes it may make
       balance.js          did the session and the week still balance out after swaps? (pure logic)
       meds.js             medication schedule: model, plain-English reader, dose slots, reminder items
@@ -78,7 +80,7 @@ assets/
       day.js              Day: meds, sleep, mood, anchors
       day-meds.js         Day: the medication schedule screens and phone reminders
       fuel.js             Food: macros and the bulk
-      forge/              Training (19 files, see below)
+      forge/              Training (20 files, see below)
       clear.js            Nicotine: the taper
       shout.js            People: mates and plans
       ledger.js           Money: budget and the house
@@ -121,6 +123,7 @@ unrelated files. The app does not use them and the deploy ignores them.
 | `history.js` | Past sessions |
 | `photos.js` | Photos tab, before/after slider, goal photos |
 | `physique-ai.js` | The Gemini calls on photos, with consent |
+| `photo-tags.js` | Rested or post-workout on a photo: auto-tag from the last session, the chooser, the badge |
 | `physique-views.js` | How those readings are drawn |
 | `advice.js` | "Ask the coach" |
 | `edit.js` | "Change it in your own words": type a change, see the verdict and reasons, apply, undo |
@@ -153,7 +156,8 @@ that module's `actions`.
 | An exercise is filed under the wrong muscle or movement | `data/workouts.js` (`MUSCLE_RULES`), `data/swaps.js` (`RULES`) | "iso-lateral" is ignored on purpose (it is how a machine moves) |
 | An exercise is missing from the swap search | `data/swaps.js` (`SWAPS` options and `K` load index) | the list is built and ranked in `core/library.js` (`rankLibrary`) |
 | A form diagram is wrong or missing | `core/form.js` (`RULES` name to movement, `POSES` the two key positions) | `tests/unit/form.test.mjs` checks every library exercise has one |
-| The muscle map shades the wrong place | `core/musclemap.js` (`REGIONS`), `data/workouts.js` (`MUSCLE_RULES`) | |
+| The muscle map shades the wrong place | `core/musclemap.js` (`REGIONS`, `MERGED`), `core/anatomy.js` (region names), `data/workouts.js` (`MUSCLE_RULES`) | |
+| A photo is tagged with the wrong session, or the pump note reads wrong | `core/pump.js` (`sessionBefore`, `pumpedAreas`, `PUMP_RULE`) | `apps/forge/photo-tags.js` |
 | The coach says or proposes something odd | `core/coach-chat.js` (`coachPrompt`, `offlineCoach`) | it may only swap, or change reps and rest |
 | A session is not 3 supersets at 4 / 3 / 3 | `data/workouts.js` (`FORMAT`, `fitFormat`) | `tests/unit/format.test.mjs` pins every phase |
 | "How it balanced" says something odd | `core/balance.js` | `tests/unit/balance.test.mjs` has the assisted pull-up to iso-lateral row example |

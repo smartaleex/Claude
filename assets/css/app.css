@@ -529,7 +529,8 @@ canvas{ display:block; }
   font-family:var(--f-label); font-size:10.5px; letter-spacing:.08em; text-transform:uppercase;
   color:#fff; background:rgba(13,14,20,.66);
 }
-.cmp-tag.l{ left:10px; } .cmp-tag.r{ right:10px; }
+.cmp-tag.l{ left:10px; } .cmp-tag.r{ right:10px; text-align:right; }
+.cmp-tag{ max-width:calc(50% - 16px); line-height:1.35; }
 .cmp-range{
   -webkit-appearance:none; appearance:none; width:100%; height:6px; border-radius:var(--r-bar);
   background:var(--bg-sunk); outline:none; margin:12px 0; border:var(--bd-soft);
@@ -647,8 +648,11 @@ canvas{ display:block; }
 .mm-grid{ display:grid; grid-template-columns:minmax(0,.8fr) minmax(0,.8fr) minmax(0,1.4fr); gap:10px; align-items:start; margin-top:12px; }
 .mm-grid figure{ margin:0; display:flex; flex-direction:column; align-items:center; gap:2px; }
 .mm-grid figcaption{ font-size:10.5px; letter-spacing:.1em; text-transform:uppercase; color:var(--faint); font-weight:700; }
-.mm{ width:100%; max-width:96px; height:auto; }
-.mm .mm-base{ fill:var(--bg-sunk); }
+.mm{ width:100%; max-width:104px; height:auto; }
+.mm path{ stroke:var(--surface); stroke-width:.7px; stroke-linejoin:round; vector-effect:non-scaling-stroke; }
+.mm .mm-base{ fill:var(--bg-sunk); stroke:color-mix(in srgb, var(--ink) 18%, var(--surface)); stroke-width:1px; }
+.mm .mm-skin{ fill:var(--bg-sunk); stroke:color-mix(in srgb, var(--ink) 12%, var(--surface)); }
+.mm .mm-x{ fill:color-mix(in srgb, var(--ink) 7%, var(--bg-sunk)); }
 .mm-0{ fill:color-mix(in srgb, var(--ink) 9%, var(--surface)); background:color-mix(in srgb, var(--ink) 9%, var(--surface)); }
 .mm-1{ fill:color-mix(in srgb, var(--accent-1) 25%, var(--surface)); background:color-mix(in srgb, var(--accent-1) 25%, var(--surface)); }
 .mm-2{ fill:color-mix(in srgb, var(--accent-1) 48%, var(--surface)); background:color-mix(in srgb, var(--accent-1) 48%, var(--surface)); }
@@ -680,3 +684,9 @@ canvas{ display:block; }
 .coach-reply{ margin-top:14px; padding:12px 14px; border-radius:var(--r-md); background:var(--accent-tint); color:var(--ink);
   font-size:14.5px; line-height:1.6; white-space:pre-wrap; }
 .coach-prop{ display:flex; gap:11px; align-items:flex-start; margin-top:10px; }
+
+/* Progress photos: rested or post-workout (apps/forge/photo-tags.js) */
+.ph-tag{ position:absolute; left:5px; top:5px; max-width:calc(100% - 10px); padding:3px 6px; border-radius:var(--r-av);
+  font-size:9.5px; font-weight:700; line-height:1.2; color:var(--ink); background:color-mix(in srgb, var(--surface) 88%, transparent);
+  white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.pump-note{ margin-top:8px; text-align:left; font-size:12px; line-height:1.55; color:var(--ink); opacity:.8; }

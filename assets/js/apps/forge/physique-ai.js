@@ -10,6 +10,7 @@ import { toast, openSheet, closeSheet, bindActions, haptic } from '../../core/ui
 import { blobToImage } from '../../core/photos.js';
 import { weeklyVolume } from '../../data/workouts.js';
 import * as coach from '../../core/coach.js';
+import { promptNote } from '../../core/pump.js';
 import { dateOf, pair } from './photos.js';
 import { ui, fuelData, phase, render, store, weekInBlock } from './state.js';
 
@@ -62,9 +63,10 @@ export async function readProgress(){
   try{
     const picks = a && a.id !== b.id ? [a, b] : [b];
     const images = await Promise.all(picks.map(p => blobToImage(p.blob)));
+    const cond = p => promptNote(p.after) ? `, ${promptNote(p.after)}` : '';
     const labels = picks.length === 2
-      ? [`Photo 1: BEFORE, taken ${dateOf(picks[0])}`, `Photo 2: AFTER, taken ${dateOf(picks[1])}`]
-      : [`Photo 1: his current physique, taken ${dateOf(picks[0])}`];
+      ? [`Photo 1: BEFORE, taken ${dateOf(picks[0])}${cond(picks[0])}`, `Photo 2: AFTER, taken ${dateOf(picks[1])}${cond(picks[1])}`]
+      : [`Photo 1: his current physique, taken ${dateOf(picks[0])}${cond(picks[0])}`];
     const context = aiContext(dayKey(picks[0].t), dayKey(picks.at(-1).t));
     const res = await ask({
       prompt: coach.progressPrompt({ context, question: ui.askText, labels }),
@@ -90,7 +92,7 @@ export async function runBenchmark(){
   try{
     const refs = goals.slice(-2);
     const images = await Promise.all([b, ...refs].map(p => blobToImage(p.blob)));
-    const labels = [`Photo 1: him NOW, taken ${dateOf(b)}`,
+    const labels = [`Photo 1: him NOW, taken ${dateOf(b)}${promptNote(b.after) ? `, ${promptNote(b.after)}` : ''}`,
                     ...refs.map((_, i) => `Photo ${i + 2}: GOAL reference ${i + 1}`)];
     const volume = weeklyVolume(phase()).map(([m, n]) => `${m}: ${n}`).join(', ');
     const res = await ask({
