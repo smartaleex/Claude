@@ -1,0 +1,655 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 56;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		0A483AE3C63E8844ACA1D24C /* RestActivity.swift in Sources */ = {isa = PBXBuildFile; fileRef = 07CEF87DA90DFF7D8ED2A155 /* RestActivity.swift */; };
+		0E5384DC68EF66A95310ADE4 /* ActivityKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 7ABBA81AB600D8CF5117E53E /* ActivityKit.framework */; };
+		0E7FB3548D540884C2DDA938 /* LocalAuthentication.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = F56B43D35489193C0E45B773 /* LocalAuthentication.framework */; };
+		14587A2B52BDCBCEB0178A37 /* WidgetKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 095A8C10E5517FEF3D81C71B /* WidgetKit.framework */; };
+		24166159C8184A8BA9C47581 /* SceneDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = F77429B2B8A31930BB970630 /* SceneDelegate.swift */; };
+		2B0AFD9C80644AB684ABDD9F /* Files.swift in Sources */ = {isa = PBXBuildFile; fileRef = 191347A89FAD6D2682741930 /* Files.swift */; };
+		2DB81F4E2437EE506A0EA3F8 /* manifest.webmanifest in Resources */ = {isa = PBXBuildFile; fileRef = A9B1A73517B48A7628C03543 /* manifest.webmanifest */; };
+		494310A93E131500774F1774 /* RestTimerAttributes.swift in Sources */ = {isa = PBXBuildFile; fileRef = D5F33682A9DC9BC8A0F9FF09 /* RestTimerAttributes.swift */; };
+		4F41016B608FCE10E6317F2C /* BiometricLock.swift in Sources */ = {isa = PBXBuildFile; fileRef = 179E842F1CC899D98A65C135 /* BiometricLock.swift */; };
+		57484993839BC38FF1A7BE61 /* HealthKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = C2A731705BC2EA64F3EAA22D /* HealthKit.framework */; };
+		5CF07C33F188B87F3987B3EE /* Foundation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = A8099E605838E472D884E480 /* Foundation.framework */; };
+		5D24EC3FA497F2585D294AE0 /* HealthBridge.swift in Sources */ = {isa = PBXBuildFile; fileRef = 54400987078907BF5C06C82D /* HealthBridge.swift */; };
+		5E794DDFE5E3011A1D9BBF86 /* SwiftUI.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = F55CB040FDCDFD2F992B9B0B /* SwiftUI.framework */; };
+		66633E94D8F0DDB1E3458282 /* RootViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1B6A74A70C00249DDB9066A7 /* RootViewController.swift */; };
+		66AFFE20320EADBFD21A6D46 /* AlexHQWidgets.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = CAC2631F27EBF1DBD39AF07C /* AlexHQWidgets.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+		6B1E3FBF99E9F09C8A0DFEF6 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = EE0553854A82E4EAE86B705B /* AppDelegate.swift */; };
+		6E5E998EE6AF13B59D8D7769 /* SharedStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = B887ECAF4BA4C0D5924D919D /* SharedStore.swift */; };
+		813D49DECD778C512E496470 /* Reminders.swift in Sources */ = {isa = PBXBuildFile; fileRef = 249E2F61802B0D689566BAAA /* Reminders.swift */; };
+		81882A7E91BCF08AFD4BB62A /* ActivityKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 7ABBA81AB600D8CF5117E53E /* ActivityKit.framework */; };
+		83FCABD76D86FCDCAC62B446 /* UserNotifications.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 1848100B04FC5F49F2038AE2 /* UserNotifications.framework */; };
+		8FE2F076EB33B58BC2B84DF2 /* RestTimerAttributes.swift in Sources */ = {isa = PBXBuildFile; fileRef = D5F33682A9DC9BC8A0F9FF09 /* RestTimerAttributes.swift */; };
+		938FC8ED11ABC46B0AAFC8EB /* Foundation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = A8099E605838E472D884E480 /* Foundation.framework */; };
+		971E9CF3F7E5DDE53B9B15D6 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 25A55A3B0D50A059FBF2C482 /* Assets.xcassets */; };
+		A8723B2BA68DECF2DC05B7C4 /* Haptics.swift in Sources */ = {isa = PBXBuildFile; fileRef = AAF233062F755CC055C5D693 /* Haptics.swift */; };
+		AF37990F667E9F4DC0BAB95C /* NativeBridge.swift in Sources */ = {isa = PBXBuildFile; fileRef = C9CCB1294C6A444A28ACCC6A /* NativeBridge.swift */; };
+		BCD55C3E0BF90CDEDD58E27E /* SharedStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = B887ECAF4BA4C0D5924D919D /* SharedStore.swift */; };
+		C0657A1CC7BE05298F7C02F7 /* BundleSchemeHandler.swift in Sources */ = {isa = PBXBuildFile; fileRef = 00D14BC41F7BBE7E6C51B790 /* BundleSchemeHandler.swift */; };
+		C0F63A1C1619B3F679AEA502 /* ThemeStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7EBACF2AFEDF04890C48DE04 /* ThemeStore.swift */; };
+		C90DA71262998DF49393CB74 /* WidgetKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 095A8C10E5517FEF3D81C71B /* WidgetKit.framework */; };
+		CFE663D23EA2AED5607AC5AA /* index.html in Resources */ = {isa = PBXBuildFile; fileRef = D946BFCBDB485636A0AF887A /* index.html */; };
+		D376D6FF7D0364696BFEEAB7 /* GlanceWidget.swift in Sources */ = {isa = PBXBuildFile; fileRef = A65A7AE0E1A67A674DF2EE61 /* GlanceWidget.swift */; };
+		D46126F779C350F67E00CF8B /* WebKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = D4DCFB22C1405CB988651628 /* WebKit.framework */; };
+		DA19A62DD524E326FBB6E698 /* AlexHQWidgets.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1E01F93DA9F8D114F4401B61 /* AlexHQWidgets.swift */; };
+		E12483153463A5D4E85D9377 /* RestTimerLiveActivity.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5B6CB9ED501E782C991D1694 /* RestTimerLiveActivity.swift */; };
+		EC81747F31203B423EF8460B /* WebHost.swift in Sources */ = {isa = PBXBuildFile; fileRef = 31EE9835A720E8FD90C463A7 /* WebHost.swift */; };
+		FBB4B176728EAE733B6F20E4 /* assets in Resources */ = {isa = PBXBuildFile; fileRef = 19D01FE27900A7FB2B1BD64C /* assets */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXContainerItemProxy section */
+		86553F160FDB4052AC39DE17 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 8ED983810B5B04C1C1860287 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 3EDCBAA968D6B37C8578EB73;
+			remoteInfo = AlexHQWidgets;
+		};
+/* End PBXContainerItemProxy section */
+
+/* Begin PBXCopyFilesBuildPhase section */
+		7B76F0B53DB0BB70CCAA931B /* Embed Foundation Extensions */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 13;
+			files = (
+				66AFFE20320EADBFD21A6D46 /* AlexHQWidgets.appex in Embed Foundation Extensions */,
+			);
+			name = "Embed Foundation Extensions";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXCopyFilesBuildPhase section */
+
+/* Begin PBXFileReference section */
+		00D14BC41F7BBE7E6C51B790 /* BundleSchemeHandler.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = BundleSchemeHandler.swift; sourceTree = "<group>"; };
+		07CEF87DA90DFF7D8ED2A155 /* RestActivity.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = RestActivity.swift; sourceTree = "<group>"; };
+		095A8C10E5517FEF3D81C71B /* WidgetKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = WidgetKit.framework; path = System/Library/Frameworks/WidgetKit.framework; sourceTree = SDKROOT; };
+		179E842F1CC899D98A65C135 /* BiometricLock.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = BiometricLock.swift; sourceTree = "<group>"; };
+		1848100B04FC5F49F2038AE2 /* UserNotifications.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = UserNotifications.framework; path = System/Library/Frameworks/UserNotifications.framework; sourceTree = SDKROOT; };
+		191347A89FAD6D2682741930 /* Files.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = Files.swift; sourceTree = "<group>"; };
+		19D01FE27900A7FB2B1BD64C /* assets */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = folder; name = assets; path = ../assets; sourceTree = "<group>"; };
+		1B6A74A70C00249DDB9066A7 /* RootViewController.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = RootViewController.swift; sourceTree = "<group>"; };
+		1E01F93DA9F8D114F4401B61 /* AlexHQWidgets.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = AlexHQWidgets.swift; sourceTree = "<group>"; };
+		249E2F61802B0D689566BAAA /* Reminders.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = Reminders.swift; sourceTree = "<group>"; };
+		25A55A3B0D50A059FBF2C482 /* Assets.xcassets */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		31EE9835A720E8FD90C463A7 /* WebHost.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = WebHost.swift; sourceTree = "<group>"; };
+		39F85961826F887326DE0A06 /* Info.plist */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		54400987078907BF5C06C82D /* HealthBridge.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = HealthBridge.swift; sourceTree = "<group>"; };
+		5B6CB9ED501E782C991D1694 /* RestTimerLiveActivity.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = RestTimerLiveActivity.swift; sourceTree = "<group>"; };
+		5FD1159F81B10041B8AB4A6D /* Info.plist */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		7ABBA81AB600D8CF5117E53E /* ActivityKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = ActivityKit.framework; path = System/Library/Frameworks/ActivityKit.framework; sourceTree = SDKROOT; };
+		7EBACF2AFEDF04890C48DE04 /* ThemeStore.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = ThemeStore.swift; sourceTree = "<group>"; };
+		8F13BD72B99BB3AD979C3098 /* AlexHQ.entitlements */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.plist.entitlements; path = AlexHQ.entitlements; sourceTree = "<group>"; };
+		A65A7AE0E1A67A674DF2EE61 /* GlanceWidget.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = GlanceWidget.swift; sourceTree = "<group>"; };
+		A8099E605838E472D884E480 /* Foundation.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Foundation.framework; path = System/Library/Frameworks/Foundation.framework; sourceTree = SDKROOT; };
+		A9B1A73517B48A7628C03543 /* manifest.webmanifest */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.json; name = manifest.webmanifest; path = ../manifest.webmanifest; sourceTree = "<group>"; };
+		AAF233062F755CC055C5D693 /* Haptics.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = Haptics.swift; sourceTree = "<group>"; };
+		B887ECAF4BA4C0D5924D919D /* SharedStore.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = SharedStore.swift; sourceTree = "<group>"; };
+		BF4213D4C7526DE5359A1E56 /* AlexHQWidgets.entitlements */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.plist.entitlements; path = AlexHQWidgets.entitlements; sourceTree = "<group>"; };
+		C2A731705BC2EA64F3EAA22D /* HealthKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = HealthKit.framework; path = System/Library/Frameworks/HealthKit.framework; sourceTree = SDKROOT; };
+		C9CCB1294C6A444A28ACCC6A /* NativeBridge.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = NativeBridge.swift; sourceTree = "<group>"; };
+		CAC2631F27EBF1DBD39AF07C /* AlexHQWidgets.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = AlexHQWidgets.appex; sourceTree = BUILT_PRODUCTS_DIR; };
+		D4DCFB22C1405CB988651628 /* WebKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = WebKit.framework; path = System/Library/Frameworks/WebKit.framework; sourceTree = SDKROOT; };
+		D5F33682A9DC9BC8A0F9FF09 /* RestTimerAttributes.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = RestTimerAttributes.swift; sourceTree = "<group>"; };
+		D946BFCBDB485636A0AF887A /* index.html */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.html; name = index.html; path = ../index.html; sourceTree = "<group>"; };
+		ED5C80FEEB81221D3DDCE66F /* AlexHQ.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = AlexHQ.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		EE0553854A82E4EAE86B705B /* AppDelegate.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
+		F55CB040FDCDFD2F992B9B0B /* SwiftUI.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = SwiftUI.framework; path = System/Library/Frameworks/SwiftUI.framework; sourceTree = SDKROOT; };
+		F56B43D35489193C0E45B773 /* LocalAuthentication.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = LocalAuthentication.framework; path = System/Library/Frameworks/LocalAuthentication.framework; sourceTree = SDKROOT; };
+		F77429B2B8A31930BB970630 /* SceneDelegate.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = SceneDelegate.swift; sourceTree = "<group>"; };
+/* End PBXFileReference section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		664B2DB6D4C6FF5A38F52A28 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				938FC8ED11ABC46B0AAFC8EB /* Foundation.framework in Frameworks */,
+				C90DA71262998DF49393CB74 /* WidgetKit.framework in Frameworks */,
+				5E794DDFE5E3011A1D9BBF86 /* SwiftUI.framework in Frameworks */,
+				0E5384DC68EF66A95310ADE4 /* ActivityKit.framework in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		FB2A8F089079CE96E4965C43 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				5CF07C33F188B87F3987B3EE /* Foundation.framework in Frameworks */,
+				D46126F779C350F67E00CF8B /* WebKit.framework in Frameworks */,
+				57484993839BC38FF1A7BE61 /* HealthKit.framework in Frameworks */,
+				81882A7E91BCF08AFD4BB62A /* ActivityKit.framework in Frameworks */,
+				14587A2B52BDCBCEB0178A37 /* WidgetKit.framework in Frameworks */,
+				0E7FB3548D540884C2DDA938 /* LocalAuthentication.framework in Frameworks */,
+				83FCABD76D86FCDCAC62B446 /* UserNotifications.framework in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		34874D661A2436C9758FFA06 /* Frameworks */ = {
+			isa = PBXGroup;
+			children = (
+				ECF98C851A74D321C92A11AB /* iOS */,
+			);
+			name = Frameworks;
+			sourceTree = "<group>";
+		};
+		702B4A25A6F05297EE33675D = {
+			isa = PBXGroup;
+			children = (
+				87F410A1C3475DFD0735726C /* Products */,
+				34874D661A2436C9758FFA06 /* Frameworks */,
+				707FE11AC9E1197ACC89E786 /* AlexHQ */,
+				C57F68E091D5305A810F7707 /* AlexHQWidgets */,
+				D21D0EC9ECB1FE1265D992CA /* Shared */,
+				8047C221DCAC9804FCA7E103 /* Web */,
+			);
+			sourceTree = "<group>";
+		};
+		707FE11AC9E1197ACC89E786 /* AlexHQ */ = {
+			isa = PBXGroup;
+			children = (
+				EE0553854A82E4EAE86B705B /* AppDelegate.swift */,
+				179E842F1CC899D98A65C135 /* BiometricLock.swift */,
+				00D14BC41F7BBE7E6C51B790 /* BundleSchemeHandler.swift */,
+				191347A89FAD6D2682741930 /* Files.swift */,
+				AAF233062F755CC055C5D693 /* Haptics.swift */,
+				54400987078907BF5C06C82D /* HealthBridge.swift */,
+				C9CCB1294C6A444A28ACCC6A /* NativeBridge.swift */,
+				249E2F61802B0D689566BAAA /* Reminders.swift */,
+				07CEF87DA90DFF7D8ED2A155 /* RestActivity.swift */,
+				1B6A74A70C00249DDB9066A7 /* RootViewController.swift */,
+				F77429B2B8A31930BB970630 /* SceneDelegate.swift */,
+				7EBACF2AFEDF04890C48DE04 /* ThemeStore.swift */,
+				31EE9835A720E8FD90C463A7 /* WebHost.swift */,
+				39F85961826F887326DE0A06 /* Info.plist */,
+				8F13BD72B99BB3AD979C3098 /* AlexHQ.entitlements */,
+				25A55A3B0D50A059FBF2C482 /* Assets.xcassets */,
+			);
+			name = AlexHQ;
+			path = AlexHQ;
+			sourceTree = "<group>";
+		};
+		8047C221DCAC9804FCA7E103 /* Web */ = {
+			isa = PBXGroup;
+			children = (
+				19D01FE27900A7FB2B1BD64C /* assets */,
+				D946BFCBDB485636A0AF887A /* index.html */,
+				A9B1A73517B48A7628C03543 /* manifest.webmanifest */,
+			);
+			name = Web;
+			sourceTree = "<group>";
+		};
+		87F410A1C3475DFD0735726C /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				ED5C80FEEB81221D3DDCE66F /* AlexHQ.app */,
+				CAC2631F27EBF1DBD39AF07C /* AlexHQWidgets.appex */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		C57F68E091D5305A810F7707 /* AlexHQWidgets */ = {
+			isa = PBXGroup;
+			children = (
+				1E01F93DA9F8D114F4401B61 /* AlexHQWidgets.swift */,
+				A65A7AE0E1A67A674DF2EE61 /* GlanceWidget.swift */,
+				5B6CB9ED501E782C991D1694 /* RestTimerLiveActivity.swift */,
+				5FD1159F81B10041B8AB4A6D /* Info.plist */,
+				BF4213D4C7526DE5359A1E56 /* AlexHQWidgets.entitlements */,
+			);
+			name = AlexHQWidgets;
+			path = AlexHQWidgets;
+			sourceTree = "<group>";
+		};
+		D21D0EC9ECB1FE1265D992CA /* Shared */ = {
+			isa = PBXGroup;
+			children = (
+				D5F33682A9DC9BC8A0F9FF09 /* RestTimerAttributes.swift */,
+				B887ECAF4BA4C0D5924D919D /* SharedStore.swift */,
+			);
+			name = Shared;
+			path = Shared;
+			sourceTree = "<group>";
+		};
+		ECF98C851A74D321C92A11AB /* iOS */ = {
+			isa = PBXGroup;
+			children = (
+				A8099E605838E472D884E480 /* Foundation.framework */,
+				D4DCFB22C1405CB988651628 /* WebKit.framework */,
+				C2A731705BC2EA64F3EAA22D /* HealthKit.framework */,
+				7ABBA81AB600D8CF5117E53E /* ActivityKit.framework */,
+				095A8C10E5517FEF3D81C71B /* WidgetKit.framework */,
+				F56B43D35489193C0E45B773 /* LocalAuthentication.framework */,
+				1848100B04FC5F49F2038AE2 /* UserNotifications.framework */,
+				F55CB040FDCDFD2F992B9B0B /* SwiftUI.framework */,
+			);
+			name = iOS;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		3EDCBAA968D6B37C8578EB73 /* AlexHQWidgets */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 91DE08C2120C6E9A15ED9527 /* Build configuration list for PBXNativeTarget "AlexHQWidgets" */;
+			buildPhases = (
+				EE11CB4048FDFF566C64170F /* Sources */,
+				664B2DB6D4C6FF5A38F52A28 /* Frameworks */,
+				9561592A91D002E824C0085C /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = AlexHQWidgets;
+			productName = AlexHQWidgets;
+			productReference = CAC2631F27EBF1DBD39AF07C /* AlexHQWidgets.appex */;
+			productType = "com.apple.product-type.app-extension";
+		};
+		CB1F91B933A7A70B83006BE5 /* AlexHQ */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = A914D1CD2471969B90397E68 /* Build configuration list for PBXNativeTarget "AlexHQ" */;
+			buildPhases = (
+				E4B65221BC2556337C4705A6 /* Sources */,
+				FB2A8F089079CE96E4965C43 /* Frameworks */,
+				FCD95A5FE330D30AD940E113 /* Resources */,
+				7B76F0B53DB0BB70CCAA931B /* Embed Foundation Extensions */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				376CD178C540C8534E5D2037 /* PBXTargetDependency */,
+			);
+			name = AlexHQ;
+			productName = AlexHQ;
+			productReference = ED5C80FEEB81221D3DDCE66F /* AlexHQ.app */;
+			productType = "com.apple.product-type.application";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		8ED983810B5B04C1C1860287 /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				LastSwiftUpdateCheck = 1600;
+				LastUpgradeCheck = 1600;
+				TargetAttributes = {
+					3EDCBAA968D6B37C8578EB73 = {
+						CreatedOnToolsVersion = 16.0;
+						SystemCapabilities = {
+							com.apple.ApplicationGroups.iOS = {
+								enabled = 1;
+							};
+						};
+					};
+					CB1F91B933A7A70B83006BE5 = {
+						CreatedOnToolsVersion = 16.0;
+						SystemCapabilities = {
+							com.apple.ApplicationGroups.iOS = {
+								enabled = 1;
+							};
+							com.apple.HealthKit = {
+								enabled = 1;
+							};
+						};
+					};
+				};
+			};
+			buildConfigurationList = B1E05301F58D482A370E1005 /* Build configuration list for PBXProject "AlexHQ" */;
+			compatibilityVersion = "Xcode 14.0";
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				en,
+				Base,
+			);
+			mainGroup = 702B4A25A6F05297EE33675D;
+			minimizedProjectReferenceProxies = 0;
+			preferredProjectObjectVersion = 100;
+			productRefGroup = 87F410A1C3475DFD0735726C /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				CB1F91B933A7A70B83006BE5 /* AlexHQ */,
+				3EDCBAA968D6B37C8578EB73 /* AlexHQWidgets */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		9561592A91D002E824C0085C /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		FCD95A5FE330D30AD940E113 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				971E9CF3F7E5DDE53B9B15D6 /* Assets.xcassets in Resources */,
+				FBB4B176728EAE733B6F20E4 /* assets in Resources */,
+				CFE663D23EA2AED5607AC5AA /* index.html in Resources */,
+				2DB81F4E2437EE506A0EA3F8 /* manifest.webmanifest in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		E4B65221BC2556337C4705A6 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				6B1E3FBF99E9F09C8A0DFEF6 /* AppDelegate.swift in Sources */,
+				4F41016B608FCE10E6317F2C /* BiometricLock.swift in Sources */,
+				C0657A1CC7BE05298F7C02F7 /* BundleSchemeHandler.swift in Sources */,
+				2B0AFD9C80644AB684ABDD9F /* Files.swift in Sources */,
+				A8723B2BA68DECF2DC05B7C4 /* Haptics.swift in Sources */,
+				5D24EC3FA497F2585D294AE0 /* HealthBridge.swift in Sources */,
+				AF37990F667E9F4DC0BAB95C /* NativeBridge.swift in Sources */,
+				813D49DECD778C512E496470 /* Reminders.swift in Sources */,
+				0A483AE3C63E8844ACA1D24C /* RestActivity.swift in Sources */,
+				66633E94D8F0DDB1E3458282 /* RootViewController.swift in Sources */,
+				24166159C8184A8BA9C47581 /* SceneDelegate.swift in Sources */,
+				C0F63A1C1619B3F679AEA502 /* ThemeStore.swift in Sources */,
+				EC81747F31203B423EF8460B /* WebHost.swift in Sources */,
+				494310A93E131500774F1774 /* RestTimerAttributes.swift in Sources */,
+				BCD55C3E0BF90CDEDD58E27E /* SharedStore.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		EE11CB4048FDFF566C64170F /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				DA19A62DD524E326FBB6E698 /* AlexHQWidgets.swift in Sources */,
+				D376D6FF7D0364696BFEEAB7 /* GlanceWidget.swift in Sources */,
+				E12483153463A5D4E85D9377 /* RestTimerLiveActivity.swift in Sources */,
+				8FE2F076EB33B58BC2B84DF2 /* RestTimerAttributes.swift in Sources */,
+				6E5E998EE6AF13B59D8D7769 /* SharedStore.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		376CD178C540C8534E5D2037 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			name = AlexHQWidgets;
+			target = 3EDCBAA968D6B37C8578EB73 /* AlexHQWidgets */;
+			targetProxy = 86553F160FDB4052AC39DE17 /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
+
+/* Begin XCBuildConfiguration section */
+		1596396C9F8E3A154A5C413A /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				CURRENT_PROJECT_VERSION = 1;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"DEBUG=1",
+					"$(inherited)",
+				);
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				MARKETING_VERSION = 1.0;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				MTL_FAST_MATH = YES;
+				ONLY_ACTIVE_ARCH = YES;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+				SWIFT_VERSION = 5.0;
+			};
+			name = Debug;
+		};
+		3F1D4F0319CEDC2DEDA85313 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				CURRENT_PROJECT_VERSION = 1;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				MARKETING_VERSION = 1.0;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				MTL_FAST_MATH = YES;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_COMPILATION_MODE = wholemodule;
+				SWIFT_OPTIMIZATION_LEVEL = "-O";
+				SWIFT_VERSION = 5.0;
+			};
+			name = Release;
+		};
+		45D87A4E8B15A412303B206C /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CLANG_ENABLE_OBJC_WEAK = NO;
+				CODE_SIGN_ENTITLEMENTS = AlexHQ/AlexHQ.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = AlexHQ/Info.plist;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.alexkonnaris.hq;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 1;
+			};
+			name = Debug;
+		};
+		4CD82FCAF695112E26600099 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CLANG_ENABLE_OBJC_WEAK = NO;
+				CODE_SIGN_ENTITLEMENTS = AlexHQ/AlexHQ.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = AlexHQ/Info.plist;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.alexkonnaris.hq;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 1;
+				VALIDATE_PRODUCT = YES;
+			};
+			name = Release;
+		};
+		C6608792C3884E8807360CC5 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				APPLICATION_EXTENSION_API_ONLY = YES;
+				CLANG_ENABLE_OBJC_WEAK = NO;
+				CODE_SIGN_ENTITLEMENTS = AlexHQWidgets/AlexHQWidgets.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = AlexHQWidgets/Info.plist;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.alexkonnaris.hq.widgets;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SKIP_INSTALL = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 1;
+			};
+			name = Debug;
+		};
+		FDC5E471CB476E7A7732AE31 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				APPLICATION_EXTENSION_API_ONLY = YES;
+				CLANG_ENABLE_OBJC_WEAK = NO;
+				CODE_SIGN_ENTITLEMENTS = AlexHQWidgets/AlexHQWidgets.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = AlexHQWidgets/Info.plist;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.alexkonnaris.hq.widgets;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SKIP_INSTALL = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 1;
+				VALIDATE_PRODUCT = YES;
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		91DE08C2120C6E9A15ED9527 /* Build configuration list for PBXNativeTarget "AlexHQWidgets" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				FDC5E471CB476E7A7732AE31 /* Release */,
+				C6608792C3884E8807360CC5 /* Debug */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		A914D1CD2471969B90397E68 /* Build configuration list for PBXNativeTarget "AlexHQ" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				4CD82FCAF695112E26600099 /* Release */,
+				45D87A4E8B15A412303B206C /* Debug */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		B1E05301F58D482A370E1005 /* Build configuration list for PBXProject "AlexHQ" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				1596396C9F8E3A154A5C413A /* Debug */,
+				3F1D4F0319CEDC2DEDA85313 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+/* End XCConfigurationList section */
+	};
+	rootObject = 8ED983810B5B04C1C1860287 /* Project object */;
+}
